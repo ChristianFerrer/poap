@@ -9,7 +9,10 @@
 
 .toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
@@ -84,6 +87,41 @@
   background: var(--surface-0);
 }
 
+.monthGridLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--border);
+}
+.dayGridLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.dayHighlight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--text-accent) 16%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
+}
+.dayBadge {
+  position: absolute;
+  transform: translate(4px, 4px);
+  background: var(--text-accent);
+  color: var(--card-bg);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
 .labelCell {
   display: flex;
   align-items: center;
@@ -100,6 +138,7 @@
   display: flex;
   flex-direction: column;
   border-bottom: 0.5px solid var(--border);
+  cursor: pointer;
 }
 
 .yearRow {
@@ -118,12 +157,16 @@
   border-left: 0.5px solid var(--border);
 }
 
+/* Month and day/week tiers get distinct colors so the ruler reads as three
+   separate scales, not one blurred row of numbers. */
 .monthHeader {
   display: grid;
+  background: var(--surface-1);
 }
 .monthCell {
   font-size: 11px;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--ink);
   text-align: left;
   padding-left: 2px;
   display: flex;
@@ -132,13 +175,14 @@
 
 .weekRow {
   position: relative;
+  background: color-mix(in srgb, var(--bg-accent) 55%, var(--card-bg));
 }
 .weekTick {
   position: absolute;
   top: 0;
   transform: translateX(-50%);
   font-size: 10px;
-  color: var(--text-secondary);
+  color: var(--text-accent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -173,7 +217,7 @@
   align-items: center;
   gap: 6px;
   width: 100%;
-  background: none;
+  background: var(--row-tint, transparent);
   border: none;
   border-radius: 0;
   cursor: pointer;
@@ -181,7 +225,7 @@
   text-align: left;
 }
 .laneLabel:hover {
-  background: var(--surface-1);
+  background: color-mix(in srgb, var(--row-tint, var(--surface-1)) 70%, var(--ink) 8%);
 }
 .chevron {
   flex: 0 0 auto;
@@ -208,6 +252,7 @@
   flex-direction: column;
   gap: 2px;
   border-bottom: 0.5px solid var(--border);
+  background: var(--row-tint, transparent);
 }
 .laneRow {
   position: relative;
@@ -271,7 +316,6 @@
 .legend {
   display: flex;
   gap: 16px;
-  margin-top: 12px;
   flex-wrap: wrap;
 }
 .legendItem {

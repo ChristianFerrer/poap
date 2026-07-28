@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
 import type { Lane, Phase, PhaseStatus, PoapRendererProps } from "./types";
@@ -90,6 +91,19 @@ function pct(value: number, months: number): string {
   return `${(value / months) * 100}%`;
 }
 
+/** Width, in axis units, of the single calendar day a position falls in —
+ * months differ in day count, so this isn't a constant. */
+function dayWidth(position: number, startMonth: string): number {
+  const d = fromAxis(position, startMonth);
+  const daysInMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  return 1 / daysInMonth;
+}
+
+const LANE_TINT_COUNT = 6;
+function laneTintVar(index: number): string {
+  return `var(--lane-tint-${(index % LANE_TINT_COUNT) + 1})`;
+}
+
 function laneRowHeight(rowCount: number): number {
   const rows = Math.max(rowCount, 1);
   return LANE_PADDING_Y * 2 + rows * BAR_HEIGHT + (rows - 1) * ROW_GAP;
@@ -170,6 +184,7 @@ export function PoapRenderer({
   const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("anio");
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
 
@@ -241,6 +256,17 @@ export function PoapRenderer({
   const gateRowHeight = GATES_ROW_BASE_HEIGHT + (gateRowLevels - 1) * GATE_SHIFT_PX;
   const rulerHeight = YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT + (zoom.showWeekRow ? WEEK_ROW_HEIGHT : 0);
 
+  // A phase "touches" the selected day if the day falls anywhere in
+  // [start, end] — counted against every phase in the program, regardless
+  // of whether its lane is currently collapsed, since the count describes
+  // the underlying plan, not what's currently on screen.
+  const touchedCount = useMemo(() => {
+    if (selectedDay === null) return 0;
+    return orderedLanes
+      .flatMap((l) => l.phases)
+      .filter((p) => p.start <= selectedDay && p.end >= selectedDay).length;
+  }, [orderedLanes, selectedDay]);
+
   function toggleLane(laneId: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -250,6 +276,18 @@ export function PoapRenderer({
     });
   }
 
+  // Clicking the ruler picks a day: convert the click's x position to an
+  // axis position, then snap it to that day's start via a fromAxis/toAxis
+  // round-trip so it lines up exactly with how phase.start/end compare.
+  // Clicking the already-selected day again clears it.
+  function handleRulerClick(e: ReactMouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const rawPosition = ratio * months;
+    const snapped = toAxis(fromAxis(rawPosition, startMonth), startMonth);
+    setSelectedDay((prev) => (prev !== null && Math.abs(prev - snapped) < 0.001 ? null : snapped));
+  }
+
   function showTooltip(e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) {
     setTooltip({ ...data, x: e.clientX, y: e.clientY });
   }
@@ -257,6 +295,7 @@ export function PoapRenderer({
   return (
     <div className={styles.card}>
       <div className={styles.toolbar}>
+        <Legend />
         <div className={styles.zoomGroup} role="group" aria-label="Nivel de zoom temporal">
           {ZOOM_LEVELS.map((z) => (
             <button
@@ -280,7 +319,7 @@ export function PoapRenderer({
           >
             Stage gates
           </div>
-          {packedLanes.map(({ lane, rows }) => {
+          {packedLanes.map(({ lane, rows }, i) => {
             const isCollapsed = rows === null;
             const height = laneRowHeight(isCollapsed ? 1 : rows.length);
             return (
@@ -288,7 +327,7 @@ export function PoapRenderer({
                 key={lane.id}
                 type="button"
                 className={`${styles.labelCell} ${styles.laneLabel}`}
-                style={{ height }}
+                style={{ height, "--row-tint": laneTintVar(i) } as CSSProperties}
                 onClick={() => toggleLane(lane.id)}
                 aria-expanded={!isCollapsed}
               >
@@ -312,9 +351,27 @@ export function PoapRenderer({
                   title={band.label}
                 />
               ))}
+              {Array.from({ length: months + 1 }, (_, i) => (
+                <div key={`m${i}`} className={styles.monthGridLine} style={{ left: pct(i, months) }} />
+              ))}
+              {zoom.showWeekRow &&
+                wTicks.map((tick, i) => (
+                  <div key={`d${i}`} className={styles.dayGridLine} style={{ left: pct(tick.position, months) }} />
+                ))}
+              {selectedDay !== null && (
+                <>
+                  <div
+                    className={styles.dayHighlight}
+                    style={{ left: pct(selectedDay, months), width: pct(dayWidth(selectedDay, startMonth), months) }}
+                  />
+                  <div className={styles.dayBadge} style={{ left: pct(selectedDay, months), top: rulerHeight }}>
+                    {touchedCount} {touchedCount === 1 ? "fase" : "fases"}
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className={styles.ruler} style={{ height: rulerHeight }}>
+            <div className={styles.ruler} style={{ height: rulerHeight }} onClick={handleRulerClick}>
               <div className={styles.yearRow} style={{ height: YEAR_ROW_HEIGHT }}>
                 {ySegments.map((seg) => (
                   <div
@@ -358,12 +415,13 @@ export function PoapRenderer({
               ))}
             </div>
 
-            {packedLanes.map(({ lane, rows }) => {
+            {packedLanes.map(({ lane, rows }, i) => {
+              const rowTint = { "--row-tint": laneTintVar(i) } as CSSProperties;
               if (rows === null) {
                 const agg = aggregateLane(lane);
                 const height = laneRowHeight(1);
                 return (
-                  <div key={lane.id} className={styles.laneTrack} style={{ height }}>
+                  <div key={lane.id} className={styles.laneTrack} style={{ height, ...rowTint }}>
                     <div className={styles.laneRow}>
                       <AggregateBar
                         agg={agg}
@@ -377,9 +435,9 @@ export function PoapRenderer({
                 );
               }
               return (
-                <div key={lane.id} className={styles.laneTrack} style={{ height: laneRowHeight(rows.length) }}>
-                  {rows.map((row, i) => (
-                    <div key={i} className={styles.laneRow}>
+                <div key={lane.id} className={styles.laneTrack} style={{ height: laneRowHeight(rows.length), ...rowTint }}>
+                  {rows.map((row, r) => (
+                    <div key={r} className={styles.laneRow}>
                       {row.map((phase) => (
                         <Bar
                           key={phase.id}
@@ -400,8 +458,6 @@ export function PoapRenderer({
           </div>
         </div>
       </div>
-
-      <Legend />
 
       {tooltip && <Tooltip data={tooltip} startMonth={startMonth} />}
     </div>
