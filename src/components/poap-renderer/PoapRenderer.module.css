@@ -242,6 +242,10 @@
   align-items: center;
   overflow: hidden;
   white-space: nowrap;
+  /* Same reasoning as .subCell: monthHeader's own background sits above
+     monthGridLine in paint order, so the month-start/end boundary needs
+     its own border here to actually be visible in the ruler. */
+  border-left: 1px solid var(--border);
 }
 
 .subRow {
