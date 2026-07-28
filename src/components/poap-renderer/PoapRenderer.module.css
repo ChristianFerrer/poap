@@ -147,7 +147,7 @@
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  border-left: 1px solid var(--border);
 }
 
 /* Last in DOM within .timelineInner (see the .tsx comment) so this paints
@@ -263,6 +263,11 @@
   color: var(--text-accent);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
+  /* subGridLine (in bandsOverlay) only reaches down from here — it paints
+     *below* this row's own background and would be invisible inside it, so
+     the boundary needs its own border right here to read as one continuous
+     line with the body divider beneath it. */
+  border-left: 1px solid var(--border);
 }
 
 .gatesTrack {
