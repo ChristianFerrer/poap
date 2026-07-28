@@ -323,6 +323,7 @@ export function PoapRenderer({
   onPhaseClick,
   activeGateIds: activeGateIdsProp = [],
   onGateClick,
+  onLaneClick,
 }: PoapRendererProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -529,19 +530,22 @@ export function PoapRenderer({
             const isCollapsed = rows === null;
             const height = laneRowHeight(isCollapsed ? 1 : rows.length);
             return (
-              <button
-                key={lane.id}
-                type="button"
-                className={`${styles.labelCell} ${styles.laneLabel}`}
-                style={{ height }}
-                onClick={() => toggleLane(lane.id)}
-                aria-expanded={!isCollapsed}
-              >
-                <span className={`${styles.chevron} ${isCollapsed ? styles.chevronCollapsed : ""}`} aria-hidden="true">
-                  ▾
-                </span>
-                <span className={styles.laneLabelText}>{lane.name}</span>
-              </button>
+              <div key={lane.id} className={`${styles.labelCell} ${styles.laneLabel}`} style={{ height }}>
+                <button
+                  type="button"
+                  className={styles.chevronButton}
+                  onClick={() => toggleLane(lane.id)}
+                  aria-expanded={!isCollapsed}
+                  aria-label={isCollapsed ? "Expandir carril" : "Colapsar carril"}
+                >
+                  <span className={`${styles.chevron} ${isCollapsed ? styles.chevronCollapsed : ""}`} aria-hidden="true">
+                    ▾
+                  </span>
+                </button>
+                <button type="button" className={styles.laneNameButton} onClick={() => onLaneClick?.(lane.id)}>
+                  <span className={styles.laneLabelText}>{lane.name}</span>
+                </button>
+              </div>
             );
           })}
         </div>

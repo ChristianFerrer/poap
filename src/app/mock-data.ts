@@ -1,5 +1,5 @@
 import { toAxis } from "@/components/poap-renderer/toAxis";
-import type { Band, Gate, Lane, PhaseStatus } from "@/components/poap-renderer/types";
+import type { Band, Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 
 export const START_MONTH = "2026-06";
 export const MONTHS = 12;
@@ -11,19 +11,31 @@ function axis(y: number, m: number, day: number): number {
   return toAxis(d(y, m, day), START_MONTH);
 }
 
-interface ActivitySeed {
+export interface ActivityComment {
+  author: string;
+  date: string;
+  text: string;
+}
+
+export interface ActivitySeed {
   id: string;
   title: string;
+  owner: string;
+  start: number;
+  end: number;
   status: PhaseStatus;
-  comments?: { author: string; date: string; text: string }[];
+  comments?: ActivityComment[];
 }
 
 export const ACTIVITIES_BY_PHASE: Record<string, ActivitySeed[]> = {
   "sit-exec": [
-    { id: "a1", title: "Ejecutar casos SIT lote 1", status: "done" },
+    { id: "a1", title: "Ejecutar casos SIT lote 1", owner: "J. Alonso", start: axis(2026, 6, 22), end: axis(2026, 7, 3), status: "done" },
     {
       id: "a2",
       title: "SIT Bug Fix",
+      owner: "J. Alonso",
+      start: axis(2026, 7, 6),
+      end: axis(2026, 7, 24),
       status: "at_risk",
       comments: [
         { author: "J. Alonso", date: "22 jul", text: "Quedan 3 defectos P2 abiertos, dependemos de Data Engineering." },
@@ -36,22 +48,32 @@ export const ACTIVITIES_BY_PHASE: Record<string, ActivitySeed[]> = {
     {
       id: "a3",
       title: "Configurar conectividad AC2",
+      owner: "Redes",
+      start: axis(2026, 8, 3),
+      end: axis(2026, 8, 21),
       status: "at_risk",
       comments: [
         { author: "Redes", date: "12 ago", text: "Bloqueado por aprobación de firewall pendiente desde el 5/8." },
       ],
     },
-    { id: "a4", title: "SIT sobre conectividad", status: "not_started" },
+    { id: "a4", title: "SIT sobre conectividad", owner: "Equipo Datos", start: axis(2026, 8, 21), end: axis(2026, 9, 25), status: "not_started" },
   ],
 };
 
-const DEFAULT_ACTIVITIES: ActivitySeed[] = [
-  { id: "d1", title: "Preparación", status: "done" },
-  { id: "d2", title: "Ejecución", status: "in_progress" },
-];
+/** Phases without hand-authored activity seeds still get a plausible
+ * two-step breakdown spanning the phase's own dates, rather than a fixed
+ * placeholder range that wouldn't line up with that phase at all. */
+function defaultActivities(phase: Phase): ActivitySeed[] {
+  const mid = phase.start + (phase.end - phase.start) / 2;
+  const owner = phase.owners?.[0] ?? "Equipo asignado";
+  return [
+    { id: `${phase.id}-d1`, title: "Preparación", owner, start: phase.start, end: mid, status: "done" },
+    { id: `${phase.id}-d2`, title: "Ejecución", owner, start: mid, end: phase.end, status: "in_progress" },
+  ];
+}
 
-export function activitiesFor(phaseId: string): ActivitySeed[] {
-  return ACTIVITIES_BY_PHASE[phaseId] ?? DEFAULT_ACTIVITIES;
+export function activitiesFor(phase: Phase): ActivitySeed[] {
+  return ACTIVITIES_BY_PHASE[phase.id] ?? defaultActivities(phase);
 }
 
 export const LANES: Lane[] = [

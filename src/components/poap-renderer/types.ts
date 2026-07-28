@@ -47,4 +47,8 @@ export interface PoapRendererProps {
    * renderer. */
   activeGateIds?: string[];
   onGateClick?: (gateId: string) => void;
+  /** Clicking a lane's name (not its collapse chevron) — lets the app open
+   * a management view for that lane without the renderer knowing what
+   * "managing a lane" means. */
+  onLaneClick?: (laneId: string) => void;
 }

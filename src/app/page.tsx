@@ -2,19 +2,26 @@
 
 import { useRef, useState } from "react";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
-import type { Gate } from "@/components/poap-renderer/types";
-import { BANDS, GATES as INITIAL_GATES, LANES, MONTHS, START_MONTH } from "./mock-data";
-import { PhasePanel } from "./PhasePanel";
+import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
+import { BANDS, GATES as INITIAL_GATES, LANES as INITIAL_LANES, MONTHS, START_MONTH } from "./mock-data";
+import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { GatesPanel } from "./GatesPanel";
 import styles from "./page.module.css";
 
 export default function Page() {
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
+  const [lanes, setLanes] = useState<Lane[]>(INITIAL_LANES);
+  const [explorer, setExplorer] = useState<ExplorerView | null>(null);
   const [gates, setGates] = useState<Gate[]>(INITIAL_GATES);
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
-  const phaseCount = LANES.reduce((n, l) => n + l.phases.length, 0);
+  const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // The bar shown "selected" in the chart mirrors whichever phase the
+  // explorer is currently drilled into, so it stays highlighted while you
+  // browse its activities — not just at the instant you click it.
+  const selectedPhaseId =
+    explorer?.level === "activities" || explorer?.level === "activity" ? explorer.phaseId : null;
 
   function scrollToPanel() {
     requestAnimationFrame(() => {
@@ -22,13 +29,35 @@ export default function Page() {
     });
   }
 
-  function handlePhaseClick(phaseId: string) {
-    setSelectedPhaseId(phaseId);
+  function openExplorer(view: ExplorerView) {
+    setExplorer(view);
     setGatesPanelOpen(false);
     // The panel now renders below the plan instead of an overlay, so bring
     // it into view — otherwise a click low on a tall plan leaves the panel
     // off-screen with no indication anything happened.
     scrollToPanel();
+  }
+
+  function handlePhaseClick(phaseId: string) {
+    openExplorer({ level: "activities", phaseId });
+  }
+
+  function handleLaneClick(laneId: string) {
+    openExplorer({ level: "phases", laneId });
+  }
+
+  function addLane(name: string) {
+    setLanes((prev) => [...prev, { id: crypto.randomUUID(), name, sortOrder: prev.length, phases: [] }]);
+  }
+
+  function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status">>) {
+    setLanes((prev) =>
+      prev.map((lane) =>
+        lane.id !== laneId
+          ? lane
+          : { ...lane, phases: lane.phases.map((p) => (p.id === phaseId ? { ...p, ...patch } : p)) },
+      ),
+    );
   }
 
   function toggleGateActive(gateId: string) {
@@ -37,7 +66,7 @@ export default function Page() {
 
   function handleGateClick(gateId: string) {
     toggleGateActive(gateId);
-    setSelectedPhaseId(null);
+    setExplorer(null);
     setGatesPanelOpen(true);
     scrollToPanel();
   }
@@ -60,27 +89,32 @@ export default function Page() {
       <p className={styles.eyebrow}>PoAP · Plan on a Page</p>
       <h1 className={styles.title}>Programa UK/PL — plan on a page</h1>
       <p className={styles.meta}>
-        {LANES.length} carriles · {phaseCount} fases · {MONTHS} meses · jun 2026 — may 2027
+        {lanes.length} carriles · {phaseCount} fases · {MONTHS} meses · jun 2026 — may 2027
       </p>
 
       <PoapRenderer
         months={MONTHS}
         startMonth={START_MONTH}
-        lanes={LANES}
+        lanes={lanes}
         gates={gates}
         bands={BANDS}
         selectedPhaseId={selectedPhaseId}
         onPhaseClick={handlePhaseClick}
         activeGateIds={activeGateIds}
         onGateClick={handleGateClick}
+        onLaneClick={handleLaneClick}
       />
 
-      {selectedPhaseId && (
-        <PhasePanel
+      {explorer && (
+        <ExplorerPanel
           ref={panelRef}
-          lanes={LANES}
-          phaseId={selectedPhaseId}
-          onClose={() => setSelectedPhaseId(null)}
+          lanes={lanes}
+          startMonth={START_MONTH}
+          view={explorer}
+          onNavigate={setExplorer}
+          onClose={() => setExplorer(null)}
+          onAddLane={addLane}
+          onUpdatePhase={updatePhase}
         />
       )}
 
