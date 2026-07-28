@@ -4,6 +4,41 @@
   border-radius: 10px;
   padding: 14px 16px 16px;
   max-width: 100%;
+  position: relative;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.zoomGroup {
+  display: flex;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.zoomButton {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.zoomButton:hover {
+  color: var(--ink);
+}
+.zoomButtonActive {
+  background: var(--card-bg);
+  color: var(--text-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* Label column is a fixed-width flex sibling that never scrolls; the
@@ -61,15 +96,50 @@
   font-weight: 500;
 }
 
+.ruler {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.yearRow {
+  position: relative;
+}
+.yearCell {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-left: 0.5px solid var(--border);
+}
+
 .monthHeader {
   display: grid;
-  border-bottom: 0.5px solid var(--border);
-  padding-bottom: 4px;
 }
 .monthCell {
   font-size: 11px;
   color: var(--text-secondary);
   text-align: left;
+  padding-left: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.weekRow {
+  position: relative;
+}
+.weekTick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .gatesTrack {
@@ -101,11 +171,34 @@
 
 .laneLabel {
   align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.laneLabel:hover {
+  background: var(--surface-1);
+}
+.chevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--text-secondary);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+.chevronCollapsed {
+  transform: rotate(-90deg);
 }
 .laneLabelText {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .laneTrack {
@@ -193,4 +286,47 @@
   height: 8px;
   border-radius: 2px;
   flex: 0 0 auto;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--card-bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  max-width: 260px;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+.tooltipTitle {
+  margin: 0 0 6px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  color: color-mix(in srgb, var(--card-bg) 70%, transparent);
+  margin-top: 3px;
+}
+.tooltipRow b {
+  color: var(--card-bg);
+  font-weight: 600;
+}
+.tooltipStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--card-bg) 20%, transparent);
+  font-weight: 600;
+}
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
 }

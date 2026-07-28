@@ -18,3 +18,24 @@ export function toAxis(date: Date, startMonth: string): number {
 
   return monthIndex + fractionalDay;
 }
+
+/**
+ * Inverse of toAxis: turns an axis position back into a calendar date, for
+ * display (tooltips, panels). Approximate by design — it rounds to the
+ * nearest day, which is all a "14 sep 26" label needs.
+ */
+export function fromAxis(position: number, startMonth: string): Date {
+  const [startYear, startMonthNum] = startMonth.split("-").map(Number) as [number, number];
+
+  const monthOffset = Math.floor(position);
+  const fractionalDay = position - monthOffset;
+
+  const absoluteMonth = startMonthNum - 1 + monthOffset;
+  const year = startYear + Math.floor(absoluteMonth / 12);
+  const month = ((absoluteMonth % 12) + 12) % 12;
+
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const day = Math.min(Math.round(fractionalDay * daysInMonth) + 1, daysInMonth);
+
+  return new Date(Date.UTC(year, month, day));
+}

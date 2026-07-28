@@ -8,6 +8,8 @@ export interface Phase {
   end: number;
   status: PhaseStatus;
   subLane?: string | null;
+  /** Teams/people involved — shown in the hover popup, not on the bar itself. */
+  owners?: string[];
 }
 
 export interface Lane {
