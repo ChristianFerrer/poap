@@ -13,23 +13,38 @@ export const BAR_MIN_TEXT_PX = 40;
 
 export const YEAR_ROW_HEIGHT = 20;
 export const MONTH_ROW_HEIGHT = 22;
-export const WEEK_ROW_HEIGHT = 16;
+export const SUB_ROW_HEIGHT = 16;
 export const GATES_ROW_BASE_HEIGHT = 22;
+
+export type SubRowGranularity = "none" | "week" | "day";
 
 export interface ZoomLevel {
   key: "anio" | "mes" | "semana" | "dia";
   label: string;
-  /** Per-month width floor in px — this is what "zoom" actually changes.
-   * The date range shown never changes, only how many px each month gets;
-   * below this floor the timeline scrolls horizontally instead of
-   * compressing further. showWeekRow controls the third ruler tier. */
+  /** Per-month width floor in px at 100% scale — the actual value used is
+   * this times the continuous zoomScale multiplier (see ZOOM_SCALE_*). The
+   * date range shown never changes, only how many px each month gets;
+   * below the floor the timeline scrolls horizontally instead of
+   * compressing further. */
   pxPerMonth: number;
-  showWeekRow: boolean;
+  /** What the third ruler row (and Focus Cell, when that row is clicked)
+   * divides the timeline into. "none" at Año — there's nothing finer than
+   * a month drawn at that zoom. */
+  subRowGranularity: SubRowGranularity;
 }
 
 export const ZOOM_LEVELS: ZoomLevel[] = [
-  { key: "anio", label: "Año", pxPerMonth: 60, showWeekRow: false },
-  { key: "mes", label: "Mes", pxPerMonth: 170, showWeekRow: true },
-  { key: "semana", label: "Semana", pxPerMonth: 430, showWeekRow: true },
-  { key: "dia", label: "Día", pxPerMonth: 1000, showWeekRow: true },
+  { key: "anio", label: "Año", pxPerMonth: 60, subRowGranularity: "none" },
+  { key: "mes", label: "Mes", pxPerMonth: 170, subRowGranularity: "week" },
+  { key: "semana", label: "Semana", pxPerMonth: 430, subRowGranularity: "week" },
+  { key: "dia", label: "Día", pxPerMonth: 1000, subRowGranularity: "day" },
 ];
+
+/** Continuous zoom (the "+ 100% -" stepper), layered on top of whichever
+ * ZoomLevel is active — Excel-style gradual resize, distinct from the
+ * discrete Año/Mes/Semana/Día levels which also change what the ruler
+ * shows, not just how wide things are. */
+export const ZOOM_SCALE_MIN = 0.5;
+export const ZOOM_SCALE_MAX = 3;
+export const ZOOM_SCALE_STEP = 0.25;
+export const ZOOM_SCALE_DEFAULT = 1;

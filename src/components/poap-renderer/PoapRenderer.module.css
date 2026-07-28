@@ -16,6 +16,54 @@
   margin-bottom: 10px;
 }
 
+.toolbarControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Continuous zoom stepper (Excel-style +/-), separate from the Año/Mes/
+   Semana/Día group — it only scales column width, never the ruler's
+   structure, so it's visually distinct from the level switcher next to it. */
+.scaleGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+.scaleButton {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  width: 20px;
+  height: 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+}
+.scaleButton:hover:not(:disabled) {
+  background: var(--card-bg);
+  color: var(--ink);
+}
+.scaleButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.scaleValue {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 34px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .zoomGroup {
   display: flex;
   background: var(--surface-1);
@@ -94,7 +142,7 @@
   width: 0;
   border-left: 1px solid var(--border);
 }
-.dayGridLine {
+.subGridLine {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -138,7 +186,6 @@
   display: flex;
   flex-direction: column;
   border-bottom: 0.5px solid var(--border);
-  cursor: pointer;
 }
 
 .yearRow {
@@ -158,10 +205,16 @@
 }
 
 /* Month and day/week tiers get distinct colors so the ruler reads as three
-   separate scales, not one blurred row of numbers. */
+   separate scales, not one blurred row of numbers. Both are clickable —
+   Focus Cell resolves to whichever row you click (month vs. the sub row's
+   current unit), independent of the overall zoom level. */
 .monthHeader {
   display: grid;
   background: var(--surface-1);
+  cursor: pointer;
+}
+.monthHeader:hover {
+  background: color-mix(in srgb, var(--surface-1) 60%, var(--border));
 }
 .monthCell {
   font-size: 11px;
@@ -173,17 +226,25 @@
   align-items: center;
 }
 
-.weekRow {
+.subRow {
   position: relative;
   background: color-mix(in srgb, var(--bg-accent) 55%, var(--card-bg));
+  cursor: pointer;
 }
-.weekTick {
+.subRow:hover {
+  background: color-mix(in srgb, var(--bg-accent) 80%, var(--card-bg));
+}
+.subCell {
   position: absolute;
   top: 0;
+  height: 100%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
   font-size: 10px;
   color: var(--text-accent);
   font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
 
 .gatesTrack {

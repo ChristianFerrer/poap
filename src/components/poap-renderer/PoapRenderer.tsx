@@ -15,9 +15,14 @@ import {
   LANE_PADDING_Y,
   MONTH_ROW_HEIGHT,
   ROW_GAP,
-  WEEK_ROW_HEIGHT,
+  SUB_ROW_HEIGHT,
   YEAR_ROW_HEIGHT,
   ZOOM_LEVELS,
+  ZOOM_SCALE_DEFAULT,
+  ZOOM_SCALE_MAX,
+  ZOOM_SCALE_MIN,
+  ZOOM_SCALE_STEP,
+  type SubRowGranularity,
   type ZoomLevel,
 } from "./constants";
 import styles from "./PoapRenderer.module.css";
@@ -72,32 +77,44 @@ function yearSegments(startMonth: string, months: number): { year: number; start
   return segments;
 }
 
-/** One tick every 7 days from the 1st of startMonth — not calendar-aligned
- * to Mondays, just evenly spaced "start of week" markers along the axis. */
-function weekTicks(startMonth: string, months: number): { position: number; day: number }[] {
+interface SubCell {
+  start: number;
+  end: number;
+  label: number;
+}
+
+/**
+ * Cells for the ruler's third row — one per week (a 7-day bucket from the
+ * 1st of startMonth, not calendar-aligned to Mondays) or one per calendar
+ * day, matching the grid Excel drew: divisions at each cell's start/end,
+ * the label centered inside the cell rather than pinned to an edge.
+ */
+function subCells(startMonth: string, months: number, granularity: SubRowGranularity): SubCell[] {
+  if (granularity === "none") return [];
   const parts = startMonth.split("-").map(Number);
   const y = parts[0] ?? 0;
   const m = parts[1] ?? 1;
-  const start = new Date(Date.UTC(y, m - 1, 1));
-  const end = new Date(Date.UTC(y, m - 1 + months, 1));
-  const ticks: { position: number; day: number }[] = [];
-  for (let d = start; d < end; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 7))) {
-    ticks.push({ position: toAxis(d, startMonth), day: d.getUTCDate() });
+  const rangeStart = new Date(Date.UTC(y, m - 1, 1));
+  const rangeEnd = new Date(Date.UTC(y, m - 1 + months, 1));
+  const stepDays = granularity === "day" ? 1 : 7;
+
+  const cells: SubCell[] = [];
+  for (
+    let d = rangeStart;
+    d < rangeEnd;
+    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + stepDays))
+  ) {
+    const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + stepDays));
+    cells.push({ start: toAxis(d, startMonth), end: toAxis(next, startMonth), label: d.getUTCDate() });
   }
-  return ticks;
+  return cells;
 }
 
 function pct(value: number, months: number): string {
   return `${(value / months) * 100}%`;
 }
 
-/** Width, in axis units, of the single calendar day a position falls in —
- * months differ in day count, so this isn't a constant. */
-function dayWidth(position: number, startMonth: string): number {
-  const d = fromAxis(position, startMonth);
-  const daysInMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
-  return 1 / daysInMonth;
-}
+type ColumnUnit = "day" | "week" | "month";
 
 interface ColumnRange {
   start: number;
@@ -105,18 +122,21 @@ interface ColumnRange {
 }
 
 /**
- * Excel's "Focus Cell": the column a click resolves to, sized to match
- * whatever the current zoom is looking at — a day at zoom "dia", a 7-day
- * bucket at "semana" (same buckets as the week ruler ticks, so the
- * highlight lines up with what's on screen), a calendar month at "mes" and
- * "anio" (there's no finer grid drawn at those zooms to snap to).
+ * Excel's "Focus Cell": resolves a click's x position to the column it
+ * landed on. Which unit applies depends on which ruler row was clicked —
+ * the month header always resolves to a month; the sub row resolves to
+ * whatever it's currently divided into (week or day) — not on the overall
+ * zoom level directly, so clicking the month row at zoom "dia" still
+ * highlights the whole month.
  */
-function columnRange(rawPosition: number, zoomKey: ZoomLevel["key"], startMonth: string): ColumnRange {
-  if (zoomKey === "dia") {
+function columnRange(rawPosition: number, unit: ColumnUnit, startMonth: string): ColumnRange {
+  if (unit === "day") {
     const start = toAxis(fromAxis(rawPosition, startMonth), startMonth);
-    return { start, end: start + dayWidth(start, startMonth) };
+    const date = fromAxis(start, startMonth);
+    const next = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
+    return { start, end: toAxis(next, startMonth) };
   }
-  if (zoomKey === "semana") {
+  if (unit === "week") {
     const parts = startMonth.split("-").map(Number);
     const rangeStart = new Date(Date.UTC(parts[0] ?? 0, (parts[1] ?? 1) - 1, 1));
     const date = fromAxis(rawPosition, startMonth);
@@ -126,18 +146,17 @@ function columnRange(rawPosition: number, zoomKey: ZoomLevel["key"], startMonth:
     const bucketEnd = new Date(bucketStart.getTime() + 7 * 86_400_000);
     return { start: toAxis(bucketStart, startMonth), end: toAxis(bucketEnd, startMonth) };
   }
-  // "mes" and "anio" both snap to a calendar month — it's the finest column
-  // either of those zooms actually draws.
+  // month
   const start = Math.floor(rawPosition);
   return { start, end: start + 1 };
 }
 
-function formatColumnLabel(range: ColumnRange, zoomKey: ZoomLevel["key"], startMonth: string): string {
+function formatColumnLabel(range: ColumnRange, unit: ColumnUnit, startMonth: string): string {
   const start = fromAxis(range.start, startMonth);
-  if (zoomKey === "dia") {
+  if (unit === "day") {
     return `${start.getUTCDate()} ${MONTH_ABBR[start.getUTCMonth()]} ${String(start.getUTCFullYear()).slice(2)}`;
   }
-  if (zoomKey === "semana") {
+  if (unit === "week") {
     return `Semana del ${start.getUTCDate()} ${MONTH_ABBR[start.getUTCMonth()]}`;
   }
   return `${MONTH_ABBR[start.getUTCMonth()]!.charAt(0).toUpperCase()}${MONTH_ABBR[start.getUTCMonth()]!.slice(1)} ${start.getUTCFullYear()}`;
@@ -198,11 +217,13 @@ interface TooltipState {
  * (src/components/poap-renderer/pack.ts); this component never decides how
  * phases get grouped into rows, only how a given row layout gets painted.
  *
- * Zoom and lane-collapse are internal UI state, not props — both are purely
- * about how this data gets displayed, not what the data is, so they don't
- * belong in the parent's state. Zoom changes only the px-per-month floor
- * (which dates are in range never changes); collapsing a lane swaps its
- * packed rows for one aggregate summary bar (aggregateLane).
+ * Zoom, zoom-scale, Focus Cell and lane-collapse are internal UI state, not
+ * props — all four are purely about how this data gets displayed, not what
+ * the data is. Zoom (Año/Mes/Semana/Día) changes the ruler's structure —
+ * what the third row divides into, if anything; zoomScale is a continuous
+ * multiplier on top of that (Excel-style +/- stepper) that only changes
+ * column width, not structure. Collapsing a lane swaps its packed rows for
+ * one aggregate summary bar (aggregateLane).
  *
  * Responsive strategy unchanged: the label column is a fixed-width flex
  * sibling that never scrolls; the timeline is a separate scroll container.
@@ -221,9 +242,10 @@ export function PoapRenderer({
   const timelineRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
   const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("anio");
+  const [zoomScale, setZoomScale] = useState(ZOOM_SCALE_DEFAULT);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const [selectedColumn, setSelectedColumn] = useState<ColumnRange | null>(null);
+  const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
 
@@ -238,7 +260,8 @@ export function PoapRenderer({
     return () => observer.disconnect();
   }, []);
 
-  const timelineMinWidth = months * zoom.pxPerMonth;
+  const pxPerMonth = zoom.pxPerMonth * zoomScale;
+  const timelineMinWidth = months * pxPerMonth;
   // The scroll container can be narrower than the content it holds (that's
   // the whole point of the horizontal-scroll fallback) — every pixel
   // calculation needs the *rendered* width of timelineInner, which is
@@ -274,9 +297,9 @@ export function PoapRenderer({
 
   const mLabels = useMemo(() => monthLabels(startMonth, months), [startMonth, months]);
   const ySegments = useMemo(() => yearSegments(startMonth, months), [startMonth, months]);
-  const wTicks = useMemo(
-    () => (zoom.showWeekRow ? weekTicks(startMonth, months) : []),
-    [startMonth, months, zoom.showWeekRow],
+  const sCells = useMemo(
+    () => subCells(startMonth, months, zoom.subRowGranularity),
+    [startMonth, months, zoom.subRowGranularity],
   );
 
   const orderedLanes = useMemo(
@@ -293,7 +316,7 @@ export function PoapRenderer({
   );
 
   const gateRowHeight = GATES_ROW_BASE_HEIGHT + (gateRowLevels - 1) * GATE_SHIFT_PX;
-  const rulerHeight = YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT + (zoom.showWeekRow ? WEEK_ROW_HEIGHT : 0);
+  const rulerHeight = YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT + (zoom.subRowGranularity !== "none" ? SUB_ROW_HEIGHT : 0);
 
   // A phase "touches" the focused column if their ranges overlap at all —
   // counted against every phase in the program, regardless of whether its
@@ -301,9 +324,10 @@ export function PoapRenderer({
   // plan, not what's currently on screen.
   const touchedCount = useMemo(() => {
     if (selectedColumn === null) return 0;
+    const { range } = selectedColumn;
     return orderedLanes
       .flatMap((l) => l.phases)
-      .filter((p) => p.start < selectedColumn.end && p.end > selectedColumn.start).length;
+      .filter((p) => p.start < range.end && p.end > range.start).length;
   }, [orderedLanes, selectedColumn]);
 
   function toggleLane(laneId: string) {
@@ -317,22 +341,31 @@ export function PoapRenderer({
 
   function selectZoom(key: ZoomLevel["key"]) {
     setZoomKey(key);
+    setZoomScale(ZOOM_SCALE_DEFAULT);
     // A focused column is only meaningful relative to the grid it was
     // picked on — zooming changes what the columns even are, so a stale
     // range from the old grid would no longer land on a real boundary.
     setSelectedColumn(null);
   }
 
-  // Focus Cell: clicking the ruler picks the column under the cursor, sized
-  // to match the current zoom (columnRange) — a day, a week, or a month.
-  // Clicking the already-selected column again clears it.
-  function handleRulerClick(e: ReactMouseEvent<HTMLDivElement>) {
+  function nudgeZoomScale(delta: number) {
+    setZoomScale((prev) => Math.round(Math.min(ZOOM_SCALE_MAX, Math.max(ZOOM_SCALE_MIN, prev + delta)) * 100) / 100);
+  }
+
+  // Focus Cell: which unit a click resolves to depends on which ruler row
+  // was clicked, not on the zoom level directly — clicking the month row
+  // always focuses a month, clicking the sub row focuses whatever it's
+  // currently divided into. Clicking the already-selected column again
+  // clears it.
+  function focusColumn(e: ReactMouseEvent<HTMLDivElement>, unit: ColumnUnit) {
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
     const rawPosition = ratio * months;
-    const range = columnRange(rawPosition, zoomKey, startMonth);
+    const range = columnRange(rawPosition, unit, startMonth);
     setSelectedColumn((prev) =>
-      prev !== null && Math.abs(prev.start - range.start) < 0.001 ? null : range,
+      prev !== null && prev.unit === unit && Math.abs(prev.range.start - range.start) < 0.001
+        ? null
+        : { range, unit },
     );
   }
 
@@ -344,17 +377,40 @@ export function PoapRenderer({
     <div className={styles.card}>
       <div className={styles.toolbar}>
         <Legend />
-        <div className={styles.zoomGroup} role="group" aria-label="Nivel de zoom temporal">
-          {ZOOM_LEVELS.map((z) => (
+        <div className={styles.toolbarControls}>
+          <div className={styles.scaleGroup} role="group" aria-label="Zoom continuo">
             <button
-              key={z.key}
               type="button"
-              className={`${styles.zoomButton} ${z.key === zoomKey ? styles.zoomButtonActive : ""}`}
-              onClick={() => selectZoom(z.key)}
+              className={styles.scaleButton}
+              onClick={() => nudgeZoomScale(-ZOOM_SCALE_STEP)}
+              disabled={zoomScale <= ZOOM_SCALE_MIN}
+              aria-label="Reducir zoom"
             >
-              {z.label}
+              −
             </button>
-          ))}
+            <span className={styles.scaleValue}>{Math.round(zoomScale * 100)}%</span>
+            <button
+              type="button"
+              className={styles.scaleButton}
+              onClick={() => nudgeZoomScale(ZOOM_SCALE_STEP)}
+              disabled={zoomScale >= ZOOM_SCALE_MAX}
+              aria-label="Aumentar zoom"
+            >
+              +
+            </button>
+          </div>
+          <div className={styles.zoomGroup} role="group" aria-label="Nivel de zoom temporal">
+            {ZOOM_LEVELS.map((z) => (
+              <button
+                key={z.key}
+                type="button"
+                className={`${styles.zoomButton} ${z.key === zoomKey ? styles.zoomButtonActive : ""}`}
+                onClick={() => selectZoom(z.key)}
+              >
+                {z.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -402,28 +458,30 @@ export function PoapRenderer({
               {Array.from({ length: months + 1 }, (_, i) => (
                 <div key={`m${i}`} className={styles.monthGridLine} style={{ left: pct(i, months) }} />
               ))}
-              {zoom.showWeekRow &&
-                wTicks.map((tick, i) => (
-                  <div key={`d${i}`} className={styles.dayGridLine} style={{ left: pct(tick.position, months) }} />
-                ))}
+              {sCells.map((cell, i) => (
+                <div key={`s${i}`} className={styles.subGridLine} style={{ left: pct(cell.start, months) }} />
+              ))}
               {selectedColumn !== null && (
                 <>
                   <div
                     className={styles.columnHighlight}
                     style={{
-                      left: pct(selectedColumn.start, months),
-                      width: pct(selectedColumn.end - selectedColumn.start, months),
+                      left: pct(selectedColumn.range.start, months),
+                      width: pct(selectedColumn.range.end - selectedColumn.range.start, months),
                     }}
                   />
-                  <div className={styles.columnBadge} style={{ left: pct(selectedColumn.start, months), top: rulerHeight }}>
-                    {formatColumnLabel(selectedColumn, zoomKey, startMonth)} · {touchedCount}{" "}
+                  <div
+                    className={styles.columnBadge}
+                    style={{ left: pct(selectedColumn.range.start, months), top: rulerHeight }}
+                  >
+                    {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth)} · {touchedCount}{" "}
                     {touchedCount === 1 ? "fase" : "fases"}
                   </div>
                 </>
               )}
             </div>
 
-            <div className={styles.ruler} style={{ height: rulerHeight }} onClick={handleRulerClick}>
+            <div className={styles.ruler} style={{ height: rulerHeight }}>
               <div className={styles.yearRow} style={{ height: YEAR_ROW_HEIGHT }}>
                 {ySegments.map((seg) => (
                   <div
@@ -438,16 +496,21 @@ export function PoapRenderer({
               <div
                 className={styles.monthHeader}
                 style={{ height: MONTH_ROW_HEIGHT, gridTemplateColumns: `repeat(${months}, 1fr)` }}
+                onClick={(e) => focusColumn(e, "month")}
               >
                 {mLabels.map((label, i) => (
                   <div key={i} className={styles.monthCell}>{label}</div>
                 ))}
               </div>
-              {zoom.showWeekRow && (
-                <div className={styles.weekRow} style={{ height: WEEK_ROW_HEIGHT }}>
-                  {wTicks.map((tick, i) => (
-                    <div key={i} className={styles.weekTick} style={{ left: pct(tick.position, months) }}>
-                      {tick.day}
+              {zoom.subRowGranularity !== "none" && (
+                <div
+                  className={styles.subRow}
+                  style={{ height: SUB_ROW_HEIGHT }}
+                  onClick={(e) => focusColumn(e, zoom.subRowGranularity as ColumnUnit)}
+                >
+                  {sCells.map((cell, i) => (
+                    <div key={i} className={styles.subCell} style={{ left: pct((cell.start + cell.end) / 2, months) }}>
+                      {cell.label}
                     </div>
                   ))}
                 </div>
