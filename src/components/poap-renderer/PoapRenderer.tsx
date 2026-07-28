@@ -587,7 +587,7 @@ export function PoapRenderer({
                     className={styles.yearCell}
                     style={{ left: pct(seg.startIdx, scale), width: pctSpan(seg.startIdx, seg.startIdx + seg.span, scale) }}
                   >
-                    {seg.year}
+                    <span className={styles.yearCellLabel}>{seg.year}</span>
                   </div>
                 ))}
               </div>
@@ -598,7 +598,7 @@ export function PoapRenderer({
                     className={styles.monthCell}
                     style={{ left: pct(seg.startIdx, scale), width: pctSpan(seg.startIdx, seg.startIdx + 1, scale) }}
                   >
-                    {seg.label}
+                    <span className={styles.monthCellLabel}>{seg.label}</span>
                   </div>
                 ))}
               </div>

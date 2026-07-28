@@ -211,6 +211,17 @@
   color: var(--text-secondary);
   border-left: 0.5px solid var(--border);
 }
+/* Sticks to the left edge of .timelineScroll's viewport while any part of
+   the year is still visible, then scrolls away normally once the year
+   segment itself has fully passed — position: sticky clamps naturally to
+   its containing block (.yearCell), so no JS/scroll-listener is needed.
+   Must be a plain child, not the cell itself: .yearCell is already
+   position: absolute (that's what places it at the right point on the
+   axis) and an element can't be both absolute and sticky at once. */
+.yearCellLabel {
+  position: sticky;
+  left: 4px;
+}
 
 /* Month and day/week tiers get distinct colors so the ruler reads as three
    separate scales, not one blurred row of numbers. Both are clickable —
@@ -240,12 +251,24 @@
   padding-left: 2px;
   display: flex;
   align-items: center;
-  overflow: hidden;
-  white-space: nowrap;
+  /* No overflow: hidden here — that would make this cell (rather than
+     .timelineScroll) the nearest scroll container for .monthCellLabel's
+     sticky positioning below, and since this cell itself never actually
+     scrolls, the label would never move and "sticky" would silently do
+     nothing. Truncation for an overflowing label is handled on the label
+     itself instead (same trick as .barLabel). */
   /* Same reasoning as .subCell: monthHeader's own background sits above
      monthGridLine in paint order, so the month-start/end boundary needs
      its own border here to actually be visible in the ruler. */
   border-left: 1px solid var(--border);
+}
+.monthCellLabel {
+  position: sticky;
+  left: 2px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
 }
 
 .subRow {
@@ -391,7 +414,10 @@
   line-height: 1;
   border: none;
   cursor: pointer;
-  overflow: hidden;
+  /* No overflow: hidden — see .monthCell's comment, same reasoning: it
+     would hijack .barLabel's sticky positioning reference and the label
+     would never actually track the scroll. .barLabel's own overflow
+     already clips text that's wider than the bar. */
   white-space: nowrap;
   text-align: left;
   font-family: inherit;
@@ -408,6 +434,12 @@
   outline-offset: 1px;
 }
 .barLabel {
+  /* Sticks to the left edge of .timelineScroll while any part of the bar
+     is visible — same trick as .yearCellLabel/.monthCellLabel, so a phase
+     spanning off both sides of the viewport still shows its name. */
+  position: sticky;
+  left: 4px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: clip;
   white-space: nowrap;
