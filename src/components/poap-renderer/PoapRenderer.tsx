@@ -385,6 +385,14 @@ export function PoapRenderer({
 
   const mSegments = useMemo(() => monthSegments(startMonth, months), [startMonth, months]);
   const ySegments = useMemo(() => yearSegments(startMonth, months), [startMonth, months]);
+  // Internal year-change boundaries only (excludes idx 0, the plan's own
+  // left edge) — these are the sole month-grid lines allowed to cross the
+  // year row, since they simultaneously mark that year's end and the next
+  // year's start.
+  const yearBoundaries = useMemo(
+    () => new Set(ySegments.map((seg) => seg.startIdx).filter((idx) => idx > 0)),
+    [ySegments],
+  );
   const sCells = useMemo(
     () => subCells(startMonth, months, zoom.subRowGranularity),
     [startMonth, months, zoom.subRowGranularity],
@@ -549,11 +557,25 @@ export function PoapRenderer({
                   title={band.label}
                 />
               ))}
+              {/* Month lines only cross the year row at an actual year
+                  change (top: 0) — everywhere else they start below it, at
+                  the top of the month row, so they don't draw through the
+                  year label. */}
               {Array.from({ length: months + 1 }, (_, i) => (
-                <div key={`m${i}`} className={styles.monthGridLine} style={{ left: pct(i, scale) }} />
+                <div
+                  key={`m${i}`}
+                  className={styles.monthGridLine}
+                  style={{ left: pct(i, scale), top: yearBoundaries.has(i) ? 0 : YEAR_ROW_HEIGHT }}
+                />
               ))}
+              {/* Day/week lines only reach up to the sub row — they never
+                  cross the month or year rows above it. */}
               {sCells.map((cell, i) => (
-                <div key={`s${i}`} className={styles.subGridLine} style={{ left: pct(cell.start, scale) }} />
+                <div
+                  key={`s${i}`}
+                  className={styles.subGridLine}
+                  style={{ left: pct(cell.start, scale), top: YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT }}
+                />
               ))}
             </div>
 
