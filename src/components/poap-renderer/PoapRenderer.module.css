@@ -150,6 +150,14 @@
   border-left: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
 }
 
+/* Last in DOM within .timelineInner (see the .tsx comment) so this paints
+   above every bar/gate/ruler cell instead of being covered by them. */
+.focusOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .columnHighlight {
   position: absolute;
   top: 0;
@@ -207,9 +215,14 @@
 /* Month and day/week tiers get distinct colors so the ruler reads as three
    separate scales, not one blurred row of numbers. Both are clickable —
    Focus Cell resolves to whichever row you click (month vs. the sub row's
-   current unit), independent of the overall zoom level. */
+   current unit), independent of the overall zoom level.
+
+   Cells in both rows are real rectangles (position: absolute with a
+   left/width matching real calendar-day proportions — see DayScale in the
+   .tsx), not text floated over a shared CSS-grid track: the whole cell is
+   the click target and the visible division, not just the number. */
 .monthHeader {
-  display: grid;
+  position: relative;
   background: var(--surface-1);
   cursor: pointer;
 }
@@ -217,6 +230,9 @@
   background: color-mix(in srgb, var(--surface-1) 60%, var(--border));
 }
 .monthCell {
+  position: absolute;
+  top: 0;
+  height: 100%;
   font-size: 11px;
   font-weight: 600;
   color: var(--ink);
@@ -224,6 +240,8 @@
   padding-left: 2px;
   display: flex;
   align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .subRow {
@@ -238,13 +256,13 @@
   position: absolute;
   top: 0;
   height: 100%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
+  justify-content: center;
   font-size: 10px;
   color: var(--text-accent);
   font-variant-numeric: tabular-nums;
-  pointer-events: none;
+  overflow: hidden;
 }
 
 .gatesTrack {

@@ -53,20 +53,96 @@ const STATUS_RANK: Record<PhaseStatus, number> = {
   done: 0,
 };
 
-function monthLabels(startMonth: string, months: number): string[] {
+interface DayScale {
+  /** Cumulative real days from range start to each month boundary — length
+   * months+1, offsets[i] = real days elapsed before month i starts. */
+  offsets: number[];
+  totalDays: number;
+}
+
+/**
+ * The axis unit ("decimal month") gives every calendar month equal *axis*
+ * width by design (Phase.start/end contract) — but months don't have equal
+ * *real* width (28-31 days), so rendering position/width directly from axis
+ * deltas made a week in a 31-day month visibly narrower than one in a
+ * 28-day month, and any week straddling a month boundary came out an
+ * inconsistent size entirely. DayScale converts axis positions to real
+ * elapsed days first, so every calendar day gets the same pixel width
+ * everywhere, matching how Excel actually laid the sheet out.
+ */
+function buildDayScale(startMonth: string, months: number): DayScale {
+  const parts = startMonth.split("-").map(Number);
+  let y = parts[0] ?? 0;
+  let m = (parts[1] ?? 1) - 1;
+  const offsets = [0];
+  for (let i = 0; i < months; i++) {
+    const daysInMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    offsets.push(offsets[offsets.length - 1]! + daysInMonth);
+    m++;
+    if (m === 12) {
+      m = 0;
+      y++;
+    }
+  }
+  return { offsets, totalDays: offsets[offsets.length - 1]! };
+}
+
+function axisToDays(position: number, scale: DayScale): number {
+  const months = scale.offsets.length - 1;
+  if (position <= 0) return 0;
+  if (position >= months) return scale.totalDays;
+  const idx = Math.floor(position);
+  const frac = position - idx;
+  const monthDays = scale.offsets[idx + 1]! - scale.offsets[idx]!;
+  return scale.offsets[idx]! + frac * monthDays;
+}
+
+/** Inverse of axisToDays — turns a real-day offset (e.g. from a click's
+ * pixel ratio × totalDays) back into an axis position. */
+function daysToAxis(days: number, scale: DayScale): number {
+  let idx = scale.offsets.findIndex((o, i) => i < scale.offsets.length - 1 && days < scale.offsets[i + 1]!);
+  if (idx === -1) idx = scale.offsets.length - 2;
+  const monthDays = scale.offsets[idx + 1]! - scale.offsets[idx]!;
+  const frac = monthDays > 0 ? (days - scale.offsets[idx]!) / monthDays : 0;
+  return idx + frac;
+}
+
+/** Left-offset percentage for a single axis position. */
+function pct(position: number, scale: DayScale): string {
+  return `${(axisToDays(position, scale) / scale.totalDays) * 100}%`;
+}
+
+/** Width percentage between two axis positions — not the same as
+ * pct(end) - pct(start) as text, needs the day-space delta directly. */
+function pctSpan(start: number, end: number, scale: DayScale): string {
+  return `${((axisToDays(end, scale) - axisToDays(start, scale)) / scale.totalDays) * 100}%`;
+}
+
+interface MonthSegment {
+  label: string;
+  startIdx: number;
+}
+
+function monthSegments(startMonth: string, months: number): MonthSegment[] {
   const parts = startMonth.split("-").map(Number);
   const startMonthNum = parts[1] ?? 1;
   return Array.from({ length: months }, (_, i) => {
     const idx = (startMonthNum - 1 + i) % 12;
-    return MONTH_ABBR[idx]!.toUpperCase();
+    return { label: MONTH_ABBR[idx]!.toUpperCase(), startIdx: i };
   });
 }
 
-function yearSegments(startMonth: string, months: number): { year: number; startIdx: number; span: number }[] {
+interface YearSegment {
+  year: number;
+  startIdx: number;
+  span: number;
+}
+
+function yearSegments(startMonth: string, months: number): YearSegment[] {
   const parts = startMonth.split("-").map(Number);
   const startYear = parts[0] ?? 0;
   const startMonthNum = parts[1] ?? 1;
-  const segments: { year: number; startIdx: number; span: number }[] = [];
+  const segments: YearSegment[] = [];
   for (let i = 0; i < months; i++) {
     const absoluteMonth = startMonthNum - 1 + i;
     const year = startYear + Math.floor(absoluteMonth / 12);
@@ -108,10 +184,6 @@ function subCells(startMonth: string, months: number, granularity: SubRowGranula
     cells.push({ start: toAxis(d, startMonth), end: toAxis(next, startMonth), label: d.getUTCDate() });
   }
   return cells;
-}
-
-function pct(value: number, months: number): string {
-  return `${(value / months) * 100}%`;
 }
 
 type ColumnUnit = "day" | "week" | "month";
@@ -225,6 +297,10 @@ interface TooltipState {
  * column width, not structure. Collapsing a lane swaps its packed rows for
  * one aggregate summary bar (aggregateLane).
  *
+ * All horizontal placement goes through a DayScale (buildDayScale) so every
+ * calendar day gets the same pixel width regardless of which month it's
+ * in — see the comment on buildDayScale.
+ *
  * Responsive strategy unchanged: the label column is a fixed-width flex
  * sibling that never scrolls; the timeline is a separate scroll container.
  * Label and timeline rows are synced by giving both an identical, explicitly
@@ -248,6 +324,7 @@ export function PoapRenderer({
   const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
+  const scale = useMemo(() => buildDayScale(startMonth, months), [startMonth, months]);
 
   useLayoutEffect(() => {
     const el = timelineRef.current;
@@ -282,7 +359,7 @@ export function PoapRenderer({
     const offsets: Record<string, number> = {};
     const rowLastX: number[] = [];
     for (const gate of sortedGates) {
-      const x = (gate.position / months) * effectiveWidth;
+      const x = (axisToDays(gate.position, scale) / scale.totalDays) * effectiveWidth;
       let row = rowLastX.findIndex((lastX) => x - lastX >= GATE_COLLISION_PX);
       if (row === -1) {
         row = rowLastX.length;
@@ -293,9 +370,9 @@ export function PoapRenderer({
       offsets[gate.id] = row * GATE_SHIFT_PX;
     }
     return { gateOffsets: offsets, gateRowLevels: Math.max(rowLastX.length, 1) };
-  }, [sortedGates, effectiveWidth, months]);
+  }, [sortedGates, effectiveWidth, scale]);
 
-  const mLabels = useMemo(() => monthLabels(startMonth, months), [startMonth, months]);
+  const mSegments = useMemo(() => monthSegments(startMonth, months), [startMonth, months]);
   const ySegments = useMemo(() => yearSegments(startMonth, months), [startMonth, months]);
   const sCells = useMemo(
     () => subCells(startMonth, months, zoom.subRowGranularity),
@@ -355,12 +432,14 @@ export function PoapRenderer({
   // Focus Cell: which unit a click resolves to depends on which ruler row
   // was clicked, not on the zoom level directly — clicking the month row
   // always focuses a month, clicking the sub row focuses whatever it's
-  // currently divided into. Clicking the already-selected column again
-  // clears it.
+  // currently divided into. The click's pixel ratio is converted to a
+  // real-day offset first (daysToAxis), matching how the grid is actually
+  // drawn, not a naive fraction of `months`. Clicking the already-selected
+  // column again clears it.
   function focusColumn(e: ReactMouseEvent<HTMLDivElement>, unit: ColumnUnit) {
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
-    const rawPosition = ratio * months;
+    const rawPosition = daysToAxis(ratio * scale.totalDays, scale);
     const range = columnRange(rawPosition, unit, startMonth);
     setSelectedColumn((prev) =>
       prev !== null && prev.unit === unit && Math.abs(prev.range.start - range.start) < 0.001
@@ -451,34 +530,16 @@ export function PoapRenderer({
                 <div
                   key={band.id}
                   className={styles.band}
-                  style={{ left: pct(band.start, months), width: pct(band.end - band.start, months) }}
+                  style={{ left: pct(band.start, scale), width: pctSpan(band.start, band.end, scale) }}
                   title={band.label}
                 />
               ))}
               {Array.from({ length: months + 1 }, (_, i) => (
-                <div key={`m${i}`} className={styles.monthGridLine} style={{ left: pct(i, months) }} />
+                <div key={`m${i}`} className={styles.monthGridLine} style={{ left: pct(i, scale) }} />
               ))}
               {sCells.map((cell, i) => (
-                <div key={`s${i}`} className={styles.subGridLine} style={{ left: pct(cell.start, months) }} />
+                <div key={`s${i}`} className={styles.subGridLine} style={{ left: pct(cell.start, scale) }} />
               ))}
-              {selectedColumn !== null && (
-                <>
-                  <div
-                    className={styles.columnHighlight}
-                    style={{
-                      left: pct(selectedColumn.range.start, months),
-                      width: pct(selectedColumn.range.end - selectedColumn.range.start, months),
-                    }}
-                  />
-                  <div
-                    className={styles.columnBadge}
-                    style={{ left: pct(selectedColumn.range.start, months), top: rulerHeight }}
-                  >
-                    {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth)} · {touchedCount}{" "}
-                    {touchedCount === 1 ? "fase" : "fases"}
-                  </div>
-                </>
-              )}
             </div>
 
             <div className={styles.ruler} style={{ height: rulerHeight }}>
@@ -487,19 +548,21 @@ export function PoapRenderer({
                   <div
                     key={seg.year}
                     className={styles.yearCell}
-                    style={{ left: pct(seg.startIdx, months), width: pct(seg.span, months) }}
+                    style={{ left: pct(seg.startIdx, scale), width: pctSpan(seg.startIdx, seg.startIdx + seg.span, scale) }}
                   >
                     {seg.year}
                   </div>
                 ))}
               </div>
-              <div
-                className={styles.monthHeader}
-                style={{ height: MONTH_ROW_HEIGHT, gridTemplateColumns: `repeat(${months}, 1fr)` }}
-                onClick={(e) => focusColumn(e, "month")}
-              >
-                {mLabels.map((label, i) => (
-                  <div key={i} className={styles.monthCell}>{label}</div>
+              <div className={styles.monthHeader} style={{ height: MONTH_ROW_HEIGHT }} onClick={(e) => focusColumn(e, "month")}>
+                {mSegments.map((seg) => (
+                  <div
+                    key={seg.startIdx}
+                    className={styles.monthCell}
+                    style={{ left: pct(seg.startIdx, scale), width: pctSpan(seg.startIdx, seg.startIdx + 1, scale) }}
+                  >
+                    {seg.label}
+                  </div>
                 ))}
               </div>
               {zoom.subRowGranularity !== "none" && (
@@ -509,7 +572,11 @@ export function PoapRenderer({
                   onClick={(e) => focusColumn(e, zoom.subRowGranularity as ColumnUnit)}
                 >
                   {sCells.map((cell, i) => (
-                    <div key={i} className={styles.subCell} style={{ left: pct((cell.start + cell.end) / 2, months) }}>
+                    <div
+                      key={i}
+                      className={styles.subCell}
+                      style={{ left: pct(cell.start, scale), width: pctSpan(cell.start, cell.end, scale) }}
+                    >
                       {cell.label}
                     </div>
                   ))}
@@ -522,7 +589,7 @@ export function PoapRenderer({
                 <div
                   key={gate.id}
                   className={styles.gate}
-                  style={{ left: pct(gate.position, months), top: gateOffsets[gate.id] }}
+                  style={{ left: pct(gate.position, scale), top: gateOffsets[gate.id] }}
                 >
                   <span className={styles.gateDiamond} aria-hidden="true" />
                   <span className={styles.gateLabel}>{gate.label}</span>
@@ -540,7 +607,7 @@ export function PoapRenderer({
                       <AggregateBar
                         agg={agg}
                         laneName={lane.name}
-                        months={months}
+                        scale={scale}
                         onHover={showTooltip}
                         onLeave={() => setTooltip(null)}
                       />
@@ -556,7 +623,7 @@ export function PoapRenderer({
                         <Bar
                           key={phase.id}
                           phase={phase}
-                          months={months}
+                          scale={scale}
                           trackWidth={effectiveWidth}
                           selected={phase.id === selectedPhaseId}
                           onClick={onPhaseClick}
@@ -569,6 +636,30 @@ export function PoapRenderer({
                 </div>
               );
             })}
+
+            {/* Focus Cell overlay — last in DOM so it paints above every bar,
+                gate and ruler cell (all of which are `position: relative`
+                and therefore share this same paint tier, ordered by DOM
+                position). Kept separate from bandsOverlay, which is first
+                in DOM specifically so period bands stay *behind* everything. */}
+            {selectedColumn !== null && (
+              <div className={styles.focusOverlay} aria-hidden="true">
+                <div
+                  className={styles.columnHighlight}
+                  style={{
+                    left: pct(selectedColumn.range.start, scale),
+                    width: pctSpan(selectedColumn.range.start, selectedColumn.range.end, scale),
+                  }}
+                />
+                <div
+                  className={styles.columnBadge}
+                  style={{ left: pct(selectedColumn.range.start, scale), top: rulerHeight }}
+                >
+                  {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth)} · {touchedCount}{" "}
+                  {touchedCount === 1 ? "fase" : "fases"}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -580,7 +671,7 @@ export function PoapRenderer({
 
 function Bar({
   phase,
-  months,
+  scale,
   trackWidth,
   selected,
   onClick,
@@ -588,14 +679,15 @@ function Bar({
   onLeave,
 }: {
   phase: Phase;
-  months: number;
+  scale: DayScale;
   trackWidth: number;
   selected: boolean;
   onClick?: (phaseId: string) => void;
   onHover: (e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) => void;
   onLeave: () => void;
 }) {
-  const widthPx = trackWidth ? ((phase.end - phase.start) / months) * trackWidth : Infinity;
+  const spanDays = axisToDays(phase.end, scale) - axisToDays(phase.start, scale);
+  const widthPx = trackWidth ? (spanDays / scale.totalDays) * trackWidth : Infinity;
   const showText = widthPx >= BAR_MIN_TEXT_PX;
 
   return (
@@ -607,7 +699,7 @@ function Bar({
         selected ? styles.barSelected : "",
         showText ? "" : styles.barNoText,
       ].join(" ").trim()}
-      style={{ left: pct(phase.start, months), width: pct(phase.end - phase.start, months) }}
+      style={{ left: pct(phase.start, scale), width: pctSpan(phase.start, phase.end, scale) }}
       onClick={() => onClick?.(phase.id)}
       onMouseMove={(e) =>
         onHover(e, {
@@ -628,20 +720,20 @@ function Bar({
 function AggregateBar({
   agg,
   laneName,
-  months,
+  scale,
   onHover,
   onLeave,
 }: {
   agg: LaneAggregate;
   laneName: string;
-  months: number;
+  scale: DayScale;
   onHover: (e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) => void;
   onLeave: () => void;
 }) {
   return (
     <div
       className={`${styles.bar} ${STATUS_CLASS[agg.status]}`}
-      style={{ left: pct(agg.start, months), width: pct(agg.end - agg.start, months), cursor: "default" }}
+      style={{ left: pct(agg.start, scale), width: pctSpan(agg.start, agg.end, scale), cursor: "default" }}
       onMouseMove={(e) =>
         onHover(e, {
           title: `${laneName} — resumen`,
