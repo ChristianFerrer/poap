@@ -3,18 +3,43 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px 16px 16px;
+  max-width: 100%;
 }
 
+/* Label column is a fixed-width flex sibling that never scrolls; the
+   timeline is its own horizontally-scrollable sibling. Kept as two
+   independent flex columns (not a shared CSS grid) so a narrow viewport can
+   scroll just the timeline without dragging the labels along. */
 .chart {
-  display: grid;
-  position: relative;
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
 }
 
-/* -- bands: painted first in DOM order so they sit below every other grid item -- */
-.bandsOverlay {
-  grid-column: 2;
-  grid-row: 1 / -1;
+.labelsCol {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.timelineScroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.timelineInner {
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* painted first in DOM order so it sits below the header/gates/lane rows */
+.bandsOverlay {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
 }
 .band {
@@ -31,9 +56,6 @@
   color: var(--text-secondary);
   padding-right: 8px;
   border-bottom: 0.5px solid var(--border);
-}
-.headerLabelCell {
-  border-bottom: none;
 }
 .gatesLabelCell {
   font-weight: 500;

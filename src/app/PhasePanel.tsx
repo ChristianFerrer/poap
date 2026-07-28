@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import type { Lane, PhaseStatus } from "@/components/poap-renderer/types";
 import { activitiesFor } from "./mock-data";
 import styles from "./PhasePanel.module.css";
@@ -24,16 +24,16 @@ const STATUS_VAR: Record<PhaseStatus, string> = {
  * no navigation. This lives outside poap-renderer on purpose — the renderer
  * only exposes onPhaseClick/selectedPhaseId, it doesn't know activities or
  * comments exist. A real app would swap this for Supabase-backed data.
+ *
+ * Renders inline below the plan (not a fixed side drawer) so it works the
+ * same way on a phone as on a laptop — a right-hand overlay has nowhere to
+ * go on a narrow viewport.
  */
-export function PhasePanel({
-  lanes,
-  phaseId,
-  onClose,
-}: {
+export const PhasePanel = forwardRef<HTMLDivElement, {
   lanes: Lane[];
   phaseId: string;
   onClose: () => void;
-}) {
+}>(function PhasePanel({ lanes, phaseId, onClose }, ref) {
   const phase = lanes.flatMap((l) => l.phases).find((p) => p.id === phaseId);
   const lane = lanes.find((l) => l.phases.some((p) => p.id === phaseId));
   const [openActivity, setOpenActivity] = useState<string | null>(null);
@@ -56,64 +56,61 @@ export function PhasePanel({
   }
 
   return (
-    <>
-      <div className={styles.backdrop} onClick={onClose} />
-      <aside className={styles.panel}>
-        <button className={styles.close} onClick={onClose} aria-label="Cerrar">✕</button>
-        <p className={styles.eyebrow}>{lane.name}</p>
-        <h2 className={styles.title}>{phase.title}</h2>
-        <span className={styles.pill} style={{ background: `color-mix(in srgb, var(--${STATUS_VAR[phase.status]}) 18%, var(--card-bg))`, color: `var(--${STATUS_VAR[phase.status]})` }}>
-          <span className={styles.pillDot} style={{ background: `var(--${STATUS_VAR[phase.status]})` }} />
-          {STATUS_LABEL[phase.status]}
-        </span>
+    <section ref={ref} className={styles.panel}>
+      <button className={styles.close} onClick={onClose} aria-label="Cerrar">✕</button>
+      <p className={styles.eyebrow}>{lane.name}</p>
+      <h2 className={styles.title}>{phase.title}</h2>
+      <span className={styles.pill} style={{ background: `color-mix(in srgb, var(--${STATUS_VAR[phase.status]}) 18%, var(--card-bg))`, color: `var(--${STATUS_VAR[phase.status]})` }}>
+        <span className={styles.pillDot} style={{ background: `var(--${STATUS_VAR[phase.status]})` }} />
+        {STATUS_LABEL[phase.status]}
+      </span>
 
-        <p className={styles.sectionTitle}>Actividades ({activities.length})</p>
-        {activities.map((a) => {
-          const isOpen = openActivity === a.id;
-          const seedComments = a.comments ?? [];
-          const extraComments = commentsByActivity[a.id] ?? [];
-          const allComments = [...seedComments, ...extraComments];
-          return (
-            <div key={a.id} className={styles.activity}>
-              <button
-                className={styles.activityHead}
-                onClick={() => {
-                  setOpenActivity(isOpen ? null : a.id);
-                  setDraft("");
-                }}
-              >
-                <span className={styles.activityDot} style={{ background: `var(--${STATUS_VAR[a.status]})` }} />
-                <span className={styles.activityName}>{a.title}</span>
-                <span>{isOpen ? "−" : "+"}</span>
-              </button>
-              {isOpen && (
-                <div className={styles.activityBody}>
-                  {allComments.length === 0 && <p className={styles.noComments}>Aún no hay comentarios.</p>}
-                  {allComments.map((c, i) => (
-                    <div key={i} className={styles.comment}>
-                      <div className={styles.commentHead}>
-                        <span className={styles.commentAuthor}>{c.author}</span>
-                        <span className={styles.commentDate}>{c.date}</span>
-                      </div>
-                      <p className={styles.commentText}>{c.text}</p>
+      <p className={styles.sectionTitle}>Actividades ({activities.length})</p>
+      {activities.map((a) => {
+        const isOpen = openActivity === a.id;
+        const seedComments = a.comments ?? [];
+        const extraComments = commentsByActivity[a.id] ?? [];
+        const allComments = [...seedComments, ...extraComments];
+        return (
+          <div key={a.id} className={styles.activity}>
+            <button
+              className={styles.activityHead}
+              onClick={() => {
+                setOpenActivity(isOpen ? null : a.id);
+                setDraft("");
+              }}
+            >
+              <span className={styles.activityDot} style={{ background: `var(--${STATUS_VAR[a.status]})` }} />
+              <span className={styles.activityName}>{a.title}</span>
+              <span>{isOpen ? "−" : "+"}</span>
+            </button>
+            {isOpen && (
+              <div className={styles.activityBody}>
+                {allComments.length === 0 && <p className={styles.noComments}>Aún no hay comentarios.</p>}
+                {allComments.map((c, i) => (
+                  <div key={i} className={styles.comment}>
+                    <div className={styles.commentHead}>
+                      <span className={styles.commentAuthor}>{c.author}</span>
+                      <span className={styles.commentDate}>{c.date}</span>
                     </div>
-                  ))}
-                  <div className={styles.commentForm}>
-                    <textarea
-                      placeholder="Añadir un comentario…"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                    />
-                    <button disabled={!draft.trim()} onClick={() => submitComment(a.id)}>
-                      Comentar
-                    </button>
+                    <p className={styles.commentText}>{c.text}</p>
                   </div>
+                ))}
+                <div className={styles.commentForm}>
+                  <textarea
+                    placeholder="Añadir un comentario…"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                  />
+                  <button disabled={!draft.trim()} onClick={() => submitComment(a.id)}>
+                    Comentar
+                  </button>
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </aside>
-    </>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
   );
-}
+});

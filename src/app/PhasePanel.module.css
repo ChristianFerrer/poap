@@ -1,21 +1,30 @@
-.backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 10, 12, 0.25);
-  z-index: 40;
+/* Inline block below the plan — not an overlay drawer, so it works the same
+   on a phone as on a laptop, and pushes the page instead of covering it. */
+.panel {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 16px;
+  padding: 18px 18px 22px;
+  animation: reveal 0.18s ease-out;
 }
 
-.panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
-  width: min(380px, 92vw);
-  background: var(--card-bg);
-  border-left: 1px solid var(--border);
-  z-index: 50;
-  overflow-y: auto;
-  padding: 18px 18px 28px;
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .close {

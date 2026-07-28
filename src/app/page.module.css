@@ -1,0 +1,33 @@
+.main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  text-wrap: balance;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 18px;
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 16px 12px 40px;
+  }
+  .title {
+    font-size: 17px;
+  }
+}

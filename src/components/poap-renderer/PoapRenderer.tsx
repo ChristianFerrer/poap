@@ -4,10 +4,16 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { packLane } from "./pack";
 import type { Phase, PhaseStatus, PoapRendererProps } from "./types";
 import {
+  BAR_HEIGHT,
   BAR_MIN_TEXT_PX,
+  GATES_ROW_BASE_HEIGHT,
   GATE_COLLISION_PX,
   GATE_SHIFT_PX,
+  HEADER_ROW_HEIGHT,
   LABEL_COL_WIDTH,
+  LANE_PADDING_Y,
+  MIN_MONTH_PX,
+  ROW_GAP,
 } from "./constants";
 import styles from "./PoapRenderer.module.css";
 
@@ -46,12 +52,24 @@ function pct(value: number, months: number): string {
   return `${(value / months) * 100}%`;
 }
 
+function laneRowHeight(rowCount: number): number {
+  const rows = Math.max(rowCount, 1);
+  return LANE_PADDING_Y * 2 + rows * BAR_HEIGHT + (rows - 1) * ROW_GAP;
+}
+
 /**
  * Renders a program's PoAP grid: lanes with auto-stacked phase rows, a
  * stage-gate strip, and period bands. Pure presentational component — no
  * data fetching, no routing. Row counts per lane come from `packLane`
  * (src/components/poap-renderer/pack.ts); this component never decides how
  * phases get grouped into rows, only how a given row layout gets painted.
+ *
+ * Responsive strategy: the label column is a fixed-width flex sibling that
+ * never scrolls; the timeline is a separate scroll container with a
+ * per-month width floor (MIN_MONTH_PX), so on a narrow viewport it scrolls
+ * horizontally instead of compressing bar text into nothing. Label and
+ * timeline rows are synced by giving both an identical, explicitly computed
+ * height rather than relying on the two staying in a shared grid.
  */
 export function PoapRenderer({
   months,
@@ -62,11 +80,11 @@ export function PoapRenderer({
   selectedPhaseId = null,
   onPhaseClick,
 }: PoapRendererProps) {
-  const gatesTrackRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
 
   useLayoutEffect(() => {
-    const el = gatesTrackRef.current;
+    const el = timelineRef.current;
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
@@ -75,6 +93,13 @@ export function PoapRenderer({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  const timelineMinWidth = months * MIN_MONTH_PX;
+  // The scroll container can be narrower than the content it holds (that's
+  // the whole point of the horizontal-scroll fallback) — every pixel
+  // calculation needs the *rendered* width of timelineInner, which is
+  // whichever of the two is larger, not the raw ResizeObserver reading.
+  const effectiveWidth = Math.max(trackWidth, timelineMinWidth);
 
   const sortedGates = useMemo(
     () => [...gates].sort((a, b) => a.position - b.position),
@@ -95,7 +120,7 @@ export function PoapRenderer({
     const offsets: Record<string, number> = {};
     const rowLastX: number[] = [];
     for (const gate of sortedGates) {
-      const x = trackWidth ? (gate.position / months) * trackWidth : 0;
+      const x = (gate.position / months) * effectiveWidth;
       let row = rowLastX.findIndex((lastX) => x - lastX >= GATE_COLLISION_PX);
       if (row === -1) {
         row = rowLastX.length;
@@ -106,7 +131,7 @@ export function PoapRenderer({
       offsets[gate.id] = row * GATE_SHIFT_PX;
     }
     return { gateOffsets: offsets, gateRowLevels: Math.max(rowLastX.length, 1) };
-  }, [sortedGates, trackWidth, months]);
+  }, [sortedGates, effectiveWidth, months]);
 
   const labels = useMemo(() => monthLabels(startMonth, months), [startMonth, months]);
 
@@ -119,136 +144,90 @@ export function PoapRenderer({
     [orderedLanes],
   );
 
-  const gateRowHeight = 22 + (gateRowLevels - 1) * GATE_SHIFT_PX;
-
-  // Grid rows are assigned explicitly (not left to auto-placement): row 1 is
-  // the month header, row 2 is stage gates, then one row per lane. This has
-  // to be explicit because bandsOverlay spans every row in column 2 — if the
-  // other column-2 items were auto-placed, the grid would try to resolve
-  // their rows *before* it knows how many rows bandsOverlay's span needs,
-  // and auto-placement skips any row bandsOverlay has already claimed.
-  const HEADER_ROW = 1;
-  const GATES_ROW = 2;
-  const totalRows = 2 + packedLanes.length;
+  const gateRowHeight = GATES_ROW_BASE_HEIGHT + (gateRowLevels - 1) * GATE_SHIFT_PX;
 
   return (
     <div className={styles.card}>
-      <div
-        className={styles.chart}
-        style={{ gridTemplateColumns: `${LABEL_COL_WIDTH}px 1fr` }}
-      >
-        <div
-          className={styles.bandsOverlay}
-          style={{ gridRow: `1 / ${totalRows + 1}` }}
-          aria-hidden="true"
-        >
-          {bands.map((band) => (
+      <div className={styles.chart}>
+        <div className={styles.labelsCol} style={{ width: LABEL_COL_WIDTH }}>
+          <div className={styles.labelCell} style={{ height: HEADER_ROW_HEIGHT }} />
+          <div
+            className={`${styles.labelCell} ${styles.gatesLabelCell}`}
+            style={{ height: gateRowHeight }}
+          >
+            Stage gates
+          </div>
+          {packedLanes.map(({ lane, rows }) => (
             <div
-              key={band.id}
-              className={styles.band}
-              style={{ left: pct(band.start, months), width: pct(band.end - band.start, months) }}
-              title={band.label}
-            />
-          ))}
-        </div>
-
-        <div
-          className={`${styles.labelCell} ${styles.headerLabelCell}`}
-          style={{ gridColumn: 1, gridRow: HEADER_ROW }}
-        />
-        <div
-          className={styles.monthHeader}
-          style={{ gridColumn: 2, gridRow: HEADER_ROW, gridTemplateColumns: `repeat(${months}, 1fr)` }}
-        >
-          {labels.map((label, i) => (
-            <div key={i} className={styles.monthCell}>{label}</div>
-          ))}
-        </div>
-
-        <div
-          className={`${styles.labelCell} ${styles.gatesLabelCell}`}
-          style={{ gridColumn: 1, gridRow: GATES_ROW, height: gateRowHeight }}
-        >
-          Stage gates
-        </div>
-        <div
-          ref={gatesTrackRef}
-          className={styles.gatesTrack}
-          style={{ gridColumn: 2, gridRow: GATES_ROW, height: gateRowHeight }}
-        >
-          {sortedGates.map((gate) => (
-            <div
-              key={gate.id}
-              className={styles.gate}
-              style={{ left: pct(gate.position, months), top: gateOffsets[gate.id] }}
+              key={lane.id}
+              className={`${styles.labelCell} ${styles.laneLabel}`}
+              style={{ height: laneRowHeight(rows.length) }}
+              title={lane.name}
             >
-              <span className={styles.gateDiamond} aria-hidden="true" />
-              <span className={styles.gateLabel}>{gate.label}</span>
+              <span className={styles.laneLabelText}>{lane.name}</span>
             </div>
           ))}
         </div>
 
-        {packedLanes.map(({ lane, rows }, i) => (
-          <LaneRow
-            key={lane.id}
-            gridRow={GATES_ROW + 1 + i}
-            name={lane.name}
-            rows={rows}
-            months={months}
-            trackWidth={trackWidth}
-            selectedPhaseId={selectedPhaseId}
-            onPhaseClick={onPhaseClick}
-          />
-        ))}
+        <div ref={timelineRef} className={styles.timelineScroll}>
+          <div className={styles.timelineInner} style={{ minWidth: timelineMinWidth }}>
+            <div className={styles.bandsOverlay} aria-hidden="true">
+              {bands.map((band) => (
+                <div
+                  key={band.id}
+                  className={styles.band}
+                  style={{ left: pct(band.start, months), width: pct(band.end - band.start, months) }}
+                  title={band.label}
+                />
+              ))}
+            </div>
+
+            <div
+              className={styles.monthHeader}
+              style={{ height: HEADER_ROW_HEIGHT, gridTemplateColumns: `repeat(${months}, 1fr)` }}
+            >
+              {labels.map((label, i) => (
+                <div key={i} className={styles.monthCell}>{label}</div>
+              ))}
+            </div>
+
+            <div className={styles.gatesTrack} style={{ height: gateRowHeight }}>
+              {sortedGates.map((gate) => (
+                <div
+                  key={gate.id}
+                  className={styles.gate}
+                  style={{ left: pct(gate.position, months), top: gateOffsets[gate.id] }}
+                >
+                  <span className={styles.gateDiamond} aria-hidden="true" />
+                  <span className={styles.gateLabel}>{gate.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {packedLanes.map(({ lane, rows }) => (
+              <div key={lane.id} className={styles.laneTrack} style={{ height: laneRowHeight(rows.length) }}>
+                {rows.map((row, i) => (
+                  <div key={i} className={styles.laneRow}>
+                    {row.map((phase) => (
+                      <Bar
+                        key={phase.id}
+                        phase={phase}
+                        months={months}
+                        trackWidth={effectiveWidth}
+                        selected={phase.id === selectedPhaseId}
+                        onClick={onPhaseClick}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <Legend />
     </div>
-  );
-}
-
-function LaneRow({
-  gridRow,
-  name,
-  rows,
-  months,
-  trackWidth,
-  selectedPhaseId,
-  onPhaseClick,
-}: {
-  gridRow: number;
-  name: string;
-  rows: Phase[][];
-  months: number;
-  trackWidth: number;
-  selectedPhaseId: string | null;
-  onPhaseClick?: (phaseId: string) => void;
-}) {
-  return (
-    <>
-      <div
-        className={`${styles.labelCell} ${styles.laneLabel}`}
-        style={{ gridColumn: 1, gridRow }}
-      >
-        <span className={styles.laneLabelText}>{name}</span>
-      </div>
-      <div className={styles.laneTrack} style={{ gridColumn: 2, gridRow }}>
-        {rows.map((row, i) => (
-          <div key={i} className={styles.laneRow}>
-            {row.map((phase) => (
-              <Bar
-                key={phase.id}
-                phase={phase}
-                months={months}
-                trackWidth={trackWidth}
-                selected={phase.id === selectedPhaseId}
-                onClick={onPhaseClick}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-    </>
   );
 }
 
