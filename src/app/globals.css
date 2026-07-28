@@ -20,6 +20,10 @@
 
   --bg-warning: #fceed9;
   --text-warning: #92530a;
+
+  /* Stage-gate activation — distinct from status/accent so an activated
+     gate never reads as "in progress" or "on track". */
+  --gate-active: #7c3aed;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,6 +49,8 @@
 
     --bg-warning: #3a2a0e;
     --text-warning: #f0b75c;
+
+    --gate-active: #a78bfa;
   }
 }
 

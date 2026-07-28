@@ -278,6 +278,12 @@
   gap: 4px;
   white-space: nowrap;
   transition: top 0.1s ease;
+  border: none;
+  background: none;
+  padding: 2px 3px;
+  margin: -2px -3px;
+  cursor: pointer;
+  font-family: inherit;
 }
 .gateDiamond {
   width: 10px;
@@ -286,10 +292,32 @@
   transform: rotate(45deg);
   border-radius: 1.5px;
   flex: 0 0 auto;
+  transition: background-color 0.1s ease;
 }
 .gateLabel {
   font-size: 11px;
   color: var(--text-secondary);
+  transition: color 0.1s ease;
+}
+.gate:hover .gateDiamond,
+.gateActive .gateDiamond {
+  background: var(--gate-active);
+}
+.gate:hover .gateLabel,
+.gateActive .gateLabel {
+  color: var(--gate-active);
+  font-weight: 600;
+}
+
+/* Spans from the gates row down to the bottom of the plan — "hasta el
+   final del planning" — so it's obvious which bars each activated gate
+   cuts through. Lives in the same top-most overlay as Focus Cell so it's
+   never hidden under a bar. */
+.gateLine {
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  border-left: 1.5px solid var(--gate-active);
 }
 
 .laneLabel {

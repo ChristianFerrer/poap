@@ -282,6 +282,13 @@ interface TooltipState {
   status: PhaseStatus;
 }
 
+interface GateTooltipState {
+  x: number;
+  y: number;
+  label: string;
+  date: string;
+}
+
 /**
  * Renders a program's PoAP grid: lanes with auto-stacked phase rows, a
  * stage-gate strip, and period bands. Pure presentational component — no
@@ -321,7 +328,9 @@ export function PoapRenderer({
   const [zoomScale, setZoomScale] = useState(ZOOM_SCALE_DEFAULT);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [gateTooltip, setGateTooltip] = useState<GateTooltipState | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);
+  const [activeGateIds, setActiveGateIds] = useState<Set<string>>(() => new Set());
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
   const scale = useMemo(() => buildDayScale(startMonth, months), [startMonth, months]);
@@ -450,6 +459,22 @@ export function PoapRenderer({
 
   function showTooltip(e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) {
     setTooltip({ ...data, x: e.clientX, y: e.clientY });
+  }
+
+  // Stage gates activate independently of each other (unlike Focus Cell,
+  // which is a single selection) — the point is comparing several at once
+  // to see which phases each one cuts through.
+  function toggleGate(gateId: string) {
+    setActiveGateIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(gateId)) next.delete(gateId);
+      else next.add(gateId);
+      return next;
+    });
+  }
+
+  function showGateTooltip(e: { clientX: number; clientY: number }, gate: { label: string; position: number }) {
+    setGateTooltip({ x: e.clientX, y: e.clientY, label: gate.label, date: formatAxisDate(gate.position, startMonth) });
   }
 
   return (
@@ -585,16 +610,24 @@ export function PoapRenderer({
             </div>
 
             <div className={styles.gatesTrack} style={{ height: gateRowHeight }}>
-              {sortedGates.map((gate) => (
-                <div
-                  key={gate.id}
-                  className={styles.gate}
-                  style={{ left: pct(gate.position, scale), top: gateOffsets[gate.id] }}
-                >
-                  <span className={styles.gateDiamond} aria-hidden="true" />
-                  <span className={styles.gateLabel}>{gate.label}</span>
-                </div>
-              ))}
+              {sortedGates.map((gate) => {
+                const active = activeGateIds.has(gate.id);
+                return (
+                  <button
+                    key={gate.id}
+                    type="button"
+                    className={`${styles.gate} ${active ? styles.gateActive : ""}`}
+                    style={{ left: pct(gate.position, scale), top: gateOffsets[gate.id] }}
+                    onClick={() => toggleGate(gate.id)}
+                    onMouseMove={(e) => showGateTooltip(e, gate)}
+                    onMouseLeave={() => setGateTooltip(null)}
+                    aria-pressed={active}
+                  >
+                    <span className={styles.gateDiamond} aria-hidden="true" />
+                    <span className={styles.gateLabel}>{gate.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {packedLanes.map(({ lane, rows }) => {
@@ -637,34 +670,44 @@ export function PoapRenderer({
               );
             })}
 
-            {/* Focus Cell overlay — last in DOM so it paints above every bar,
-                gate and ruler cell (all of which are `position: relative`
-                and therefore share this same paint tier, ordered by DOM
+            {/* Top overlay — last in DOM so it paints above every bar, gate
+                and ruler cell (all of which are `position: relative` and
+                therefore share this same paint tier, ordered by DOM
                 position). Kept separate from bandsOverlay, which is first
-                in DOM specifically so period bands stay *behind* everything. */}
-            {selectedColumn !== null && (
-              <div className={styles.focusOverlay} aria-hidden="true">
-                <div
-                  className={styles.columnHighlight}
-                  style={{
-                    left: pct(selectedColumn.range.start, scale),
-                    width: pctSpan(selectedColumn.range.start, selectedColumn.range.end, scale),
-                  }}
-                />
-                <div
-                  className={styles.columnBadge}
-                  style={{ left: pct(selectedColumn.range.start, scale), top: rulerHeight }}
-                >
-                  {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth)} · {touchedCount}{" "}
-                  {touchedCount === 1 ? "fase" : "fases"}
-                </div>
-              </div>
-            )}
+                in DOM specifically so period bands stay *behind* everything.
+                Holds both Focus Cell's highlight and active stage-gate
+                lines — unrelated features, same "always on top" need. */}
+            <div className={styles.focusOverlay} aria-hidden="true">
+              {sortedGates
+                .filter((g) => activeGateIds.has(g.id))
+                .map((g) => (
+                  <div key={g.id} className={styles.gateLine} style={{ left: pct(g.position, scale), top: rulerHeight }} />
+                ))}
+              {selectedColumn !== null && (
+                <>
+                  <div
+                    className={styles.columnHighlight}
+                    style={{
+                      left: pct(selectedColumn.range.start, scale),
+                      width: pctSpan(selectedColumn.range.start, selectedColumn.range.end, scale),
+                    }}
+                  />
+                  <div
+                    className={styles.columnBadge}
+                    style={{ left: pct(selectedColumn.range.start, scale), top: rulerHeight }}
+                  >
+                    {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth)} · {touchedCount}{" "}
+                    {touchedCount === 1 ? "fase" : "fases"}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {tooltip && <Tooltip data={tooltip} startMonth={startMonth} />}
+      {gateTooltip && <GateTooltip data={gateTooltip} />}
     </div>
   );
 }
@@ -769,6 +812,18 @@ function Tooltip({ data, startMonth }: { data: TooltipState; startMonth: string 
       <div className={styles.tooltipStatus}>
         <span className={styles.tooltipDot} style={{ background: `var(--${legendColorVar(data.status)})` }} />
         {STATUS_LABEL[data.status]}
+      </div>
+    </div>
+  );
+}
+
+function GateTooltip({ data }: { data: GateTooltipState }) {
+  return (
+    <div className={styles.tooltip} style={{ left: data.x + 14, top: data.y + 14 }}>
+      <p className={styles.tooltipTitle}>{data.label}</p>
+      <div className={styles.tooltipRow}>
+        <span>Fecha</span>
+        <b>{data.date}</b>
       </div>
     </div>
   );
