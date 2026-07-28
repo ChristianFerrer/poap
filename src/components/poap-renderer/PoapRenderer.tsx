@@ -118,6 +118,23 @@ function pctSpan(start: number, end: number, scale: DayScale): string {
   return `${((axisToDays(end, scale) - axisToDays(start, scale)) / scale.totalDays) * 100}%`;
 }
 
+/**
+ * A gate's `position` is the exact instant its day starts — rendering it
+ * there puts the marker right on the boundary line between that day and
+ * the previous one, at the far *left* edge of its own day column, while
+ * the day cell's number sits at the column's midpoint (subCell/monthCell
+ * center their label). That mismatch is invisible at coarse zooms (half a
+ * day is sub-pixel) but very visible at "dia" zoom — the marker reads as
+ * "yesterday". Nudging by half a day lines the gate up with the day
+ * column's actual visual center, matching where its number is printed.
+ */
+function daysCenterOf(position: number, scale: DayScale): number {
+  return axisToDays(position, scale) + 0.5;
+}
+function pctDayCenter(position: number, scale: DayScale): string {
+  return `${(daysCenterOf(position, scale) / scale.totalDays) * 100}%`;
+}
+
 interface MonthSegment {
   label: string;
   startIdx: number;
@@ -368,7 +385,7 @@ export function PoapRenderer({
     const offsets: Record<string, number> = {};
     const rowLastX: number[] = [];
     for (const gate of sortedGates) {
-      const x = (axisToDays(gate.position, scale) / scale.totalDays) * effectiveWidth;
+      const x = (daysCenterOf(gate.position, scale) / scale.totalDays) * effectiveWidth;
       let row = rowLastX.findIndex((lastX) => x - lastX >= GATE_COLLISION_PX);
       if (row === -1) {
         row = rowLastX.length;
@@ -617,7 +634,7 @@ export function PoapRenderer({
                     key={gate.id}
                     type="button"
                     className={`${styles.gate} ${active ? styles.gateActive : ""}`}
-                    style={{ left: pct(gate.position, scale), top: gateOffsets[gate.id] }}
+                    style={{ left: pctDayCenter(gate.position, scale), top: gateOffsets[gate.id] }}
                     onClick={() => toggleGate(gate.id)}
                     onMouseMove={(e) => showGateTooltip(e, gate)}
                     onMouseLeave={() => setGateTooltip(null)}
@@ -681,7 +698,7 @@ export function PoapRenderer({
               {sortedGates
                 .filter((g) => activeGateIds.has(g.id))
                 .map((g) => (
-                  <div key={g.id} className={styles.gateLine} style={{ left: pct(g.position, scale), top: rulerHeight }} />
+                  <div key={g.id} className={styles.gateLine} style={{ left: pctDayCenter(g.position, scale), top: rulerHeight }} />
                 ))}
               {selectedColumn !== null && (
                 <>
