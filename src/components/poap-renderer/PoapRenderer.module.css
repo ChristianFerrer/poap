@@ -1,0 +1,174 @@
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px 16px;
+}
+
+.chart {
+  display: grid;
+  position: relative;
+}
+
+/* -- bands: painted first in DOM order so they sit below every other grid item -- */
+.bandsOverlay {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  position: relative;
+  pointer-events: none;
+}
+.band {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--surface-0);
+}
+
+.labelCell {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding-right: 8px;
+  border-bottom: 0.5px solid var(--border);
+}
+.headerLabelCell {
+  border-bottom: none;
+}
+.gatesLabelCell {
+  font-weight: 500;
+}
+
+.monthHeader {
+  display: grid;
+  border-bottom: 0.5px solid var(--border);
+  padding-bottom: 4px;
+}
+.monthCell {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.gatesTrack {
+  position: relative;
+  border-bottom: 0.5px solid var(--border);
+}
+.gate {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: top 0.1s ease;
+}
+.gateDiamond {
+  width: 10px;
+  height: 10px;
+  background: var(--text-secondary);
+  transform: rotate(45deg);
+  border-radius: 1.5px;
+  flex: 0 0 auto;
+}
+.gateLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.laneLabel {
+  align-items: center;
+}
+.laneLabelText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.laneTrack {
+  position: relative;
+  padding: 5px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-bottom: 0.5px solid var(--border);
+}
+.laneRow {
+  position: relative;
+  height: 17px;
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+  font-family: inherit;
+}
+.bar:hover {
+  filter: brightness(0.97);
+}
+.bar:focus-visible {
+  outline: 1.5px solid var(--border-strong);
+  outline-offset: 1px;
+}
+.barSelected {
+  outline: 1.5px solid var(--border-strong);
+  outline-offset: 1px;
+}
+.barLabel {
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+.barNoText {
+  padding: 0;
+}
+
+.statusDone {
+  background: var(--bg-success);
+  color: var(--text-success);
+}
+.statusInProgress {
+  background: var(--bg-accent);
+  color: var(--text-accent);
+}
+.statusAtRisk {
+  background: var(--bg-warning);
+  color: var(--text-warning);
+}
+.statusNotStarted {
+  background: var(--surface-1);
+  color: var(--text-secondary);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
