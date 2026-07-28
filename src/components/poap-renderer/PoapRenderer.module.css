@@ -102,7 +102,7 @@
   border-left: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
 }
 
-.dayHighlight {
+.columnHighlight {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -110,7 +110,7 @@
   border-left: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
   border-right: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
 }
-.dayBadge {
+.columnBadge {
   position: absolute;
   transform: translate(4px, 4px);
   background: var(--text-accent);

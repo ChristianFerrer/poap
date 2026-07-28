@@ -99,6 +99,50 @@ function dayWidth(position: number, startMonth: string): number {
   return 1 / daysInMonth;
 }
 
+interface ColumnRange {
+  start: number;
+  end: number;
+}
+
+/**
+ * Excel's "Focus Cell": the column a click resolves to, sized to match
+ * whatever the current zoom is looking at — a day at zoom "dia", a 7-day
+ * bucket at "semana" (same buckets as the week ruler ticks, so the
+ * highlight lines up with what's on screen), a calendar month at "mes" and
+ * "anio" (there's no finer grid drawn at those zooms to snap to).
+ */
+function columnRange(rawPosition: number, zoomKey: ZoomLevel["key"], startMonth: string): ColumnRange {
+  if (zoomKey === "dia") {
+    const start = toAxis(fromAxis(rawPosition, startMonth), startMonth);
+    return { start, end: start + dayWidth(start, startMonth) };
+  }
+  if (zoomKey === "semana") {
+    const parts = startMonth.split("-").map(Number);
+    const rangeStart = new Date(Date.UTC(parts[0] ?? 0, (parts[1] ?? 1) - 1, 1));
+    const date = fromAxis(rawPosition, startMonth);
+    const daysSinceStart = Math.round((date.getTime() - rangeStart.getTime()) / 86_400_000);
+    const bucketIndex = Math.floor(daysSinceStart / 7);
+    const bucketStart = new Date(rangeStart.getTime() + bucketIndex * 7 * 86_400_000);
+    const bucketEnd = new Date(bucketStart.getTime() + 7 * 86_400_000);
+    return { start: toAxis(bucketStart, startMonth), end: toAxis(bucketEnd, startMonth) };
+  }
+  // "mes" and "anio" both snap to a calendar month — it's the finest column
+  // either of those zooms actually draws.
+  const start = Math.floor(rawPosition);
+  return { start, end: start + 1 };
+}
+
+function formatColumnLabel(range: ColumnRange, zoomKey: ZoomLevel["key"], startMonth: string): string {
+  const start = fromAxis(range.start, startMonth);
+  if (zoomKey === "dia") {
+    return `${start.getUTCDate()} ${MONTH_ABBR[start.getUTCMonth()]} ${String(start.getUTCFullYear()).slice(2)}`;
+  }
+  if (zoomKey === "semana") {
+    return `Semana del ${start.getUTCDate()} ${MONTH_ABBR[start.getUTCMonth()]}`;
+  }
+  return `${MONTH_ABBR[start.getUTCMonth()]!.charAt(0).toUpperCase()}${MONTH_ABBR[start.getUTCMonth()]!.slice(1)} ${start.getUTCFullYear()}`;
+}
+
 function laneRowHeight(rowCount: number): number {
   const rows = Math.max(rowCount, 1);
   return LANE_PADDING_Y * 2 + rows * BAR_HEIGHT + (rows - 1) * ROW_GAP;
@@ -179,7 +223,7 @@ export function PoapRenderer({
   const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("anio");
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedColumn, setSelectedColumn] = useState<ColumnRange | null>(null);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
 
@@ -251,16 +295,16 @@ export function PoapRenderer({
   const gateRowHeight = GATES_ROW_BASE_HEIGHT + (gateRowLevels - 1) * GATE_SHIFT_PX;
   const rulerHeight = YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT + (zoom.showWeekRow ? WEEK_ROW_HEIGHT : 0);
 
-  // A phase "touches" the selected day if the day falls anywhere in
-  // [start, end] — counted against every phase in the program, regardless
-  // of whether its lane is currently collapsed, since the count describes
-  // the underlying plan, not what's currently on screen.
+  // A phase "touches" the focused column if their ranges overlap at all —
+  // counted against every phase in the program, regardless of whether its
+  // lane is currently collapsed, since the count describes the underlying
+  // plan, not what's currently on screen.
   const touchedCount = useMemo(() => {
-    if (selectedDay === null) return 0;
+    if (selectedColumn === null) return 0;
     return orderedLanes
       .flatMap((l) => l.phases)
-      .filter((p) => p.start <= selectedDay && p.end >= selectedDay).length;
-  }, [orderedLanes, selectedDay]);
+      .filter((p) => p.start < selectedColumn.end && p.end > selectedColumn.start).length;
+  }, [orderedLanes, selectedColumn]);
 
   function toggleLane(laneId: string) {
     setCollapsed((prev) => {
@@ -271,16 +315,25 @@ export function PoapRenderer({
     });
   }
 
-  // Clicking the ruler picks a day: convert the click's x position to an
-  // axis position, then snap it to that day's start via a fromAxis/toAxis
-  // round-trip so it lines up exactly with how phase.start/end compare.
-  // Clicking the already-selected day again clears it.
+  function selectZoom(key: ZoomLevel["key"]) {
+    setZoomKey(key);
+    // A focused column is only meaningful relative to the grid it was
+    // picked on — zooming changes what the columns even are, so a stale
+    // range from the old grid would no longer land on a real boundary.
+    setSelectedColumn(null);
+  }
+
+  // Focus Cell: clicking the ruler picks the column under the cursor, sized
+  // to match the current zoom (columnRange) — a day, a week, or a month.
+  // Clicking the already-selected column again clears it.
   function handleRulerClick(e: ReactMouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
     const rawPosition = ratio * months;
-    const snapped = toAxis(fromAxis(rawPosition, startMonth), startMonth);
-    setSelectedDay((prev) => (prev !== null && Math.abs(prev - snapped) < 0.001 ? null : snapped));
+    const range = columnRange(rawPosition, zoomKey, startMonth);
+    setSelectedColumn((prev) =>
+      prev !== null && Math.abs(prev.start - range.start) < 0.001 ? null : range,
+    );
   }
 
   function showTooltip(e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) {
@@ -297,7 +350,7 @@ export function PoapRenderer({
               key={z.key}
               type="button"
               className={`${styles.zoomButton} ${z.key === zoomKey ? styles.zoomButtonActive : ""}`}
-              onClick={() => setZoomKey(z.key)}
+              onClick={() => selectZoom(z.key)}
             >
               {z.label}
             </button>
@@ -353,14 +406,18 @@ export function PoapRenderer({
                 wTicks.map((tick, i) => (
                   <div key={`d${i}`} className={styles.dayGridLine} style={{ left: pct(tick.position, months) }} />
                 ))}
-              {selectedDay !== null && (
+              {selectedColumn !== null && (
                 <>
                   <div
-                    className={styles.dayHighlight}
-                    style={{ left: pct(selectedDay, months), width: pct(dayWidth(selectedDay, startMonth), months) }}
+                    className={styles.columnHighlight}
+                    style={{
+                      left: pct(selectedColumn.start, months),
+                      width: pct(selectedColumn.end - selectedColumn.start, months),
+                    }}
                   />
-                  <div className={styles.dayBadge} style={{ left: pct(selectedDay, months), top: rulerHeight }}>
-                    {touchedCount} {touchedCount === 1 ? "fase" : "fases"}
+                  <div className={styles.columnBadge} style={{ left: pct(selectedColumn.start, months), top: rulerHeight }}>
+                    {formatColumnLabel(selectedColumn, zoomKey, startMonth)} · {touchedCount}{" "}
+                    {touchedCount === 1 ? "fase" : "fases"}
                   </div>
                 </>
               )}
