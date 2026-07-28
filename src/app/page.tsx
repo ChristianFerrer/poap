@@ -2,14 +2,24 @@
 
 import { useRef, useState } from "react";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
-import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
-import { BANDS, GATES as INITIAL_GATES, LANES as INITIAL_LANES, MONTHS, START_MONTH } from "./mock-data";
+import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
+import {
+  ACTIVITIES_BY_PHASE as INITIAL_ACTIVITIES,
+  activitiesFor,
+  BANDS,
+  GATES as INITIAL_GATES,
+  LANES as INITIAL_LANES,
+  MONTHS,
+  START_MONTH,
+  type ActivitySeed,
+} from "./mock-data";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { GatesPanel } from "./GatesPanel";
 import styles from "./page.module.css";
 
 export default function Page() {
   const [lanes, setLanes] = useState<Lane[]>(INITIAL_LANES);
+  const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>(INITIAL_ACTIVITIES);
   const [explorer, setExplorer] = useState<ExplorerView | null>(null);
   const [gates, setGates] = useState<Gate[]>(INITIAL_GATES);
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
@@ -58,6 +68,25 @@ export default function Page() {
           : { ...lane, phases: lane.phases.map((p) => (p.id === phaseId ? { ...p, ...patch } : p)) },
       ),
     );
+  }
+
+  function addPhase(laneId: string, phase: Phase) {
+    setLanes((prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, phases: [...lane.phases, phase] } : lane)));
+  }
+
+  // Phases without a hand-authored entry here get a two-step breakdown
+  // computed on the fly from their own dates (see mock-data's
+  // activitiesFor) — this materializes that fallback into real state only
+  // once an activity actually needs to be added to it.
+  function getActivities(phase: Phase): ActivitySeed[] {
+    return activitiesByPhase[phase.id] ?? activitiesFor(phase);
+  }
+
+  function addActivity(phase: Phase, activity: ActivitySeed) {
+    setActivitiesByPhase((prev) => ({
+      ...prev,
+      [phase.id]: [...(prev[phase.id] ?? activitiesFor(phase)), activity],
+    }));
   }
 
   function toggleGateActive(gateId: string) {
@@ -111,10 +140,13 @@ export default function Page() {
           lanes={lanes}
           startMonth={START_MONTH}
           view={explorer}
+          getActivities={getActivities}
           onNavigate={setExplorer}
           onClose={() => setExplorer(null)}
           onAddLane={addLane}
           onUpdatePhase={updatePhase}
+          onAddPhase={addPhase}
+          onAddActivity={addActivity}
         />
       )}
 

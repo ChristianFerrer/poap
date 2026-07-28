@@ -164,14 +164,60 @@
   font-size: 14px;
 }
 
-/* Level: phases (editable rows) */
-.phaseRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Level: phases (editable table) */
+.tableWrap {
+  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th {
+  text-align: left;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+  white-space: nowrap;
+}
+.table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+.tableTextInput {
+  width: 100%;
+  min-width: 140px;
+  border: 1px solid transparent;
+  border-radius: 6px;
   padding: 6px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  background: transparent;
+  color: var(--ink);
+}
+.tableTextInput:hover {
+  border-color: var(--border);
+  background: var(--surface-1);
+}
+.tableTextInput:focus {
+  border-color: var(--text-accent);
+  background: var(--surface-1);
+  outline: none;
+}
+.emptyCell {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 12px 10px;
 }
 .viewButton {
   flex: 0 0 auto;
@@ -313,9 +359,10 @@
   cursor: not-allowed;
 }
 
-/* Shared form controls (add-lane, phase editing) */
+/* Shared form controls (add-lane, add-phase, add-activity) */
 .addRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -331,6 +378,20 @@
   color: var(--ink);
 }
 .textInput:focus {
+  border-color: var(--text-accent);
+  outline: none;
+}
+.ownerInput {
+  flex: 0 0 130px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  background: var(--surface-1);
+  color: var(--ink);
+}
+.ownerInput:focus {
   border-color: var(--text-accent);
   outline: none;
 }
@@ -377,14 +438,17 @@
 }
 
 @media (max-width: 640px) {
-  .phaseRow {
-    flex-wrap: wrap;
-  }
   .dateInput {
     width: auto;
     flex: 1 1 120px;
   }
   .activityRow {
     flex-wrap: wrap;
+  }
+  /* .tableWrap already scrolls horizontally on its own, so the table's
+     columns keep their natural widths on mobile instead of squeezing
+     inputs down to unusable sizes. */
+  .table {
+    min-width: 560px;
   }
 }

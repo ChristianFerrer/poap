@@ -3,7 +3,7 @@
 import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
-import { activitiesFor, type ActivityComment, type ActivitySeed } from "./mock-data";
+import type { ActivityComment, ActivitySeed } from "./mock-data";
 import styles from "./ExplorerPanel.module.css";
 
 const STATUS_LABEL: Record<PhaseStatus, string> = {
@@ -100,6 +100,7 @@ export const ExplorerPanel = forwardRef<
     lanes: Lane[];
     startMonth: string;
     view: ExplorerView;
+    getActivities: (phase: Phase) => ActivitySeed[];
     onNavigate: (view: ExplorerView) => void;
     onClose: () => void;
     onAddLane: (name: string) => void;
@@ -108,9 +109,16 @@ export const ExplorerPanel = forwardRef<
       phaseId: string,
       patch: Partial<Pick<Phase, "title" | "start" | "end" | "status">>,
     ) => void;
+    onAddPhase: (laneId: string, phase: Phase) => void;
+    onAddActivity: (phase: Phase, activity: ActivitySeed) => void;
   }
->(function ExplorerPanel({ lanes, startMonth, view, onNavigate, onClose, onAddLane, onUpdatePhase }, ref) {
+>(function ExplorerPanel(
+  { lanes, startMonth, view, getActivities, onNavigate, onClose, onAddLane, onUpdatePhase, onAddPhase, onAddActivity },
+  ref,
+) {
   const [newLaneName, setNewLaneName] = useState("");
+  const [newPhase, setNewPhase] = useState({ title: "", start: "", end: "", status: "not_started" as PhaseStatus });
+  const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
   const [draft, setDraft] = useState("");
 
@@ -130,6 +138,31 @@ export const ExplorerPanel = forwardRef<
       [activityId]: [...(prev[activityId] ?? []), { author: "Tú", date: "hoy", text }],
     }));
     setDraft("");
+  }
+
+  function submitNewPhase(laneId: string) {
+    if (!newPhase.title.trim() || !newPhase.start || !newPhase.end) return;
+    onAddPhase(laneId, {
+      id: crypto.randomUUID(),
+      title: newPhase.title.trim(),
+      start: fromISODate(newPhase.start, startMonth),
+      end: fromISODate(newPhase.end, startMonth),
+      status: newPhase.status,
+    });
+    setNewPhase({ title: "", start: "", end: "", status: "not_started" });
+  }
+
+  function submitNewActivity(phase: Phase) {
+    if (!newActivity.title.trim() || !newActivity.owner.trim() || !newActivity.start || !newActivity.end) return;
+    onAddActivity(phase, {
+      id: crypto.randomUUID(),
+      title: newActivity.title.trim(),
+      owner: newActivity.owner.trim(),
+      start: fromISODate(newActivity.start, startMonth),
+      end: fromISODate(newActivity.end, startMonth),
+      status: newActivity.status,
+    });
+    setNewActivity({ title: "", owner: "", start: "", end: "", status: "not_started" });
   }
 
   const rootCrumb = { label: "Swimlines", view: { level: "lanes" } as ExplorerView };
@@ -197,56 +230,129 @@ export const ExplorerPanel = forwardRef<
               <p className={styles.subtitle}>
                 {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
               </p>
-              <div className={styles.list}>
-                {lane.phases.map((phase) => (
-                  <div key={phase.id} className={styles.phaseRow}>
-                    <input
-                      className={styles.textInput}
-                      value={phase.title}
-                      onChange={(e) => onUpdatePhase(lane.id, phase.id, { title: e.target.value })}
-                      aria-label="Título de la fase"
-                    />
-                    <input
-                      type="date"
-                      className={styles.dateInput}
-                      value={toISODate(phase.start, startMonth)}
-                      onChange={(e) => {
-                        if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
-                      }}
-                      aria-label="Fecha de inicio"
-                    />
-                    <input
-                      type="date"
-                      className={styles.dateInput}
-                      value={toISODate(phase.end, startMonth)}
-                      onChange={(e) => {
-                        if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
-                      }}
-                      aria-label="Fecha de fin"
-                    />
-                    <select
-                      className={styles.statusSelect}
-                      value={phase.status}
-                      onChange={(e) => onUpdatePhase(lane.id, phase.id, { status: e.target.value as PhaseStatus })}
-                      aria-label="Estado de la fase"
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {STATUS_LABEL[s]}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className={styles.viewButton}
-                      onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
-                      aria-label={`Ver actividades de ${phase.title}`}
-                    >
-                      ›
-                    </button>
-                  </div>
-                ))}
-                {lane.phases.length === 0 && <p className={styles.empty}>Este swimline no tiene fases todavía.</p>}
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Título</th>
+                      <th>Inicio</th>
+                      <th>Fin</th>
+                      <th>Estado</th>
+                      <th aria-hidden="true" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lane.phases.map((phase) => (
+                      <tr key={phase.id}>
+                        <td>
+                          <input
+                            className={styles.tableTextInput}
+                            value={phase.title}
+                            onChange={(e) => onUpdatePhase(lane.id, phase.id, { title: e.target.value })}
+                            aria-label="Título de la fase"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="date"
+                            className={styles.dateInput}
+                            value={toISODate(phase.start, startMonth)}
+                            onChange={(e) => {
+                              if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
+                            }}
+                            aria-label="Fecha de inicio"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="date"
+                            className={styles.dateInput}
+                            value={toISODate(phase.end, startMonth)}
+                            onChange={(e) => {
+                              if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
+                            }}
+                            aria-label="Fecha de fin"
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className={styles.statusSelect}
+                            value={phase.status}
+                            onChange={(e) => onUpdatePhase(lane.id, phase.id, { status: e.target.value as PhaseStatus })}
+                            aria-label="Estado de la fase"
+                          >
+                            {STATUS_OPTIONS.map((s) => (
+                              <option key={s} value={s}>
+                                {STATUS_LABEL[s]}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.viewButton}
+                            onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
+                            aria-label={`Ver actividades de ${phase.title}`}
+                          >
+                            ›
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {lane.phases.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className={styles.emptyCell}>
+                          Este swimline no tiene fases todavía.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className={styles.sectionTitle}>Agregar fase</p>
+              <div className={styles.addRow}>
+                <input
+                  className={styles.textInput}
+                  placeholder="Título de la fase"
+                  value={newPhase.title}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
+                />
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={newPhase.start}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, start: e.target.value }))}
+                  aria-label="Fecha de inicio"
+                />
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={newPhase.end}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, end: e.target.value }))}
+                  aria-label="Fecha de fin"
+                />
+                <select
+                  className={styles.statusSelect}
+                  value={newPhase.status}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, status: e.target.value as PhaseStatus }))}
+                  aria-label="Estado de la nueva fase"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className={styles.addButton}
+                  disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
+                  onClick={() => submitNewPhase(lane.id)}
+                >
+                  Agregar
+                </button>
               </div>
             </>
           );
@@ -257,7 +363,7 @@ export const ExplorerPanel = forwardRef<
           const found = findPhase(view.phaseId);
           if (!found) return null;
           const { lane, phase } = found;
-          const activities = activitiesFor(phase);
+          const activities = getActivities(phase);
           return (
             <>
               <Breadcrumb
@@ -288,6 +394,57 @@ export const ExplorerPanel = forwardRef<
                     </span>
                   </button>
                 ))}
+                {activities.length === 0 && <p className={styles.empty}>Esta fase no tiene actividades todavía.</p>}
+              </div>
+
+              <p className={styles.sectionTitle}>Agregar actividad</p>
+              <div className={styles.addRow}>
+                <input
+                  className={styles.textInput}
+                  placeholder="Título"
+                  value={newActivity.title}
+                  onChange={(e) => setNewActivity((a) => ({ ...a, title: e.target.value }))}
+                />
+                <input
+                  className={styles.ownerInput}
+                  placeholder="Owner"
+                  value={newActivity.owner}
+                  onChange={(e) => setNewActivity((a) => ({ ...a, owner: e.target.value }))}
+                />
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={newActivity.start}
+                  onChange={(e) => setNewActivity((a) => ({ ...a, start: e.target.value }))}
+                  aria-label="Fecha de inicio"
+                />
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={newActivity.end}
+                  onChange={(e) => setNewActivity((a) => ({ ...a, end: e.target.value }))}
+                  aria-label="Fecha de fin"
+                />
+                <select
+                  className={styles.statusSelect}
+                  value={newActivity.status}
+                  onChange={(e) => setNewActivity((a) => ({ ...a, status: e.target.value as PhaseStatus }))}
+                  aria-label="Estado de la nueva actividad"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className={styles.addButton}
+                  disabled={!newActivity.title.trim() || !newActivity.owner.trim() || !newActivity.start || !newActivity.end}
+                  onClick={() => submitNewActivity(phase)}
+                >
+                  Agregar
+                </button>
               </div>
             </>
           );
@@ -298,7 +455,7 @@ export const ExplorerPanel = forwardRef<
           const found = findPhase(view.phaseId);
           if (!found) return null;
           const { lane, phase } = found;
-          const activity = activitiesFor(phase).find((a) => a.id === view.activityId);
+          const activity = getActivities(phase).find((a) => a.id === view.activityId);
           if (!activity) return null;
           const seedComments = activity.comments ?? [];
           const extraComments = commentsByActivity[activity.id] ?? [];
