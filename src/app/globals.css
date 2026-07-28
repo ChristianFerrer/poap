@@ -20,17 +20,6 @@
 
   --bg-warning: #fceed9;
   --text-warning: #92530a;
-
-  /* Lane row tints — purely structural (tell one lane's rows apart from the
-     next), never used on a bar. Deliberately outside the green/blue/amber/
-     red families the status colors use, so a tinted row never reads as a
-     status. Cycled by lane index, not tied to any lane identity. */
-  --lane-tint-1: #f3eefc;
-  --lane-tint-2: #e9f7f5;
-  --lane-tint-3: #fceef2;
-  --lane-tint-4: #f8f1e6;
-  --lane-tint-5: #eef1f7;
-  --lane-tint-6: #f2f6e8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -56,13 +45,6 @@
 
     --bg-warning: #3a2a0e;
     --text-warning: #f0b75c;
-
-    --lane-tint-1: #241f30;
-    --lane-tint-2: #16302c;
-    --lane-tint-3: #301e26;
-    --lane-tint-4: #2e2717;
-    --lane-tint-5: #1c222e;
-    --lane-tint-6: #212a17;
   }
 }
 

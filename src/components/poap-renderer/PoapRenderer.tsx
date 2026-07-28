@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
 import type { Lane, Phase, PhaseStatus, PoapRendererProps } from "./types";
@@ -97,11 +97,6 @@ function dayWidth(position: number, startMonth: string): number {
   const d = fromAxis(position, startMonth);
   const daysInMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
   return 1 / daysInMonth;
-}
-
-const LANE_TINT_COUNT = 6;
-function laneTintVar(index: number): string {
-  return `var(--lane-tint-${(index % LANE_TINT_COUNT) + 1})`;
 }
 
 function laneRowHeight(rowCount: number): number {
@@ -319,7 +314,7 @@ export function PoapRenderer({
           >
             Stage gates
           </div>
-          {packedLanes.map(({ lane, rows }, i) => {
+          {packedLanes.map(({ lane, rows }) => {
             const isCollapsed = rows === null;
             const height = laneRowHeight(isCollapsed ? 1 : rows.length);
             return (
@@ -327,7 +322,7 @@ export function PoapRenderer({
                 key={lane.id}
                 type="button"
                 className={`${styles.labelCell} ${styles.laneLabel}`}
-                style={{ height, "--row-tint": laneTintVar(i) } as CSSProperties}
+                style={{ height }}
                 onClick={() => toggleLane(lane.id)}
                 aria-expanded={!isCollapsed}
               >
@@ -415,13 +410,12 @@ export function PoapRenderer({
               ))}
             </div>
 
-            {packedLanes.map(({ lane, rows }, i) => {
-              const rowTint = { "--row-tint": laneTintVar(i) } as CSSProperties;
+            {packedLanes.map(({ lane, rows }) => {
               if (rows === null) {
                 const agg = aggregateLane(lane);
                 const height = laneRowHeight(1);
                 return (
-                  <div key={lane.id} className={styles.laneTrack} style={{ height, ...rowTint }}>
+                  <div key={lane.id} className={styles.laneTrack} style={{ height }}>
                     <div className={styles.laneRow}>
                       <AggregateBar
                         agg={agg}
@@ -435,7 +429,7 @@ export function PoapRenderer({
                 );
               }
               return (
-                <div key={lane.id} className={styles.laneTrack} style={{ height: laneRowHeight(rows.length), ...rowTint }}>
+                <div key={lane.id} className={styles.laneTrack} style={{ height: laneRowHeight(rows.length) }}>
                   {rows.map((row, r) => (
                     <div key={r} className={styles.laneRow}>
                       {row.map((phase) => (
