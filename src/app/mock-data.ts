@@ -121,7 +121,7 @@ export const GATES: Gate[] = [
   { id: "g7", label: "Hyp exit", position: axis(2027, 5, 17) },
 ];
 
-export const BANDS: Band[] = [
-  { id: "b1", label: "Change Freeze", start: axis(2026, 8, 3), end: axis(2026, 8, 14), type: "change_freeze" },
-  { id: "b2", label: "Change Freeze", start: axis(2026, 12, 1), end: axis(2026, 12, 20), type: "change_freeze" },
-];
+// Change Freeze bands removed for now — revisiting as fixed markers instead
+// of translucent period bands (see conversation). Band/PoapRenderer support
+// for period bands stays in place, just unused until that's decided.
+export const BANDS: Band[] = [];
