@@ -671,7 +671,19 @@ export function PoapRenderer({
               {sortedGates
                 .filter((g) => activeGateIds.has(g.id))
                 .map((g) => (
-                  <div key={g.id} className={styles.gateLine} style={{ left: pct(g.position, scale), top: rulerHeight }} />
+                  <div
+                    key={g.id}
+                    className={styles.gateLine}
+                    style={{
+                      left: pct(g.position, scale),
+                      // Starts below this gate's own diamond+label row
+                      // (which may be shifted down by collision avoidance),
+                      // not at the top of the whole gates track — otherwise
+                      // the line cuts across the icon/label instead of
+                      // growing out from underneath it.
+                      top: rulerHeight + (gateOffsets[g.id] ?? 0) + GATE_SHIFT_PX,
+                    }}
+                  />
                 ))}
               {selectedColumn !== null && (
                 <>
