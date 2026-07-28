@@ -269,10 +269,15 @@
   position: relative;
   border-bottom: 0.5px solid var(--border);
 }
+/* No horizontal centering on the row itself — with a label next to it,
+   translateX(-50%) here would shift by half the *label's* width too,
+   dragging the diamond away from the exact gate position (and off the
+   cut-line, which has no such shift). The diamond centers itself instead
+   (below), so it's the only thing anchored to `left`, and the label just
+   flows after it. */
 .gate {
   position: absolute;
   top: 0;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -289,7 +294,7 @@
   width: 10px;
   height: 10px;
   background: var(--text-secondary);
-  transform: rotate(45deg);
+  transform: translateX(-50%) rotate(45deg);
   border-radius: 1.5px;
   flex: 0 0 auto;
   transition: background-color 0.1s ease;

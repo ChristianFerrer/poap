@@ -321,6 +321,8 @@ export function PoapRenderer({
   bands = [],
   selectedPhaseId = null,
   onPhaseClick,
+  activeGateIds: activeGateIdsProp = [],
+  onGateClick,
 }: PoapRendererProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -330,7 +332,7 @@ export function PoapRenderer({
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [gateTooltip, setGateTooltip] = useState<GateTooltipState | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);
-  const [activeGateIds, setActiveGateIds] = useState<Set<string>>(() => new Set());
+  const activeGateIds = useMemo(() => new Set(activeGateIdsProp), [activeGateIdsProp]);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
   const scale = useMemo(() => buildDayScale(startMonth, months), [startMonth, months]);
@@ -459,18 +461,6 @@ export function PoapRenderer({
 
   function showTooltip(e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) {
     setTooltip({ ...data, x: e.clientX, y: e.clientY });
-  }
-
-  // Stage gates activate independently of each other (unlike Focus Cell,
-  // which is a single selection) — the point is comparing several at once
-  // to see which phases each one cuts through.
-  function toggleGate(gateId: string) {
-    setActiveGateIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(gateId)) next.delete(gateId);
-      else next.add(gateId);
-      return next;
-    });
   }
 
   function showGateTooltip(e: { clientX: number; clientY: number }, gate: { label: string; position: number }) {
@@ -618,7 +608,7 @@ export function PoapRenderer({
                     type="button"
                     className={`${styles.gate} ${active ? styles.gateActive : ""}`}
                     style={{ left: pct(gate.position, scale), top: gateOffsets[gate.id] }}
-                    onClick={() => toggleGate(gate.id)}
+                    onClick={() => onGateClick?.(gate.id)}
                     onMouseMove={(e) => showGateTooltip(e, gate)}
                     onMouseLeave={() => setGateTooltip(null)}
                     aria-pressed={active}

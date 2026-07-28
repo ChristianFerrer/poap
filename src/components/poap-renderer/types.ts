@@ -41,4 +41,10 @@ export interface PoapRendererProps {
   bands?: Band[];
   selectedPhaseId?: string | null;
   onPhaseClick?: (phaseId: string) => void;
+  /** Which gates currently show their purple cut-line — controlled by the
+   * parent (like selectedPhaseId) rather than internal state, since a real
+   * app needs this to survive a gates-management panel living outside the
+   * renderer. */
+  activeGateIds?: string[];
+  onGateClick?: (gateId: string) => void;
 }
