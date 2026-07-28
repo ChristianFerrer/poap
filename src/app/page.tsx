@@ -15,6 +15,7 @@ import {
 } from "./mock-data";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { GatesPanel } from "./GatesPanel";
+import { ImportPanel } from "./ImportPanel";
 import styles from "./page.module.css";
 
 export default function Page() {
@@ -24,6 +25,7 @@ export default function Page() {
   const [gates, setGates] = useState<Gate[]>(INITIAL_GATES);
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -42,10 +44,22 @@ export default function Page() {
   function openExplorer(view: ExplorerView) {
     setExplorer(view);
     setGatesPanelOpen(false);
+    setImportOpen(false);
     // The panel now renders below the plan instead of an overlay, so bring
     // it into view — otherwise a click low on a tall plan leaves the panel
     // off-screen with no indication anything happened.
     scrollToPanel();
+  }
+
+  function openImportPanel() {
+    setImportOpen(true);
+    setExplorer(null);
+    setGatesPanelOpen(false);
+    scrollToPanel();
+  }
+
+  function importLanes(newLanes: Lane[]) {
+    setLanes((prev) => [...prev, ...newLanes.map((lane, i) => ({ ...lane, sortOrder: prev.length + i }))]);
   }
 
   function handlePhaseClick(phaseId: string) {
@@ -96,6 +110,7 @@ export default function Page() {
   function handleGateClick(gateId: string) {
     toggleGateActive(gateId);
     setExplorer(null);
+    setImportOpen(false);
     setGatesPanelOpen(true);
     scrollToPanel();
   }
@@ -115,11 +130,18 @@ export default function Page() {
 
   return (
     <main className={styles.main}>
-      <p className={styles.eyebrow}>PoAP · Plan on a Page</p>
-      <h1 className={styles.title}>Programa UK/PL — plan on a page</h1>
-      <p className={styles.meta}>
-        {lanes.length} carriles · {phaseCount} fases · {MONTHS} meses · jun 2026 — may 2027
-      </p>
+      <div className={styles.headerRow}>
+        <div>
+          <p className={styles.eyebrow}>PoAP · Plan on a Page</p>
+          <h1 className={styles.title}>Programa UK/PL — plan on a page</h1>
+          <p className={styles.meta}>
+            {lanes.length} carriles · {phaseCount} fases · {MONTHS} meses · jun 2026 — may 2027
+          </p>
+        </div>
+        <button type="button" className={styles.importButton} onClick={openImportPanel}>
+          Importar desde Excel
+        </button>
+      </div>
 
       <PoapRenderer
         months={MONTHS}
@@ -161,6 +183,16 @@ export default function Page() {
           onUpdate={updateGate}
           onAdd={addGate}
           onDelete={deleteGate}
+        />
+      )}
+
+      {importOpen && (
+        <ImportPanel
+          ref={panelRef}
+          startMonth={START_MONTH}
+          months={MONTHS}
+          onClose={() => setImportOpen(false)}
+          onImport={importLanes}
         />
       )}
     </main>
