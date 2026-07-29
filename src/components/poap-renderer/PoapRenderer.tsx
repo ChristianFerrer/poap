@@ -402,6 +402,16 @@ export function PoapRenderer({
     [startMonth, months, zoom.subRowGranularity],
   );
 
+  // Today marker — only rendered when "today" actually falls inside the
+  // plan's own axis range, since a plan viewed months before/after its
+  // window shouldn't show a line pinned to one edge.
+  const todayPosition = useMemo(() => {
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const pos = toAxis(today, startMonth);
+    return pos >= 0 && pos <= months ? pos : null;
+  }, [startMonth, months]);
+
   const orderedLanes = useMemo(
     () => [...lanes].sort((a, b) => a.sortOrder - b.sortOrder),
     [lanes],
@@ -716,6 +726,14 @@ export function PoapRenderer({
                 Holds both Focus Cell's highlight and active stage-gate
                 lines — unrelated features, same "always on top" need. */}
             <div className={styles.focusOverlay} aria-hidden="true">
+              {todayPosition !== null && (
+                <>
+                  <div className={styles.todayLine} style={{ left: pct(todayPosition, scale) }} />
+                  <div className={styles.todayBadge} style={{ left: pct(todayPosition, scale), top: rulerHeight }}>
+                    Hoy
+                  </div>
+                </>
+              )}
               {sortedGates
                 .filter((g) => activeGateIds.has(g.id))
                 .map((g) => (

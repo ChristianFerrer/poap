@@ -3,6 +3,7 @@
 import { forwardRef, useState } from "react";
 import type { Gate } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
+import { IconClose, IconPlus, IconTrash } from "./icons";
 import styles from "./GatesPanel.module.css";
 
 function toISODate(position: number, startMonth: string): string {
@@ -53,7 +54,7 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
 
   return (
     <section ref={ref} className={styles.panel}>
-      <button className={styles.close} onClick={onClose} aria-label="Cerrar">✕</button>
+      <button className={styles.close} onClick={onClose} aria-label="Cerrar"><IconClose /></button>
       <p className={styles.eyebrow}>Hitos del programa</p>
       <h2 className={styles.title}>Stage Gates</h2>
 
@@ -93,7 +94,7 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
                 onClick={() => onDelete(gate.id)}
                 aria-label={`Eliminar ${gate.label}`}
               >
-                ✕
+                <IconTrash />
               </button>
             </div>
           );
@@ -116,7 +117,7 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
           onChange={(e) => setNewDate(e.target.value)}
         />
         <button type="button" className={styles.addButton} disabled={!newLabel.trim() || !newDate} onClick={submitNew}>
-          Agregar
+          <IconPlus /> Agregar
         </button>
       </div>
     </section>

@@ -6,7 +6,6 @@ export interface ImportedPhase {
   startISO: string;
   /** ISO yyyy-mm-dd, exclusive (the day after the last covered period) */
   endISO: string;
-  colorKey: string;
 }
 
 export interface ImportedLane {
@@ -14,15 +13,8 @@ export interface ImportedLane {
   phases: ImportedPhase[];
 }
 
-export interface ImportedColor {
-  key: string;
-  hex: string | null;
-  count: number;
-}
-
 export interface ParseResult {
   lanes: ImportedLane[];
-  colors: ImportedColor[];
   warnings: string[];
 }
 
@@ -120,46 +112,6 @@ function cellTextValue(cell: ExcelJS.Cell): string | null {
 function cellNumberValue(cell: ExcelJS.Cell): number | null {
   const v: unknown = cell.value;
   return typeof v === "number" ? v : null;
-}
-
-const DEFAULT_THEME_HEX = [
-  "1F1F1F", "FFFFFF", "44546A", "E7E6E6", "4472C4",
-  "ED7D31", "A5A5A5", "FFC000", "5B9BD5", "70AD47",
-];
-
-function applyTint(hex: string, tint: number): string {
-  const n = parseInt(hex, 16);
-  const adjust = (c: number) => (tint < 0 ? Math.round(c * (1 + tint)) : Math.round(c * (1 - tint) + 255 * tint));
-  const r = adjust((n >> 16) & 0xff);
-  const g = adjust((n >> 8) & 0xff);
-  const b = adjust(n & 0xff);
-  return [r, g, b].map((c) => Math.max(0, Math.min(255, c)).toString(16).padStart(2, "0")).join("");
-}
-
-/** Approximate only — the real color needs the workbook's theme XML, which
- * isn't worth chasing since this is just a convenience swatch: the user
- * makes the real done/in_progress/at_risk/not_started call by reading each
- * color group's phase titles, not by trusting this hint to be exact. */
-function approxThemeHex(theme: number, tint: number): string | null {
-  const base = DEFAULT_THEME_HEX[theme];
-  return base ? `#${applyTint(base, tint)}` : null;
-}
-
-function colorKeyForCell(cell: ExcelJS.Cell): { key: string; hex: string | null } {
-  const fill = cell.fill as ExcelJS.FillPattern | undefined;
-  if (!fill || fill.type !== "pattern" || fill.pattern !== "solid" || !fill.fgColor) {
-    return { key: "none", hex: null };
-  }
-  const fg = fill.fgColor;
-  if (fg.argb) {
-    return { key: `rgb:${fg.argb}`, hex: `#${fg.argb.slice(2)}` };
-  }
-  if (fg.theme !== undefined) {
-    // exceljs's Color type omits `tint`, but themed fills carry it at runtime.
-    const tint = (fg as { tint?: number }).tint ?? 0;
-    return { key: `theme:${fg.theme}:${tint.toFixed(2)}`, hex: approxThemeHex(fg.theme, tint) };
-  }
-  return { key: "none", hex: null };
 }
 
 function toISO(d: Date): string {
@@ -305,7 +257,6 @@ export function parseSheet(ws: ExcelJS.Worksheet): ParseResult {
 
   const laneOrder: string[] = [];
   const laneMap = new Map<string, ImportedPhase[]>();
-  const colorCounts = new Map<string, { hex: string | null; count: number }>();
   let currentLane: string | null = null;
   const unresolvedTitles = new Set<string>();
 
@@ -337,10 +288,6 @@ export function parseSheet(ws: ExcelJS.Worksheet): ParseResult {
         continue;
       }
 
-      const { key, hex } = colorKeyForCell(cell);
-      const existing = colorCounts.get(key);
-      colorCounts.set(key, { hex, count: (existing?.count ?? 0) + 1 });
-
       // endRange.end is the start of the *next* period (exclusive) — the
       // rest of the app treats Phase.end as the last covered calendar day
       // (see mock-data.ts), so step back one day to match.
@@ -348,7 +295,6 @@ export function parseSheet(ws: ExcelJS.Worksheet): ParseResult {
         title,
         startISO: toISO(startRange.start),
         endISO: toISO(addDays(endRange.end, -1)),
-        colorKey: key,
       });
     }
   }
@@ -368,9 +314,5 @@ export function parseSheet(ws: ExcelJS.Worksheet): ParseResult {
     warnings.push("No se encontraron fases en esta hoja.");
   }
 
-  const colors: ImportedColor[] = Array.from(colorCounts.entries())
-    .map(([key, v]) => ({ key, hex: v.hex, count: v.count }))
-    .sort((a, b) => b.count - a.count);
-
-  return { lanes, colors, warnings };
+  return { lanes, warnings };
 }

@@ -2,10 +2,6 @@ import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 import { listSheetNames, parseSheet } from "./importExcel";
 
-function setFill(cell: ExcelJS.Cell, argb: string) {
-  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb } };
-}
-
 describe("listSheetNames", () => {
   it("returns every worksheet name in order", () => {
     const wb = new ExcelJS.Workbook();
@@ -30,10 +26,8 @@ describe("parseSheet — explicit date row", () => {
     ws.getCell("A3").value = "Team A";
     ws.mergeCells("B3:C3");
     ws.getCell("B3").value = "Phase X";
-    setFill(ws.getCell("B3"), "FF00B050");
     // Row 4: blank lane cell (forward-fills to "Team A") + a single-week phase
     ws.getCell("D4").value = "Phase Y";
-    setFill(ws.getCell("D4"), "FF4472C4");
     return ws;
   }
 
@@ -43,19 +37,9 @@ describe("parseSheet — explicit date row", () => {
     expect(result.lanes).toHaveLength(1);
     expect(result.lanes[0]!.name).toBe("Team A");
     expect(result.lanes[0]!.phases).toEqual([
-      { title: "Phase X", startISO: "2026-01-05", endISO: "2026-01-18", colorKey: "rgb:FF00B050" },
-      { title: "Phase Y", startISO: "2026-01-19", endISO: "2026-01-25", colorKey: "rgb:FF4472C4" },
+      { title: "Phase X", startISO: "2026-01-05", endISO: "2026-01-18" },
+      { title: "Phase Y", startISO: "2026-01-19", endISO: "2026-01-25" },
     ]);
-  });
-
-  it("collects one color entry per distinct fill, counted", () => {
-    const result = parseSheet(buildSheet());
-    expect(result.colors).toEqual(
-      expect.arrayContaining([
-        { key: "rgb:FF00B050", hex: "#00B050", count: 1 },
-        { key: "rgb:FF4472C4", hex: "#4472C4", count: 1 },
-      ]),
-    );
   });
 });
 
@@ -69,7 +53,6 @@ describe("parseSheet — month-name row fallback", () => {
     ws.getCell("A4").value = "Datos";
     ws.mergeCells("B4:C4");
     ws.getCell("B4").value = "Habilitación";
-    setFill(ws.getCell("B4"), "FF00B050");
 
     const result = parseSheet(ws);
     expect(result.warnings).toEqual([]);

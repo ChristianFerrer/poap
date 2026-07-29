@@ -24,6 +24,11 @@
   /* Stage-gate activation — distinct from status/accent so an activated
      gate never reads as "in progress" or "on track". */
   --gate-active: #7c3aed;
+
+  /* Today marker — deliberately not a status/accent color: it should read
+     as a fixed reference line, not as "in progress" or a selection. Neon
+     lime is saturated enough to stay legible on both themes as-is. */
+  --today-line: #c6ff00;
 }
 
 @media (prefers-color-scheme: dark) {

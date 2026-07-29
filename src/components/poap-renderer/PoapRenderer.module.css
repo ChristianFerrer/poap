@@ -7,14 +7,13 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  /* A fixed vertical budget, not just a cap — the calendar reads as a
-     stable-height widget with its own internal scroll (see .chart below)
-     instead of stretching the whole page taller as lanes/phases are added.
-     dvh (where supported) accounts for mobile browser chrome collapsing;
-     the plain vh line above it is the fallback. */
-  height: 40vh;
-  height: 40dvh;
-  min-height: 360px;
+  /* Fills whatever height the page-level layout hands it (see .calendarCol
+     in page.module.css, which is itself the full page height) — the
+     calendar's own internal scroll (see .chart below) still keeps it from
+     growing taller as lanes/phases are added, it just no longer caps
+     itself independently of the page. */
+  height: 100%;
+  min-height: 0;
 }
 
 .toolbar {
@@ -204,6 +203,31 @@
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* Current-day marker — spans the full plan height like .gateLine, but is
+   never a gate: distinct neon color + glow so it reads as a fixed
+   reference line rather than an activated stage gate or a selection. */
+.todayLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--today-line);
+  box-shadow: 0 0 6px 0 color-mix(in srgb, var(--today-line) 70%, transparent);
+}
+.todayBadge {
+  position: absolute;
+  transform: translate(4px, 0);
+  background: var(--today-line);
+  color: #10210a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 

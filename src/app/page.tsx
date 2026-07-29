@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
 import {
@@ -18,6 +19,10 @@ import { GatesPanel } from "./GatesPanel";
 import { ImportPanel } from "./ImportPanel";
 import styles from "./page.module.css";
 
+const PANEL_WIDTH_DEFAULT = 400;
+const PANEL_WIDTH_MIN = 320;
+const PANEL_WIDTH_MAX = 640;
+
 export default function Page() {
   const [lanes, setLanes] = useState<Lane[]>(INITIAL_LANES);
   const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>(INITIAL_ACTIVITIES);
@@ -26,8 +31,29 @@ export default function Page() {
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Drag-to-resize the side panel — the handle sits on the panel's left
+  // edge, so dragging left (away from the right-anchored panel) grows it.
+  // onMove/onUp are scoped to this one gesture and detached on mouseup
+  // rather than living as a persistent listener.
+  function startResize(e: ReactMouseEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+    function onMove(ev: MouseEvent) {
+      const next = startWidth + (startX - ev.clientX);
+      setPanelWidth(Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, next)));
+    }
+    function onUp() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
 
   // The bar shown "selected" in the chart mirrors whichever phase the
   // explorer is currently drilled into, so it stays highlighted while you
@@ -204,9 +230,22 @@ export default function Page() {
             onLaneClick={handleLaneClick}
           />
         </div>
+      </div>
 
-        {(explorer || gatesPanelOpen || importOpen) && (
-          <div className={styles.sidePanel}>
+      {/* Fixed, right-anchored overlay — not part of the flex layout above,
+          so it floats over the calendar instead of squeezing it, and
+          deliberately has no dimming backdrop behind it: the calendar stays
+          fully interactive/visible while the panel is open. */}
+      {(explorer || gatesPanelOpen || importOpen) && (
+        <div className={styles.sidePanel} style={{ width: panelWidth }}>
+          <div
+            className={styles.resizeHandle}
+            onMouseDown={startResize}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Ajustar ancho del panel"
+          />
+          <div className={styles.sidePanelContent}>
             {explorer && (
               <ExplorerPanel
                 ref={panelRef}
@@ -250,8 +289,8 @@ export default function Page() {
               />
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </main>
   );
 }

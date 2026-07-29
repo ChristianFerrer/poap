@@ -1,7 +1,16 @@
 .main {
   max-width: 1680px;
   margin: 0 auto;
-  padding: 24px 32px 60px;
+  padding: 20px 32px 16px;
+  /* The calendar fills the rest of the viewport below the header — .main
+     is the full page height with its own two flex-item rows (header, then
+     layout), rather than growing taller than the viewport the way a plain
+     document flow would. */
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .headerRow {
@@ -10,6 +19,7 @@
   align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .importButton {
@@ -48,50 +58,71 @@
   margin: 0 0 18px;
 }
 
-/* Detail panel sits to the left of the calendar (its original position),
-   the calendar takes the rest of the width. DOM order keeps the calendar
-   first (better reading order — the plan is the primary content, panel
-   details are secondary) with `order` flipping the visual placement. */
+/* The calendar takes the full remaining height below the header — the
+   detail panel is no longer a flex sibling here at all (see .sidePanel
+   below), so .layout only ever has the one child. */
 .layout {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
 }
 .calendarCol {
   flex: 1 1 auto;
   min-width: 0;
-  order: 2;
+  min-height: 0;
 }
+
+/* Floating overlay, anchored to the viewport's right edge — position:fixed
+   escapes .main's overflow:hidden and sits above the calendar without
+   participating in its layout, so opening the panel never resizes or
+   reflows the chart underneath it. Deliberately no backdrop/scrim sibling:
+   the calendar stays fully visible and interactive while this is open. */
 .sidePanel {
-  flex: 0 0 360px;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  background: var(--card-bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 28px -12px rgba(0, 0, 0, 0.25);
+}
+
+.resizeHandle {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.12s ease;
+}
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--text-accent);
+}
+
+.sidePanelContent {
+  flex: 1 1 auto;
   min-width: 0;
-  order: 1;
+  overflow-y: auto;
 }
 
 @media (max-width: 640px) {
   .main {
-    padding: 16px 12px 40px;
+    padding: 14px 12px 10px;
   }
   .title {
     font-size: 17px;
   }
 }
 
-/* Below ~900px there isn't room for calendar + a 360px sidebar side by
-   side — stack instead, calendar on top (matches how the plan reads first
-   on desktop too) and the panel below it, same as before this panel moved
-   to a sidebar on wider screens. */
+/* Below ~900px the panel takes the full screen width instead of a
+   draggable slice of it — dragging a narrow-viewport handle to a usable
+   width isn't a realistic gesture on a touch device. */
 @media (max-width: 900px) {
-  .layout {
-    flex-direction: column;
-  }
-  .calendarCol {
-    order: 1;
-    width: 100%;
-  }
   .sidePanel {
-    order: 2;
-    flex: 1 1 auto;
-    width: 100%;
+    width: 100% !important;
+  }
+  .resizeHandle {
+    display: none;
   }
 }

@@ -4,6 +4,7 @@ import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
+import { IconChevronRight, IconClose, IconPlus, IconTrash } from "./icons";
 import styles from "./ExplorerPanel.module.css";
 
 const STATUS_LABEL: Record<PhaseStatus, string> = {
@@ -187,7 +188,7 @@ export const ExplorerPanel = forwardRef<
   return (
     <section ref={ref} className={styles.panel}>
       <button className={styles.close} onClick={onClose} aria-label="Cerrar">
-        ✕
+        <IconClose />
       </button>
 
       {view.level === "lanes" && (
@@ -207,7 +208,7 @@ export const ExplorerPanel = forwardRef<
                     {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
                   </span>
                   <span className={styles.chevronRight} aria-hidden="true">
-                    ›
+                    <IconChevronRight />
                   </span>
                 </button>
                 <button
@@ -216,7 +217,7 @@ export const ExplorerPanel = forwardRef<
                   onClick={() => onDeleteLane(lane.id)}
                   aria-label={`Eliminar swimline ${lane.name}`}
                 >
-                  ✕
+                  <IconTrash />
                 </button>
               </div>
             ))}
@@ -239,7 +240,7 @@ export const ExplorerPanel = forwardRef<
                 setNewLaneName("");
               }}
             >
-              Agregar
+              <IconPlus /> Agregar
             </button>
           </div>
         </>
@@ -322,7 +323,7 @@ export const ExplorerPanel = forwardRef<
                             onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
                             aria-label={`Ver actividades de ${phase.title}`}
                           >
-                            ›
+                            <IconChevronRight />
                           </button>
                         </td>
                         <td>
@@ -332,7 +333,7 @@ export const ExplorerPanel = forwardRef<
                             onClick={() => onDeletePhase(lane.id, phase.id)}
                             aria-label={`Eliminar fase ${phase.title}`}
                           >
-                            ✕
+                            <IconTrash />
                           </button>
                         </td>
                       </tr>
@@ -388,7 +389,7 @@ export const ExplorerPanel = forwardRef<
                   disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
                   onClick={() => submitNewPhase(lane.id)}
                 >
-                  Agregar
+                  <IconPlus /> Agregar
                 </button>
               </div>
             </>
@@ -427,7 +428,7 @@ export const ExplorerPanel = forwardRef<
                         {formatDate(a.start, startMonth)} – {formatDate(a.end, startMonth)}
                       </span>
                       <span className={styles.chevronRight} aria-hidden="true">
-                        ›
+                        <IconChevronRight />
                       </span>
                     </button>
                     <button
@@ -436,7 +437,7 @@ export const ExplorerPanel = forwardRef<
                       onClick={() => onDeleteActivity(phase, a.id)}
                       aria-label={`Eliminar actividad ${a.title}`}
                     >
-                      ✕
+                      <IconTrash />
                     </button>
                   </div>
                 ))}
@@ -489,7 +490,7 @@ export const ExplorerPanel = forwardRef<
                   disabled={!newActivity.title.trim() || !newActivity.owner.trim() || !newActivity.start || !newActivity.end}
                   onClick={() => submitNewActivity(phase)}
                 >
-                  Agregar
+                  <IconPlus /> Agregar
                 </button>
               </div>
             </>

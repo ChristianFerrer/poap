@@ -2,9 +2,10 @@
 
 import { forwardRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import type { ImportedColor, ParseResult } from "@/lib/importExcel";
+import type { ParseResult } from "@/lib/importExcel";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { toAxis } from "@/components/poap-renderer/toAxis";
+import { IconClose, IconUpload } from "./icons";
 import styles from "./ImportPanel.module.css";
 
 // Vercel serverless functions cap request bodies at 4.5 MB no matter what
@@ -14,22 +15,26 @@ import styles from "./ImportPanel.module.css";
 // feature was built against is already ~5.5 MB, so this isn't an edge case.
 const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
 
-const STATUS_LABEL: Record<PhaseStatus, string> = {
-  done: "Completado",
-  in_progress: "En curso",
-  at_risk: "En riesgo",
-  not_started: "No iniciado",
-};
-const STATUS_OPTIONS: PhaseStatus[] = ["not_started", "in_progress", "at_risk", "done"];
+// Source sheets use color for team/category, not lifecycle state (checked
+// against the actual reference workbook this feature was built against) —
+// asking the user to map every color to a status was solving a problem
+// the color coding doesn't actually represent. Every imported phase just
+// starts here, same as a manually-added one.
+const DEFAULT_IMPORT_STATUS: PhaseStatus = "not_started";
+
+const MONTH_ABBR = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 function isoToDate(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
   return new Date(Date.UTC(y, m - 1, d));
 }
+function formatISODate(iso: string): string {
+  const d = isoToDate(iso);
+  return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
+}
 
-/** Converts a parsed sheet into real Lane objects on the app's axis, using
- * the color -> status choices the user made in the review step. */
-export function importedLanesToLanes(result: ParseResult, colorStatus: Record<string, PhaseStatus>, startMonth: string): Lane[] {
+/** Converts a parsed sheet into real Lane objects on the app's axis. */
+export function importedLanesToLanes(result: ParseResult, startMonth: string): Lane[] {
   return result.lanes.map((lane) => ({
     id: crypto.randomUUID(),
     name: lane.name,
@@ -39,7 +44,7 @@ export function importedLanesToLanes(result: ParseResult, colorStatus: Record<st
       title: p.title,
       start: toAxis(isoToDate(p.startISO), startMonth),
       end: toAxis(isoToDate(p.endISO), startMonth),
-      status: colorStatus[p.colorKey] ?? "not_started",
+      status: DEFAULT_IMPORT_STATUS,
     })),
   }));
 }
@@ -63,10 +68,8 @@ async function postForm<T>(body: FormData): Promise<T> {
 /**
  * Import flow: pick a .xlsx -> pick a sheet -> the server parses it
  * (exceljs needs Node, so parsing happens in /api/import-excel, not in the
- * browser) -> review swimlanes/phases and assign a status to each distinct
- * cell color found (color coding in these sheets is workstream/category,
- * not done/in_progress/at_risk/not_started, so there's no reliable way to
- * guess it automatically) -> confirm adds the result as new swimlanes.
+ * browser) -> review each lane's phases with their actual dates -> confirm
+ * adds the result as new swimlanes, every phase starting as "not_started".
  */
 export const ImportPanel = forwardRef<
   HTMLDivElement,
@@ -82,7 +85,6 @@ export const ImportPanel = forwardRef<
   const [sheetNames, setSheetNames] = useState<string[] | null>(null);
   const [sheet, setSheet] = useState("");
   const [result, setResult] = useState<ParseResult | null>(null);
-  const [colorStatus, setColorStatus] = useState<Record<string, PhaseStatus>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
@@ -128,9 +130,6 @@ export const ImportPanel = forwardRef<
       const data = await postForm<ParseResult & { token: string }>(form);
       setToken(data.token);
       setResult(data);
-      const defaults: Record<string, PhaseStatus> = {};
-      for (const c of data.colors) defaults[c.key] = "not_started";
-      setColorStatus(defaults);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al analizar la hoja.");
     } finally {
@@ -151,22 +150,22 @@ export const ImportPanel = forwardRef<
 
   function confirmImport() {
     if (!result) return;
-    onImport(importedLanesToLanes(result, colorStatus, startMonth));
+    onImport(importedLanesToLanes(result, startMonth));
     setImported(true);
   }
 
   return (
     <section ref={ref} className={styles.panel}>
       <button className={styles.close} onClick={onClose} aria-label="Cerrar">
-        ✕
+        <IconClose />
       </button>
       <p className={styles.eyebrow}>Importar plan</p>
       <h2 className={styles.title}>Desde un archivo Excel</h2>
 
       {imported ? (
         <p className={styles.success}>
-          Se importaron {result?.lanes.length ?? 0} swimlines con {totalPhases} fases. Ya podés revisarlas y ajustarlas
-          como cualquier otro swimline.
+          Se importaron {result?.lanes.length ?? 0} swimlines con {totalPhases} fases (todas como "No iniciado"). Ya
+          podés revisarlas y ajustarlas como cualquier otro swimline.
         </p>
       ) : (
         <>
@@ -181,6 +180,7 @@ export const ImportPanel = forwardRef<
                   if (f) handleFileChange(f);
                 }}
               />
+              <IconUpload />
               {file ? file.name : "Elegir archivo .xlsx…"}
             </label>
           </div>
@@ -220,7 +220,7 @@ export const ImportPanel = forwardRef<
                 <>
                   <p className={styles.summary}>
                     {result.lanes.length} {result.lanes.length === 1 ? "swimline" : "swimlines"} · {totalPhases}{" "}
-                    {totalPhases === 1 ? "fase" : "fases"}
+                    {totalPhases === 1 ? "fase" : "fases"} · todas como "No iniciado"
                     {outOfRange > 0 && (
                       <span className={styles.rangeWarning}>
                         {" "}
@@ -230,44 +230,21 @@ export const ImportPanel = forwardRef<
                     )}
                   </p>
 
-                  <p className={styles.sectionTitle}>Colores encontrados — asigná un estado a cada uno</p>
-                  <p className={styles.hint}>
-                    El color en estos archivos suele indicar equipo o categoría, no estado — por eso no se adivina
-                    automáticamente.
-                  </p>
-                  <div className={styles.colorList}>
-                    {result.colors.map((c) => (
-                      <div key={c.key} className={styles.colorRow}>
-                        <span
-                          className={styles.swatch}
-                          style={{ background: c.hex ?? "transparent" }}
-                          aria-hidden="true"
-                        />
-                        <span className={styles.colorCount}>{c.count}×</span>
-                        <select
-                          className={styles.statusSelect}
-                          value={colorStatus[c.key] ?? "not_started"}
-                          onChange={(e) => setColorStatus((prev) => ({ ...prev, [c.key]: e.target.value as PhaseStatus }))}
-                          aria-label={`Estado para el color con ${c.count} fases`}
-                        >
-                          {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>
-                              {STATUS_LABEL[s]}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-
                   <p className={styles.sectionTitle}>Vista previa</p>
                   <div className={styles.preview}>
                     {result.lanes.map((l) => (
-                      <div key={l.name} className={styles.previewLane}>
-                        <span className={styles.previewLaneName}>{l.name}</span>
-                        <span className={styles.rowMeta}>
-                          {l.phases.length} {l.phases.length === 1 ? "fase" : "fases"}
-                        </span>
+                      <div key={l.name} className={styles.previewLaneGroup}>
+                        <p className={styles.previewLaneName}>
+                          {l.name} <span className={styles.rowMeta}>({l.phases.length})</span>
+                        </p>
+                        {l.phases.map((p, i) => (
+                          <div key={i} className={styles.previewPhaseRow}>
+                            <span className={styles.previewPhaseTitle}>{p.title}</span>
+                            <span className={styles.previewPhaseDates}>
+                              {formatISODate(p.startISO)} → {formatISODate(p.endISO)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

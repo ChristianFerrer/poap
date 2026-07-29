@@ -1,8 +1,5 @@
 .panel {
   position: relative;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
   padding: 18px 18px 22px;
   animation: reveal 0.18s ease-out;
 }
@@ -30,11 +27,18 @@
   right: 14px;
   width: 26px;
   height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-secondary);
   cursor: pointer;
+}
+.close:hover {
+  color: var(--text-warning);
+  border-color: var(--text-warning);
 }
 
 .breadcrumb {
@@ -169,8 +173,8 @@
 }
 .chevronRight {
   flex: 0 0 auto;
+  display: flex;
   color: var(--text-secondary);
-  font-size: 14px;
 }
 
 /* Level: phases (editable table) */
@@ -232,12 +236,14 @@
   flex: 0 0 auto;
   width: 24px;
   height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 14px;
 }
 .viewButton:hover {
   color: var(--text-accent);
@@ -248,12 +254,14 @@
   align-self: center;
   width: 24px;
   height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 12px;
 }
 .deleteButton:hover {
   color: var(--text-warning);
@@ -460,6 +468,9 @@
 }
 .addButton {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: var(--text-accent);
   color: var(--card-bg);
   border: none;
