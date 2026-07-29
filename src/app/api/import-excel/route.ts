@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import ExcelJS from "exceljs";
+import { del } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { listSheetNames, parseSheet } from "@/lib/importExcel";
 
@@ -50,15 +51,36 @@ export async function POST(req: NextRequest) {
     workbookCache.set(token, { workbook, expires: Date.now() + WORKBOOK_TTL_MS });
   } else {
     const file = form.get("file");
-    if (!(file instanceof File)) {
+    const blobUrl = form.get("blobUrl");
+
+    let buffer: Buffer;
+    if (typeof blobUrl === "string" && blobUrl) {
+      // File was too large for this route's own request body (see
+      // ImportPanel.tsx) and went straight from the browser to Vercel
+      // Blob instead. Blob URLs are public-by-obscurity, not access
+      // controlled, so delete it the moment it's been read — there's no
+      // reason a plan's data should sit at that URL any longer than the
+      // single read it's needed for.
+      try {
+        const res = await fetch(blobUrl);
+        if (!res.ok) throw new Error(`fetch ${res.status}`);
+        buffer = Buffer.from(await res.arrayBuffer());
+      } catch {
+        return NextResponse.json({ error: "No se pudo leer el archivo subido." }, { status: 400 });
+      } finally {
+        del(blobUrl).catch(() => {});
+      }
+    } else if (file instanceof File) {
+      buffer = Buffer.from(await file.arrayBuffer());
+    } else {
       return NextResponse.json(
         { error: typeof existingToken === "string" ? "El archivo expiró, volvé a seleccionarlo." : "Falta el archivo." },
         { status: 400 },
       );
     }
+
     workbook = new ExcelJS.Workbook();
     try {
-      const buffer = Buffer.from(await file.arrayBuffer());
       await workbook.xlsx.load(buffer);
     } catch {
       return NextResponse.json({ error: "No se pudo leer el archivo. ¿Es un .xlsx válido?" }, { status: 400 });

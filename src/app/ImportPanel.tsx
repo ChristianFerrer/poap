@@ -1,10 +1,18 @@
 "use client";
 
 import { forwardRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import type { ImportedColor, ParseResult } from "@/lib/importExcel";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { toAxis } from "@/components/poap-renderer/toAxis";
 import styles from "./ImportPanel.module.css";
+
+// Vercel serverless functions cap request bodies at 4.5 MB no matter what
+// this app configures. Stay comfortably under that for a direct POST, and
+// route anything bigger through a direct browser -> Vercel Blob upload
+// instead (see /api/import-excel/upload) — the reference workbook this
+// feature was built against is already ~5.5 MB, so this isn't an edge case.
+const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
 
 const STATUS_LABEL: Record<PhaseStatus, string> = {
   done: "Completado",
@@ -88,7 +96,12 @@ export const ImportPanel = forwardRef<
     setLoading(true);
     try {
       const form = new FormData();
-      form.append("file", f);
+      if (f.size > DIRECT_UPLOAD_LIMIT_BYTES) {
+        const blob = await upload(f.name, f, { access: "public", handleUploadUrl: "/api/import-excel/upload" });
+        form.append("blobUrl", blob.url);
+      } else {
+        form.append("file", f);
+      }
       // Real workbooks can take several seconds to parse — the server
       // caches it by token so the next step (analyzing a sheet) doesn't
       // pay that cost again by re-uploading and re-parsing the whole file.
