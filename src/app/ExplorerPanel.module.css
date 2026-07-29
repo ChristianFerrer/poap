@@ -46,9 +46,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   padding-right: 30px;
-  font-family: var(--font-mono);
 }
 .breadcrumbItem {
   display: inline-flex;
@@ -60,9 +59,7 @@
   border: none;
   padding: 0;
   font: inherit;
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: 11.5px;
   color: var(--text-accent);
   cursor: pointer;
 }
@@ -70,32 +67,24 @@
   text-decoration: underline;
 }
 .breadcrumbCurrent {
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: 11.5px;
   color: var(--text-secondary);
 }
 .breadcrumbSep {
   font-size: 11px;
-  color: var(--border-strong);
+  color: var(--text-secondary);
 }
 
 .eyebrow {
-  font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--text-secondary);
   margin: 0 0 4px;
 }
 
 .title {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.005em;
-  line-height: 1.1;
-  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 6px;
   padding-right: 30px;
 }
 .subtitle {
@@ -104,20 +93,14 @@
   margin: 0 0 14px;
 }
 
-/* Clipped top-right corner reads as a printed tag/label rather than a soft
-   status chip — matches the same "technical annotation" language as the
-   calendar bars' top accent stripe. */
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px 4px 9px;
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
   margin-bottom: 14px;
 }
 .pillDot {
@@ -127,10 +110,8 @@
 }
 
 .sectionTitle {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-secondary);
   margin: 20px 0 8px;
@@ -158,7 +139,7 @@
   color: var(--text-secondary);
 }
 .searchBox:focus-within {
-  border-color: var(--accent-live);
+  border-color: var(--text-accent);
 }
 .searchInput {
   flex: 1 1 auto;
@@ -177,10 +158,8 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-family: inherit;
   background: var(--surface-1);
   color: var(--ink);
 }
@@ -236,21 +215,13 @@
 }
 .rowMeta {
   flex: 0 0 auto;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
 }
 .chevronRight {
   flex: 0 0 auto;
   display: flex;
   color: var(--text-secondary);
-  transition: transform 0.12s ease, color 0.12s ease;
-}
-.laneRowMain:hover .chevronRight,
-.activityRowMain:hover .chevronRight {
-  transform: translateX(2px);
-  color: var(--accent-live);
 }
 
 /* Level: phases (editable table) */
@@ -265,10 +236,8 @@
 }
 .table th {
   text-align: left;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--text-secondary);
   padding: 8px 10px;
@@ -300,7 +269,7 @@
   background: var(--surface-1);
 }
 .tableTextInput:focus {
-  border-color: var(--accent-live);
+  border-color: var(--text-accent);
   background: var(--surface-1);
   outline: none;
 }
@@ -404,9 +373,8 @@
   border-radius: 8px;
 }
 .detailItem dt {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.05em;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--text-secondary);
   margin-bottom: 2px;
@@ -436,10 +404,7 @@
   font-size: 12px;
 }
 .commentDate {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 10.5px;
   color: var(--text-secondary);
 }
 .commentText {
@@ -471,10 +436,6 @@
   background: var(--surface-1);
   color: var(--ink);
 }
-.commentForm textarea:focus {
-  border-color: var(--accent-live);
-  outline: none;
-}
 .commentForm button {
   align-self: flex-end;
   background: var(--text-accent);
@@ -482,11 +443,8 @@
   border: none;
   border-radius: 6px;
   padding: 6px 12px;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 .commentForm button:disabled {
@@ -513,7 +471,7 @@
   color: var(--ink);
 }
 .textInput:focus {
-  border-color: var(--accent-live);
+  border-color: var(--text-accent);
   outline: none;
 }
 .ownerInput {
@@ -527,7 +485,7 @@
   color: var(--ink);
 }
 .ownerInput:focus {
-  border-color: var(--accent-live);
+  border-color: var(--text-accent);
   outline: none;
 }
 .dateInput {
@@ -537,12 +495,12 @@
   border-radius: 6px;
   padding: 5px 6px;
   font-size: 12px;
-  font-family: var(--font-mono);
+  font-family: inherit;
   background: var(--surface-1);
   color: var(--ink);
 }
 .dateInput:focus {
-  border-color: var(--accent-live);
+  border-color: var(--text-accent);
   outline: none;
 }
 .statusSelect {
@@ -550,10 +508,8 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 5px 6px;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-family: inherit;
   background: var(--surface-1);
   color: var(--ink);
 }
@@ -567,22 +523,10 @@
   border: none;
   border-radius: 6px;
   padding: 7px 14px;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-.addButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 0 0 color-mix(in srgb, var(--accent-live) 70%, transparent);
-}
-.addButton:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: none;
 }
 .addButton:disabled {
   opacity: 0.4;

@@ -1,28 +1,25 @@
 :root {
   color-scheme: light;
 
-  /* Warm "drafting paper" base rather than a flat neutral grey — pairs
-     with the lime live-accent below the way cream stock pairs with a
-     grease pencil. */
-  --page-bg: #f3f0e6;
-  --card-bg: #fffdf7;
-  --ink: #1a1a15;
-  --text-secondary: #6d6b58;
+  --page-bg: #f5f5f3;
+  --card-bg: #ffffff;
+  --ink: #16171a;
+  --text-secondary: #6b6b66;
 
-  --border: #e2ddc7;
-  --border-strong: #b6b096;
+  --border: #e5e5e2;
+  --border-strong: #b9b9b3;
 
-  --surface-0: #efebdc; /* period bands: reads as background, not content */
-  --surface-1: #eae5d3; /* not_started fill */
+  --surface-0: #f7f7f5; /* period bands: reads as background, not content */
+  --surface-1: #f2f2f0; /* not_started fill */
 
-  --bg-success: #dcf0d1;
-  --text-success: #256b30;
+  --bg-success: #e3f4e1;
+  --text-success: #1e7b34;
 
-  --bg-accent: #dfe9f8;
-  --text-accent: #204f9c;
+  --bg-accent: #e1ebfb;
+  --text-accent: #1d4e96;
 
-  --bg-warning: #fbe7c8;
-  --text-warning: #8a4e0a;
+  --bg-warning: #fceed9;
+  --text-warning: #92530a;
 
   /* Stage-gate activation — distinct from status/accent so an activated
      gate never reads as "in progress" or "on track". */
@@ -30,42 +27,27 @@
 
   /* Today marker — deliberately not a status/accent color: it should read
      as a fixed reference line, not as "in progress" or a selection. Neon
-     lime is saturated enough to stay legible on both themes as-is. Also
-     doubles as the app's one "live/interactive" accent — focus rings, the
-     panel resize handle, search focus — everywhere something is being
-     acted on right now, as opposed to --text-accent, which marks
-     information (links, in-progress status, primary actions). */
+     lime is saturated enough to stay legible on both themes as-is. */
   --today-line: #c6ff00;
-  --accent-live: var(--today-line);
-  --accent-live-ink: #17240a; /* readable text/icon color set against --accent-live fills */
-
-  --font-display: var(--font-display-raw), "Arial Narrow", sans-serif;
-  --font-body: var(--font-body-raw), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono-raw), ui-monospace, "SFMono-Regular", Menlo, monospace;
-
-  --shadow-ink: 26, 24, 18;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    /* Warm, near-black graphite — not the flat neutral slate every other
-       dark-mode dashboard reaches for — with just enough undertone to feel
-       like a lit control panel rather than a muted OS theme. */
-    --page-bg: #0e0f0a;
-    --card-bg: #191b14;
-    --ink: #ececdd;
-    --text-secondary: #a6a58e;
+    --page-bg: #101012;
+    --card-bg: #17181b;
+    --ink: #eceeea;
+    --text-secondary: #a8a8a2;
 
-    --border: #302f22;
-    --border-strong: #56533c;
+    --border: #313134;
+    --border-strong: #55555a;
 
-    --surface-0: #1b1d15;
-    --surface-1: #212319;
+    --surface-0: #1b1b1e;
+    --surface-1: #232327;
 
-    --bg-success: #1a3320;
-    --text-success: #7bdb8f;
+    --bg-success: #16351e;
+    --text-success: #6fd98a;
 
     --bg-accent: #17273f;
     --text-accent: #8fb6ee;
@@ -74,9 +56,6 @@
     --text-warning: #f0b75c;
 
     --gate-active: #a78bfa;
-    --accent-live-ink: #10210a;
-
-    --shadow-ink: 0, 0, 0;
   }
 }
 
@@ -88,56 +67,13 @@ html,
 body {
   margin: 0;
   padding: 0;
+  background: var(--page-bg);
   color: var(--ink);
 }
 
-/* Faint dot-grid on the page background only — graph-paper atmosphere
-   behind the app shell, deliberately not carried into cards/panels where
-   it would compete with the calendar's own (much more functional) grid
-   lines. */
 body {
-  background-color: var(--page-bg);
-  background-image: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--border-strong) 45%, transparent) 1px,
-    transparent 1px
-  );
-  background-size: 24px 24px;
-  background-attachment: fixed;
-}
-
-body {
-  font-family: var(--font-body);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
-}
-
-/* The app's one focus language: every interactive element gets the same
-   live-accent ring, regardless of which panel it's in — keeps keyboard
-   navigation legible without borrowing the blue "informational" accent. */
-:focus-visible {
-  outline: 2px solid var(--accent-live);
-  outline-offset: 2px;
-}
-
-/* Themed scrollbars on the few elements that actually show one (most
-   scroll containers in the app hide theirs and mirror position via JS —
-   see PoapRenderer's syncScroll) so the ones that remain match the rest of
-   the surface instead of falling back to the OS default. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
-}
-*::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-*::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 99px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
 }
