@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
@@ -21,7 +21,13 @@ import styles from "./page.module.css";
 
 const PANEL_WIDTH_DEFAULT = 400;
 const PANEL_WIDTH_MIN = 320;
-const PANEL_WIDTH_MAX = 640;
+
+// The panel can grow up to half the viewport, never more — read live off
+// window.innerWidth rather than a fixed px cap, since "half the screen" is
+// relative to whatever device this loads on.
+function panelWidthMax(): number {
+  return typeof window === "undefined" ? PANEL_WIDTH_DEFAULT : Math.floor(window.innerWidth * 0.5);
+}
 
 export default function Page() {
   const [lanes, setLanes] = useState<Lane[]>(INITIAL_LANES);
@@ -35,6 +41,17 @@ export default function Page() {
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // If the window shrinks (e.g. rotating a tablet) below the panel's
+  // current width, re-clamp it to the new 50% cap instead of leaving it
+  // wider than half the screen until the next drag.
+  useEffect(() => {
+    function onResize() {
+      setPanelWidth((w) => Math.min(w, panelWidthMax()));
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   // Drag-to-resize the side panel — the handle sits on the panel's left
   // edge, so dragging left (away from the right-anchored panel) grows it.
   // onMove/onUp are scoped to this one gesture and detached on mouseup
@@ -45,7 +62,7 @@ export default function Page() {
     const startWidth = panelWidth;
     function onMove(ev: MouseEvent) {
       const next = startWidth + (startX - ev.clientX);
-      setPanelWidth(Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, next)));
+      setPanelWidth(Math.min(panelWidthMax(), Math.max(PANEL_WIDTH_MIN, next)));
     }
     function onUp() {
       window.removeEventListener("mousemove", onMove);

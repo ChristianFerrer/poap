@@ -53,3 +53,20 @@ export function IconChevronRight() {
     </svg>
   );
 }
+
+export function IconSearch() {
+  return (
+    <svg {...base}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  );
+}
+
+export function IconSort() {
+  return (
+    <svg {...base}>
+      <path d="M7 6v14M7 20l-3-3M7 20l3-3M17 18V4M17 4l-3 3M17 4l3 3" />
+    </svg>
+  );
+}

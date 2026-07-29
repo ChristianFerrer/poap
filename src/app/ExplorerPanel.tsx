@@ -4,8 +4,60 @@ import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
-import { IconChevronRight, IconClose, IconPlus, IconTrash } from "./icons";
+import { IconChevronRight, IconClose, IconPlus, IconSearch, IconTrash } from "./icons";
 import styles from "./ExplorerPanel.module.css";
+
+type SortBy = "name" | "date";
+
+/** Shared list-toolbar filter: case-insensitive substring match on
+ * whatever name each row exposes, applied before sorting. */
+function filterByName<T>(items: T[], search: string, getName: (item: T) => string): T[] {
+  const q = search.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((item) => getName(item).toLowerCase().includes(q));
+}
+
+function sortItems<T>(items: T[], sortBy: SortBy, getName: (item: T) => string, getDate: (item: T) => number): T[] {
+  return [...items].sort((a, b) => (sortBy === "name" ? getName(a).localeCompare(getName(b)) : getDate(a) - getDate(b)));
+}
+
+function FilterBar({
+  search,
+  onSearch,
+  searchLabel,
+  sortBy,
+  onSortBy,
+}: {
+  search: string;
+  onSearch: (v: string) => void;
+  searchLabel: string;
+  sortBy: SortBy;
+  onSortBy: (v: SortBy) => void;
+}) {
+  return (
+    <div className={styles.filterRow}>
+      <label className={styles.searchBox}>
+        <IconSearch />
+        <input
+          type="search"
+          className={styles.searchInput}
+          placeholder={searchLabel}
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+        />
+      </label>
+      <select
+        className={styles.sortSelect}
+        value={sortBy}
+        onChange={(e) => onSortBy(e.target.value as SortBy)}
+        aria-label="Ordenar por"
+      >
+        <option value="name">Ordenar por nombre</option>
+        <option value="date">Ordenar por fecha</option>
+      </select>
+    </div>
+  );
+}
 
 const STATUS_LABEL: Record<PhaseStatus, string> = {
   done: "Completado",
@@ -140,6 +192,13 @@ export const ExplorerPanel = forwardRef<
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
   const [draft, setDraft] = useState("");
 
+  const [laneSearch, setLaneSearch] = useState("");
+  const [laneSort, setLaneSort] = useState<SortBy>("name");
+  const [phaseSearch, setPhaseSearch] = useState("");
+  const [phaseSort, setPhaseSort] = useState<SortBy>("name");
+  const [activitySearch, setActivitySearch] = useState("");
+  const [activitySort, setActivitySort] = useState<SortBy>("name");
+
   function findPhase(phaseId: string): { lane: Lane; phase: Phase } | null {
     for (const lane of lanes) {
       const phase = lane.phases.find((p) => p.id === phaseId);
@@ -191,65 +250,92 @@ export const ExplorerPanel = forwardRef<
         <IconClose />
       </button>
 
-      {view.level === "lanes" && (
-        <>
-          <p className={styles.eyebrow}>Programa</p>
-          <h2 className={styles.title}>Swimlines</h2>
-          <div className={styles.list}>
-            {lanes.map((lane) => (
-              <div key={lane.id} className={styles.laneRow}>
+      {view.level === "lanes" &&
+        (() => {
+          const visibleLanes = sortItems(
+            filterByName(lanes, laneSearch, (l) => l.name),
+            laneSort,
+            (l) => l.name,
+            (l) => (l.phases.length ? Math.min(...l.phases.map((p) => p.start)) : Infinity),
+          );
+          return (
+            <>
+              <p className={styles.eyebrow}>Programa</p>
+              <h2 className={styles.title}>Swimlines</h2>
+
+              <p className={styles.sectionTitle}>Agregar swimline</p>
+              <div className={styles.addRow}>
+                <input
+                  className={styles.textInput}
+                  placeholder="Nombre del swimline"
+                  value={newLaneName}
+                  onChange={(e) => setNewLaneName(e.target.value)}
+                />
                 <button
                   type="button"
-                  className={styles.laneRowMain}
-                  onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
+                  className={styles.addButton}
+                  disabled={!newLaneName.trim()}
+                  onClick={() => {
+                    onAddLane(newLaneName.trim());
+                    setNewLaneName("");
+                  }}
                 >
-                  <span className={styles.laneRowName}>{lane.name}</span>
-                  <span className={styles.rowMeta}>
-                    {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
-                  </span>
-                  <span className={styles.chevronRight} aria-hidden="true">
-                    <IconChevronRight />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.deleteButton}
-                  onClick={() => onDeleteLane(lane.id)}
-                  aria-label={`Eliminar swimline ${lane.name}`}
-                >
-                  <IconTrash />
+                  <IconPlus /> Agregar
                 </button>
               </div>
-            ))}
-            {lanes.length === 0 && <p className={styles.empty}>No hay swimlines todavía.</p>}
-          </div>
-          <p className={styles.sectionTitle}>Agregar swimline</p>
-          <div className={styles.addRow}>
-            <input
-              className={styles.textInput}
-              placeholder="Nombre del swimline"
-              value={newLaneName}
-              onChange={(e) => setNewLaneName(e.target.value)}
-            />
-            <button
-              type="button"
-              className={styles.addButton}
-              disabled={!newLaneName.trim()}
-              onClick={() => {
-                onAddLane(newLaneName.trim());
-                setNewLaneName("");
-              }}
-            >
-              <IconPlus /> Agregar
-            </button>
-          </div>
-        </>
-      )}
+
+              <FilterBar
+                search={laneSearch}
+                onSearch={setLaneSearch}
+                searchLabel="Buscar swimline…"
+                sortBy={laneSort}
+                onSortBy={setLaneSort}
+              />
+              <div className={styles.list}>
+                {visibleLanes.map((lane) => (
+                  <div key={lane.id} className={styles.laneRow}>
+                    <button
+                      type="button"
+                      className={styles.laneRowMain}
+                      onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
+                    >
+                      <span className={styles.laneRowName}>{lane.name}</span>
+                      <span className={styles.rowMeta}>
+                        {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
+                      </span>
+                      <span className={styles.chevronRight} aria-hidden="true">
+                        <IconChevronRight />
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.deleteButton}
+                      onClick={() => onDeleteLane(lane.id)}
+                      aria-label={`Eliminar swimline ${lane.name}`}
+                    >
+                      <IconTrash />
+                    </button>
+                  </div>
+                ))}
+                {visibleLanes.length === 0 && lanes.length > 0 && (
+                  <p className={styles.empty}>Ningún swimline coincide con la búsqueda.</p>
+                )}
+                {lanes.length === 0 && <p className={styles.empty}>No hay swimlines todavía.</p>}
+              </div>
+            </>
+          );
+        })()}
 
       {view.level === "phases" &&
         (() => {
           const lane = lanes.find((l) => l.id === view.laneId);
           if (!lane) return null;
+          const visiblePhases = sortItems(
+            filterByName(lane.phases, phaseSearch, (p) => p.title),
+            phaseSort,
+            (p) => p.title,
+            (p) => p.start,
+          );
           return (
             <>
               <Breadcrumb items={[rootCrumb, { label: lane.name }]} onNavigate={onNavigate} />
@@ -257,6 +343,58 @@ export const ExplorerPanel = forwardRef<
               <p className={styles.subtitle}>
                 {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
               </p>
+
+              <p className={styles.sectionTitle}>Agregar fase</p>
+              <div className={styles.addRow}>
+                <input
+                  className={styles.textInput}
+                  placeholder="Título de la fase"
+                  value={newPhase.title}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
+                />
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={newPhase.start}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, start: e.target.value }))}
+                  aria-label="Fecha de inicio"
+                />
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={newPhase.end}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, end: e.target.value }))}
+                  aria-label="Fecha de fin"
+                />
+                <select
+                  className={styles.statusSelect}
+                  value={newPhase.status}
+                  onChange={(e) => setNewPhase((p) => ({ ...p, status: e.target.value as PhaseStatus }))}
+                  aria-label="Estado de la nueva fase"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className={styles.addButton}
+                  disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
+                  onClick={() => submitNewPhase(lane.id)}
+                >
+                  <IconPlus /> Agregar
+                </button>
+              </div>
+
+              <FilterBar
+                search={phaseSearch}
+                onSearch={setPhaseSearch}
+                searchLabel="Buscar fase…"
+                sortBy={phaseSort}
+                onSortBy={setPhaseSort}
+              />
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
                   <thead>
@@ -270,7 +408,7 @@ export const ExplorerPanel = forwardRef<
                     </tr>
                   </thead>
                   <tbody>
-                    {lane.phases.map((phase) => (
+                    {visiblePhases.map((phase) => (
                       <tr key={phase.id}>
                         <td>
                           <input
@@ -338,6 +476,13 @@ export const ExplorerPanel = forwardRef<
                         </td>
                       </tr>
                     ))}
+                    {visiblePhases.length === 0 && lane.phases.length > 0 && (
+                      <tr>
+                        <td colSpan={6} className={styles.emptyCell}>
+                          Ninguna fase coincide con la búsqueda.
+                        </td>
+                      </tr>
+                    )}
                     {lane.phases.length === 0 && (
                       <tr>
                         <td colSpan={6} className={styles.emptyCell}>
@@ -347,50 +492,6 @@ export const ExplorerPanel = forwardRef<
                     )}
                   </tbody>
                 </table>
-              </div>
-
-              <p className={styles.sectionTitle}>Agregar fase</p>
-              <div className={styles.addRow}>
-                <input
-                  className={styles.textInput}
-                  placeholder="Título de la fase"
-                  value={newPhase.title}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
-                />
-                <input
-                  type="date"
-                  className={styles.dateInput}
-                  value={newPhase.start}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, start: e.target.value }))}
-                  aria-label="Fecha de inicio"
-                />
-                <input
-                  type="date"
-                  className={styles.dateInput}
-                  value={newPhase.end}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, end: e.target.value }))}
-                  aria-label="Fecha de fin"
-                />
-                <select
-                  className={styles.statusSelect}
-                  value={newPhase.status}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, status: e.target.value as PhaseStatus }))}
-                  aria-label="Estado de la nueva fase"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className={styles.addButton}
-                  disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
-                  onClick={() => submitNewPhase(lane.id)}
-                >
-                  <IconPlus /> Agregar
-                </button>
               </div>
             </>
           );
@@ -410,39 +511,6 @@ export const ExplorerPanel = forwardRef<
               />
               <h2 className={styles.title}>{phase.title}</h2>
               <StatusPill status={phase.status} />
-              <p className={styles.sectionTitle}>
-                Actividades ({activities.length})
-              </p>
-              <div className={styles.list}>
-                {activities.map((a) => (
-                  <div key={a.id} className={styles.activityRow}>
-                    <button
-                      type="button"
-                      className={styles.activityRowMain}
-                      onClick={() => onNavigate({ level: "activity", phaseId: phase.id, activityId: a.id })}
-                    >
-                      <span className={styles.activityDot} style={{ background: `var(--${STATUS_VAR[a.status]})` }} />
-                      <span className={styles.activityRowTitle}>{a.title}</span>
-                      <span className={styles.rowMeta}>{a.owner}</span>
-                      <span className={styles.rowMeta}>
-                        {formatDate(a.start, startMonth)} – {formatDate(a.end, startMonth)}
-                      </span>
-                      <span className={styles.chevronRight} aria-hidden="true">
-                        <IconChevronRight />
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.deleteButton}
-                      onClick={() => onDeleteActivity(phase, a.id)}
-                      aria-label={`Eliminar actividad ${a.title}`}
-                    >
-                      <IconTrash />
-                    </button>
-                  </div>
-                ))}
-                {activities.length === 0 && <p className={styles.empty}>Esta fase no tiene actividades todavía.</p>}
-              </div>
 
               <p className={styles.sectionTitle}>Agregar actividad</p>
               <div className={styles.addRow}>
@@ -492,6 +560,62 @@ export const ExplorerPanel = forwardRef<
                 >
                   <IconPlus /> Agregar
                 </button>
+              </div>
+
+              <p className={styles.sectionTitle}>
+                Actividades ({activities.length})
+              </p>
+              <FilterBar
+                search={activitySearch}
+                onSearch={setActivitySearch}
+                searchLabel="Buscar actividad…"
+                sortBy={activitySort}
+                onSortBy={setActivitySort}
+              />
+              <div className={styles.list}>
+                {(() => {
+                  const visibleActivities = sortItems(
+                    filterByName(activities, activitySearch, (a) => a.title),
+                    activitySort,
+                    (a) => a.title,
+                    (a) => a.start,
+                  );
+                  return (
+                    <>
+                      {visibleActivities.map((a) => (
+                        <div key={a.id} className={styles.activityRow}>
+                          <button
+                            type="button"
+                            className={styles.activityRowMain}
+                            onClick={() => onNavigate({ level: "activity", phaseId: phase.id, activityId: a.id })}
+                          >
+                            <span className={styles.activityDot} style={{ background: `var(--${STATUS_VAR[a.status]})` }} />
+                            <span className={styles.activityRowTitle}>{a.title}</span>
+                            <span className={styles.rowMeta}>{a.owner}</span>
+                            <span className={styles.rowMeta}>
+                              {formatDate(a.start, startMonth)} – {formatDate(a.end, startMonth)}
+                            </span>
+                            <span className={styles.chevronRight} aria-hidden="true">
+                              <IconChevronRight />
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.deleteButton}
+                            onClick={() => onDeleteActivity(phase, a.id)}
+                            aria-label={`Eliminar actividad ${a.title}`}
+                          >
+                            <IconTrash />
+                          </button>
+                        </div>
+                      ))}
+                      {visibleActivities.length === 0 && activities.length > 0 && (
+                        <p className={styles.empty}>Ninguna actividad coincide con la búsqueda.</p>
+                      )}
+                      {activities.length === 0 && <p className={styles.empty}>Esta fase no tiene actividades todavía.</p>}
+                    </>
+                  );
+                })()}
               </div>
             </>
           );
