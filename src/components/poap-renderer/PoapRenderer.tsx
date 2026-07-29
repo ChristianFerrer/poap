@@ -308,10 +308,12 @@ interface GateTooltipState {
  * calendar day gets the same pixel width regardless of which month it's
  * in — see the comment on buildDayScale.
  *
- * Responsive strategy unchanged: the label column is a fixed-width flex
- * sibling that never scrolls; the timeline is a separate scroll container.
- * Label and timeline rows are synced by giving both an identical, explicitly
- * computed height rather than relying on a shared grid.
+ * The card has a fixed vertical budget (see .card's height in the CSS) with
+ * its own internal scroll, rather than growing the whole page — the label
+ * column and the timeline are separate scroll containers (the timeline
+ * additionally scrolls horizontally, which the labels never should), kept
+ * vertically in sync via syncScroll rather than a shared grid. The ruler
+ * stays pinned to the top of that internal scroll via position: sticky.
  */
 export function PoapRenderer({
   months,
@@ -326,6 +328,7 @@ export function PoapRenderer({
   onLaneClick,
 }: PoapRendererProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const labelsColRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
   const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("anio");
   const [zoomScale, setZoomScale] = useState(ZOOM_SCALE_DEFAULT);
@@ -476,6 +479,16 @@ export function PoapRenderer({
     setGateTooltip({ x: e.clientX, y: e.clientY, label: gate.label, date: formatAxisDate(gate.position, startMonth) });
   }
 
+  // The label column and the timeline are separate scroll containers (the
+  // timeline also needs to scroll horizontally, which the labels never
+  // should), so vertical scroll position is kept in sync manually — each
+  // one's scroll event mirrors onto the other. Setting scrollTop to a value
+  // it already has doesn't re-fire that element's own scroll event, so this
+  // can't ping-pong.
+  function syncScroll(source: HTMLDivElement, target: HTMLDivElement | null) {
+    if (target && target.scrollTop !== source.scrollTop) target.scrollTop = source.scrollTop;
+  }
+
   return (
     <div className={styles.card}>
       <div className={styles.toolbar}>
@@ -518,8 +531,13 @@ export function PoapRenderer({
       </div>
 
       <div className={styles.chart}>
-        <div className={styles.labelsCol} style={{ width: LABEL_COL_WIDTH }}>
-          <div className={styles.labelCell} style={{ height: rulerHeight }} />
+        <div
+          ref={labelsColRef}
+          className={styles.labelsCol}
+          style={{ width: LABEL_COL_WIDTH }}
+          onScroll={(e) => syncScroll(e.currentTarget, timelineRef.current)}
+        >
+          <div className={`${styles.labelCell} ${styles.labelHeaderCell}`} style={{ height: rulerHeight }} />
           <div
             className={`${styles.labelCell} ${styles.gatesLabelCell}`}
             style={{ height: gateRowHeight }}
@@ -550,7 +568,11 @@ export function PoapRenderer({
           })}
         </div>
 
-        <div ref={timelineRef} className={styles.timelineScroll}>
+        <div
+          ref={timelineRef}
+          className={styles.timelineScroll}
+          onScroll={(e) => syncScroll(e.currentTarget, labelsColRef.current)}
+        >
           <div className={styles.timelineInner} style={{ minWidth: timelineMinWidth }}>
             <div className={styles.bandsOverlay} aria-hidden="true">
               {bands.map((band) => (

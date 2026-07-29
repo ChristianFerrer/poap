@@ -48,11 +48,50 @@
   margin: 0 0 18px;
 }
 
+/* Detail panel sits to the left of the calendar (its original position),
+   the calendar takes the rest of the width. DOM order keeps the calendar
+   first (better reading order — the plan is the primary content, panel
+   details are secondary) with `order` flipping the visual placement. */
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.calendarCol {
+  flex: 1 1 auto;
+  min-width: 0;
+  order: 2;
+}
+.sidePanel {
+  flex: 0 0 360px;
+  min-width: 0;
+  order: 1;
+}
+
 @media (max-width: 640px) {
   .main {
     padding: 16px 12px 40px;
   }
   .title {
     font-size: 17px;
+  }
+}
+
+/* Below ~900px there isn't room for calendar + a 360px sidebar side by
+   side — stack instead, calendar on top (matches how the plan reads first
+   on desktop too) and the panel below it, same as before this panel moved
+   to a sidebar on wider screens. */
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+  }
+  .calendarCol {
+    order: 1;
+    width: 100%;
+  }
+  .sidePanel {
+    order: 2;
+    flex: 1 1 auto;
+    width: 100%;
   }
 }

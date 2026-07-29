@@ -45,9 +45,9 @@ export default function Page() {
     setExplorer(view);
     setGatesPanelOpen(false);
     setImportOpen(false);
-    // The panel now renders below the plan instead of an overlay, so bring
-    // it into view — otherwise a click low on a tall plan leaves the panel
-    // off-screen with no indication anything happened.
+    // On narrow viewports the panel stacks below the calendar instead of
+    // sitting beside it — bring it into view there, since it can otherwise
+    // open off-screen with no indication anything happened.
     scrollToPanel();
   }
 
@@ -88,6 +88,26 @@ export default function Page() {
     setLanes((prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, phases: [...lane.phases, phase] } : lane)));
   }
 
+  function deleteLane(laneId: string) {
+    const lane = lanes.find((l) => l.id === laneId);
+    setLanes((prev) => prev.filter((l) => l.id !== laneId));
+    if (lane) {
+      const deletedPhaseIds = new Set(lane.phases.map((p) => p.id));
+      setActivitiesByPhase((prev) =>
+        Object.fromEntries(Object.entries(prev).filter(([phaseId]) => !deletedPhaseIds.has(phaseId))),
+      );
+    }
+    // Whatever the explorer was showing for this lane (or a phase under
+    // it) no longer exists — back out to the swimline list rather than
+    // pointing at something that just disappeared.
+    setExplorer((prev) => {
+      if (!prev || prev.level === "lanes") return prev;
+      if (prev.level === "phases") return prev.laneId === laneId ? { level: "lanes" } : prev;
+      const wasUnderDeletedLane = lane?.phases.some((p) => p.id === prev.phaseId) ?? false;
+      return wasUnderDeletedLane ? { level: "lanes" } : prev;
+    });
+  }
+
   // Phases without a hand-authored entry here get a two-step breakdown
   // computed on the fly from their own dates (see mock-data's
   // activitiesFor) — this materializes that fallback into real state only
@@ -96,11 +116,37 @@ export default function Page() {
     return activitiesByPhase[phase.id] ?? activitiesFor(phase);
   }
 
+  function deletePhase(laneId: string, phaseId: string) {
+    setLanes((prev) =>
+      prev.map((lane) => (lane.id === laneId ? { ...lane, phases: lane.phases.filter((p) => p.id !== phaseId) } : lane)),
+    );
+    setActivitiesByPhase((prev) => {
+      if (!(phaseId in prev)) return prev;
+      const next = { ...prev };
+      delete next[phaseId];
+      return next;
+    });
+    setExplorer((prev) => {
+      if (!prev || prev.level === "lanes" || prev.level === "phases") return prev;
+      return prev.phaseId === phaseId ? { level: "phases", laneId } : prev;
+    });
+  }
+
   function addActivity(phase: Phase, activity: ActivitySeed) {
     setActivitiesByPhase((prev) => ({
       ...prev,
       [phase.id]: [...(prev[phase.id] ?? activitiesFor(phase)), activity],
     }));
+  }
+
+  function deleteActivity(phase: Phase, activityId: string) {
+    setActivitiesByPhase((prev) => ({
+      ...prev,
+      [phase.id]: (prev[phase.id] ?? activitiesFor(phase)).filter((a) => a.id !== activityId),
+    }));
+    setExplorer((prev) =>
+      prev && prev.level === "activity" && prev.activityId === activityId ? { level: "activities", phaseId: phase.id } : prev,
+    );
   }
 
   function toggleGateActive(gateId: string) {
@@ -143,58 +189,69 @@ export default function Page() {
         </button>
       </div>
 
-      <PoapRenderer
-        months={MONTHS}
-        startMonth={START_MONTH}
-        lanes={lanes}
-        gates={gates}
-        bands={BANDS}
-        selectedPhaseId={selectedPhaseId}
-        onPhaseClick={handlePhaseClick}
-        activeGateIds={activeGateIds}
-        onGateClick={handleGateClick}
-        onLaneClick={handleLaneClick}
-      />
+      <div className={styles.layout}>
+        <div className={styles.calendarCol}>
+          <PoapRenderer
+            months={MONTHS}
+            startMonth={START_MONTH}
+            lanes={lanes}
+            gates={gates}
+            bands={BANDS}
+            selectedPhaseId={selectedPhaseId}
+            onPhaseClick={handlePhaseClick}
+            activeGateIds={activeGateIds}
+            onGateClick={handleGateClick}
+            onLaneClick={handleLaneClick}
+          />
+        </div>
 
-      {explorer && (
-        <ExplorerPanel
-          ref={panelRef}
-          lanes={lanes}
-          startMonth={START_MONTH}
-          view={explorer}
-          getActivities={getActivities}
-          onNavigate={setExplorer}
-          onClose={() => setExplorer(null)}
-          onAddLane={addLane}
-          onUpdatePhase={updatePhase}
-          onAddPhase={addPhase}
-          onAddActivity={addActivity}
-        />
-      )}
+        {(explorer || gatesPanelOpen || importOpen) && (
+          <div className={styles.sidePanel}>
+            {explorer && (
+              <ExplorerPanel
+                ref={panelRef}
+                lanes={lanes}
+                startMonth={START_MONTH}
+                view={explorer}
+                getActivities={getActivities}
+                onNavigate={setExplorer}
+                onClose={() => setExplorer(null)}
+                onAddLane={addLane}
+                onUpdatePhase={updatePhase}
+                onAddPhase={addPhase}
+                onAddActivity={addActivity}
+                onDeleteLane={deleteLane}
+                onDeletePhase={deletePhase}
+                onDeleteActivity={deleteActivity}
+              />
+            )}
 
-      {gatesPanelOpen && (
-        <GatesPanel
-          ref={panelRef}
-          gates={gates}
-          activeGateIds={new Set(activeGateIds)}
-          startMonth={START_MONTH}
-          onClose={() => setGatesPanelOpen(false)}
-          onToggle={toggleGateActive}
-          onUpdate={updateGate}
-          onAdd={addGate}
-          onDelete={deleteGate}
-        />
-      )}
+            {gatesPanelOpen && (
+              <GatesPanel
+                ref={panelRef}
+                gates={gates}
+                activeGateIds={new Set(activeGateIds)}
+                startMonth={START_MONTH}
+                onClose={() => setGatesPanelOpen(false)}
+                onToggle={toggleGateActive}
+                onUpdate={updateGate}
+                onAdd={addGate}
+                onDelete={deleteGate}
+              />
+            )}
 
-      {importOpen && (
-        <ImportPanel
-          ref={panelRef}
-          startMonth={START_MONTH}
-          months={MONTHS}
-          onClose={() => setImportOpen(false)}
-          onImport={importLanes}
-        />
-      )}
+            {importOpen && (
+              <ImportPanel
+                ref={panelRef}
+                startMonth={START_MONTH}
+                months={MONTHS}
+                onClose={() => setImportOpen(false)}
+                onImport={importLanes}
+              />
+            )}
+          </div>
+        )}
+      </div>
     </main>
   );
 }

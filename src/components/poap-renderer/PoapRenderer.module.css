@@ -5,6 +5,16 @@
   padding: 14px 16px 16px;
   max-width: 100%;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  /* A fixed vertical budget, not just a cap — the calendar reads as a
+     stable-height widget with its own internal scroll (see .chart below)
+     instead of stretching the whole page taller as lanes/phases are added.
+     dvh (where supported) accounts for mobile browser chrome collapsing;
+     the plain vh line above it is the fallback. */
+  height: 40vh;
+  height: 40dvh;
+  min-height: 360px;
 }
 
 .toolbar {
@@ -14,6 +24,7 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 10px;
+  flex: 0 0 auto;
 }
 
 .toolbarControls {
@@ -92,14 +103,18 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
-/* Label column is a fixed-width flex sibling that never scrolls; the
-   timeline is its own horizontally-scrollable sibling. Kept as two
-   independent flex columns (not a shared CSS grid) so a narrow viewport can
-   scroll just the timeline without dragging the labels along. */
+/* Label column is a fixed-width flex sibling; the timeline is its own
+   sibling. Kept as two independent flex columns (not a shared CSS grid) so
+   a narrow viewport can scroll just the timeline horizontally without
+   dragging the labels along. Both now scroll *vertically* too (the card's
+   height is capped — see .card) and are kept in sync via syncScroll in the
+   .tsx, since two separate scroll containers can't share one natively. */
 .chart {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   min-width: 0;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .labelsCol {
@@ -107,13 +122,24 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Soft tint marking where the calendar's fixed (non-scrolling-with-time)
+     area starts, distinct from the plain card background to its right. */
+  background: color-mix(in srgb, var(--text-accent) 6%, var(--card-bg));
+  /* The one visible vertical scrollbar lives on .timelineScroll; this side
+     mirrors its scroll position via JS instead of showing its own
+     redundant scrollbar right next to it. */
+  scrollbar-width: none;
+}
+.labelsCol::-webkit-scrollbar {
+  display: none;
 }
 
 .timelineScroll {
   flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: auto;
 }
 
 .timelineInner {
@@ -151,11 +177,14 @@
 }
 
 /* Last in DOM within .timelineInner (see the .tsx comment) so this paints
-   above every bar/gate/ruler cell instead of being covered by them. */
+   above every bar/gate/ruler cell instead of being covered by them — now
+   also needs a z-index above the now-sticky .ruler explicitly, since a
+   sticky element's own stacking would otherwise win over plain DOM order. */
 .focusOverlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 3;
 }
 
 .columnHighlight {
@@ -185,19 +214,46 @@
   color: var(--text-secondary);
   padding-right: 8px;
   border-bottom: 0.5px solid var(--border);
+  /* .labelsCol is now itself a height-constrained flex column (stretched
+     by .chart to the card's fixed height) — without this, its row cells
+     are flex items with the default flex-shrink: 1, so the browser
+     compresses all of them to fit instead of letting them overflow their
+     container and trigger its scroll, breaking row alignment with the
+     timeline (whose rows never get this shrink pressure — .timelineInner
+     sits between the constrained scroller and its content, so nothing
+     forces its own children to shrink). */
+  flex-shrink: 0;
 }
 .gatesLabelCell {
   font-weight: 500;
+}
+/* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
+   equivalent spacer on the label-column side, so the two stay visually
+   locked together as both scroll (see syncScroll in the .tsx). Needs its
+   own opaque background matching .labelsCol, since once stuck it no longer
+   just shows the column's background through it — content scrolling past
+   underneath would otherwise show through a transparent cell. */
+.labelHeaderCell {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--text-accent) 6%, var(--card-bg));
 }
 
 .ruler {
   display: flex;
   flex-direction: column;
   border-bottom: 0.5px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .yearRow {
   position: relative;
+  /* Distinct from .monthHeader's --surface-1 so the ruler still reads as
+     three separate tiers, not one blurred block. */
+  background: var(--surface-0);
 }
 .yearCell {
   position: absolute;

@@ -3,7 +3,6 @@
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  margin-top: 16px;
   padding: 18px 18px 22px;
   animation: reveal 0.18s ease-out;
 }
@@ -126,21 +125,31 @@
   margin: 4px 0;
 }
 
-/* Level: lanes */
+/* Level: lanes — a row is two independent buttons (navigate + delete), not
+   one, same reasoning as the chart's lane chevron/name split. */
 .laneRow {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 6px;
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 12px;
   background: var(--card-bg);
+}
+.laneRowMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 12px;
+  background: none;
+  border: none;
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
-.laneRow:hover {
+.laneRowMain:hover {
   background: var(--surface-1);
 }
 .laneRowName {
@@ -234,22 +243,51 @@
   color: var(--text-accent);
   border-color: var(--text-accent);
 }
+.deleteButton {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+.deleteButton:hover {
+  color: var(--text-warning);
+  border-color: var(--text-warning);
+}
+.laneRow > .deleteButton,
+.activityRow > .deleteButton {
+  margin-right: 10px;
+}
 
-/* Level: activities */
+/* Level: activities — same two-buttons-not-one row as .laneRow */
 .activityRow {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 6px;
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 10px;
   background: var(--card-bg);
+}
+.activityRowMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  background: none;
+  border: none;
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
-.activityRow:hover {
+.activityRowMain:hover {
   background: var(--surface-1);
 }
 .activityDot {

@@ -3,7 +3,6 @@
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  margin-top: 16px;
   padding: 18px 18px 22px;
   animation: reveal 0.18s ease-out;
 }

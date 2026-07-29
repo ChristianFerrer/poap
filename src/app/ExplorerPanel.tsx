@@ -111,9 +111,26 @@ export const ExplorerPanel = forwardRef<
     ) => void;
     onAddPhase: (laneId: string, phase: Phase) => void;
     onAddActivity: (phase: Phase, activity: ActivitySeed) => void;
+    onDeleteLane: (laneId: string) => void;
+    onDeletePhase: (laneId: string, phaseId: string) => void;
+    onDeleteActivity: (phase: Phase, activityId: string) => void;
   }
 >(function ExplorerPanel(
-  { lanes, startMonth, view, getActivities, onNavigate, onClose, onAddLane, onUpdatePhase, onAddPhase, onAddActivity },
+  {
+    lanes,
+    startMonth,
+    view,
+    getActivities,
+    onNavigate,
+    onClose,
+    onAddLane,
+    onUpdatePhase,
+    onAddPhase,
+    onAddActivity,
+    onDeleteLane,
+    onDeletePhase,
+    onDeleteActivity,
+  },
   ref,
 ) {
   const [newLaneName, setNewLaneName] = useState("");
@@ -179,20 +196,29 @@ export const ExplorerPanel = forwardRef<
           <h2 className={styles.title}>Swimlines</h2>
           <div className={styles.list}>
             {lanes.map((lane) => (
-              <button
-                key={lane.id}
-                type="button"
-                className={styles.laneRow}
-                onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
-              >
-                <span className={styles.laneRowName}>{lane.name}</span>
-                <span className={styles.rowMeta}>
-                  {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
-                </span>
-                <span className={styles.chevronRight} aria-hidden="true">
-                  ›
-                </span>
-              </button>
+              <div key={lane.id} className={styles.laneRow}>
+                <button
+                  type="button"
+                  className={styles.laneRowMain}
+                  onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
+                >
+                  <span className={styles.laneRowName}>{lane.name}</span>
+                  <span className={styles.rowMeta}>
+                    {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
+                  </span>
+                  <span className={styles.chevronRight} aria-hidden="true">
+                    ›
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.deleteButton}
+                  onClick={() => onDeleteLane(lane.id)}
+                  aria-label={`Eliminar swimline ${lane.name}`}
+                >
+                  ✕
+                </button>
+              </div>
             ))}
             {lanes.length === 0 && <p className={styles.empty}>No hay swimlines todavía.</p>}
           </div>
@@ -238,6 +264,7 @@ export const ExplorerPanel = forwardRef<
                       <th>Inicio</th>
                       <th>Fin</th>
                       <th>Estado</th>
+                      <th aria-hidden="true" />
                       <th aria-hidden="true" />
                     </tr>
                   </thead>
@@ -298,11 +325,21 @@ export const ExplorerPanel = forwardRef<
                             ›
                           </button>
                         </td>
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.deleteButton}
+                            onClick={() => onDeletePhase(lane.id, phase.id)}
+                            aria-label={`Eliminar fase ${phase.title}`}
+                          >
+                            ✕
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {lane.phases.length === 0 && (
                       <tr>
-                        <td colSpan={5} className={styles.emptyCell}>
+                        <td colSpan={6} className={styles.emptyCell}>
                           Este swimline no tiene fases todavía.
                         </td>
                       </tr>
@@ -377,22 +414,31 @@ export const ExplorerPanel = forwardRef<
               </p>
               <div className={styles.list}>
                 {activities.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    className={styles.activityRow}
-                    onClick={() => onNavigate({ level: "activity", phaseId: phase.id, activityId: a.id })}
-                  >
-                    <span className={styles.activityDot} style={{ background: `var(--${STATUS_VAR[a.status]})` }} />
-                    <span className={styles.activityRowTitle}>{a.title}</span>
-                    <span className={styles.rowMeta}>{a.owner}</span>
-                    <span className={styles.rowMeta}>
-                      {formatDate(a.start, startMonth)} – {formatDate(a.end, startMonth)}
-                    </span>
-                    <span className={styles.chevronRight} aria-hidden="true">
-                      ›
-                    </span>
-                  </button>
+                  <div key={a.id} className={styles.activityRow}>
+                    <button
+                      type="button"
+                      className={styles.activityRowMain}
+                      onClick={() => onNavigate({ level: "activity", phaseId: phase.id, activityId: a.id })}
+                    >
+                      <span className={styles.activityDot} style={{ background: `var(--${STATUS_VAR[a.status]})` }} />
+                      <span className={styles.activityRowTitle}>{a.title}</span>
+                      <span className={styles.rowMeta}>{a.owner}</span>
+                      <span className={styles.rowMeta}>
+                        {formatDate(a.start, startMonth)} – {formatDate(a.end, startMonth)}
+                      </span>
+                      <span className={styles.chevronRight} aria-hidden="true">
+                        ›
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.deleteButton}
+                      onClick={() => onDeleteActivity(phase, a.id)}
+                      aria-label={`Eliminar actividad ${a.title}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
                 {activities.length === 0 && <p className={styles.empty}>Esta fase no tiene actividades todavía.</p>}
               </div>
