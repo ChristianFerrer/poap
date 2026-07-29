@@ -38,6 +38,15 @@ export function importedLanesToLanes(result: ParseResult, colorStatus: Record<st
 
 async function postForm<T>(body: FormData): Promise<T> {
   const res = await fetch("/api/import-excel", { method: "POST", body });
+  // A body too large for the hosting platform's own request-size limit
+  // (Vercel serverless functions cap payloads at 4.5 MB, independent of
+  // anything this app configures) never reaches our route handler at all —
+  // the platform returns a plain-text/HTML error, not JSON, so res.json()
+  // itself throws. Surface that as a real message instead of a parse error.
+  if (!res.ok && !res.headers.get("content-type")?.includes("application/json")) {
+    if (res.status === 413) throw new Error("El archivo es demasiado grande para subir (máximo ~4.5 MB).");
+    throw new Error(`El servidor respondió con un error (${res.status}).`);
+  }
   const json = (await res.json()) as T & { error?: string };
   if (!res.ok) throw new Error(json.error ?? "Error al procesar el archivo.");
   return json;
