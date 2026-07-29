@@ -4,6 +4,7 @@ import { forwardRef, useState } from "react";
 import type { Gate } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
 import { IconClose, IconPlus, IconTrash } from "./icons";
+import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./GatesPanel.module.css";
 
 function toISODate(position: number, startMonth: string): string {
@@ -35,6 +36,7 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
   onAdd: (gate: Gate) => void;
   onDelete: (id: string) => void;
 }>(function GatesPanel({ gates, activeGateIds, startMonth, onClose, onToggle, onUpdate, onAdd, onDelete }, ref) {
+  const { t } = useLanguage();
   const [newLabel, setNewLabel] = useState("");
   const [newDate, setNewDate] = useState("");
 
@@ -54,9 +56,9 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
 
   return (
     <section ref={ref} className={styles.panel}>
-      <button className={styles.close} onClick={onClose} aria-label="Cerrar"><IconClose /></button>
-      <p className={styles.eyebrow}>Hitos del programa</p>
-      <h2 className={styles.title}>Stage Gates</h2>
+      <button className={styles.close} onClick={onClose} aria-label={t.gates.close}><IconClose /></button>
+      <p className={styles.eyebrow}>{t.gates.eyebrow}</p>
+      <h2 className={styles.title}>{t.gates.title}</h2>
 
       <div className={styles.list}>
         {sorted.map((gate) => {
@@ -68,8 +70,8 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
                 className={`${styles.visToggle} ${active ? styles.visToggleActive : ""}`}
                 onClick={() => onToggle(gate.id)}
                 aria-pressed={active}
-                aria-label={active ? "Ocultar línea en el plan" : "Mostrar línea en el plan"}
-                title={active ? "Visible en el plan" : "Oculto en el plan"}
+                aria-label={active ? t.gates.hideLineAria : t.gates.showLineAria}
+                title={active ? t.gates.visibleTitle : t.gates.hiddenTitle}
               >
                 ✓
               </button>
@@ -77,7 +79,7 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
                 className={styles.labelInput}
                 value={gate.label}
                 onChange={(e) => onUpdate(gate.id, { label: e.target.value })}
-                aria-label="Nombre del hito"
+                aria-label={t.gates.milestoneNameAria}
               />
               <input
                 type="date"
@@ -86,27 +88,27 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
                 onChange={(e) => {
                   if (e.target.value) onUpdate(gate.id, { position: fromISODate(e.target.value, startMonth) });
                 }}
-                aria-label="Fecha del hito"
+                aria-label={t.gates.milestoneDateAria}
               />
               <button
                 type="button"
                 className={styles.delete}
                 onClick={() => onDelete(gate.id)}
-                aria-label={`Eliminar ${gate.label}`}
+                aria-label={t.gates.deleteGateAria(gate.label)}
               >
                 <IconTrash />
               </button>
             </div>
           );
         })}
-        {sorted.length === 0 && <p className={styles.empty}>No hay hitos todavía.</p>}
+        {sorted.length === 0 && <p className={styles.empty}>{t.gates.noGates}</p>}
       </div>
 
-      <p className={styles.sectionTitle}>Agregar hito</p>
+      <p className={styles.sectionTitle}>{t.gates.addSection}</p>
       <div className={styles.addRow}>
         <input
           className={styles.labelInput}
-          placeholder="Nombre del hito"
+          placeholder={t.gates.namePlaceholder}
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
         />
@@ -117,7 +119,7 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
           onChange={(e) => setNewDate(e.target.value)}
         />
         <button type="button" className={styles.addButton} disabled={!newLabel.trim() || !newDate} onClick={submitNew}>
-          <IconPlus /> Agregar
+          <IconPlus /> {t.gates.addButton}
         </button>
       </div>
     </section>

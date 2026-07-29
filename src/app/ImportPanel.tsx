@@ -5,7 +5,10 @@ import { upload } from "@vercel/blob/client";
 import type { ParseResult } from "@/lib/importExcel";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { toAxis } from "@/components/poap-renderer/toAxis";
+import { MONTH_ABBR, STATUS_LABELS, type Locale } from "@/lib/i18n";
 import { IconClose, IconUpload } from "./icons";
+import { useLanguage } from "./i18n/LanguageProvider";
+import { translations } from "./i18n/translations";
 import styles from "./ImportPanel.module.css";
 
 // Vercel serverless functions cap request bodies at 4.5 MB no matter what
@@ -22,15 +25,13 @@ const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
 // starts here, same as a manually-added one.
 const DEFAULT_IMPORT_STATUS: PhaseStatus = "not_started";
 
-const MONTH_ABBR = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
 function isoToDate(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
   return new Date(Date.UTC(y, m - 1, d));
 }
-function formatISODate(iso: string): string {
+function formatISODate(iso: string, monthAbbr: string[]): string {
   const d = isoToDate(iso);
-  return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
+  return `${d.getUTCDate()} ${monthAbbr[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
 }
 
 /** Converts a parsed sheet into real Lane objects on the app's axis. */
@@ -49,7 +50,8 @@ export function importedLanesToLanes(result: ParseResult, startMonth: string): L
   }));
 }
 
-async function postForm<T>(body: FormData): Promise<T> {
+async function postForm<T>(body: FormData, locale: Locale): Promise<T> {
+  const T_ = translations[locale].import;
   const res = await fetch("/api/import-excel", { method: "POST", body });
   // A body too large for the hosting platform's own request-size limit
   // (Vercel serverless functions cap payloads at 4.5 MB, independent of
@@ -57,11 +59,11 @@ async function postForm<T>(body: FormData): Promise<T> {
   // the platform returns a plain-text/HTML error, not JSON, so res.json()
   // itself throws. Surface that as a real message instead of a parse error.
   if (!res.ok && !res.headers.get("content-type")?.includes("application/json")) {
-    if (res.status === 413) throw new Error("El archivo es demasiado grande para subir (máximo ~4.5 MB).");
-    throw new Error(`El servidor respondió con un error (${res.status}).`);
+    if (res.status === 413) throw new Error(T_.errorTooLarge);
+    throw new Error(T_.errorServer(res.status));
   }
   const json = (await res.json()) as T & { error?: string };
-  if (!res.ok) throw new Error(json.error ?? "Error al procesar el archivo.");
+  if (!res.ok) throw new Error(json.error ?? T_.errorProcess);
   return json;
 }
 
@@ -80,6 +82,8 @@ export const ImportPanel = forwardRef<
     onImport: (lanes: Lane[]) => void;
   }
 >(function ImportPanel({ startMonth, months, onClose, onImport }, ref) {
+  const { t, locale } = useLanguage();
+  const monthAbbr = MONTH_ABBR[locale];
   const [file, setFile] = useState<File | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [sheetNames, setSheetNames] = useState<string[] | null>(null);
@@ -107,12 +111,12 @@ export const ImportPanel = forwardRef<
       // Real workbooks can take several seconds to parse — the server
       // caches it by token so the next step (analyzing a sheet) doesn't
       // pay that cost again by re-uploading and re-parsing the whole file.
-      const data = await postForm<{ token: string; sheetNames: string[] }>(form);
+      const data = await postForm<{ token: string; sheetNames: string[] }>(form, locale);
       setToken(data.token);
       setSheetNames(data.sheetNames);
       setSheet(data.sheetNames[0] ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al leer el archivo.");
+      setError(e instanceof Error ? e.message : t.import.errorRead);
     } finally {
       setLoading(false);
     }
@@ -127,11 +131,11 @@ export const ImportPanel = forwardRef<
       if (token) form.append("token", token);
       else if (file) form.append("file", file);
       form.append("sheet", sheet);
-      const data = await postForm<ParseResult & { token: string }>(form);
+      const data = await postForm<ParseResult & { token: string }>(form, locale);
       setToken(data.token);
       setResult(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al analizar la hoja.");
+      setError(e instanceof Error ? e.message : t.import.errorAnalyze);
     } finally {
       setLoading(false);
     }
@@ -154,19 +158,18 @@ export const ImportPanel = forwardRef<
     setImported(true);
   }
 
+  const statusLabel = STATUS_LABELS[locale].not_started;
+
   return (
     <section ref={ref} className={styles.panel}>
-      <button className={styles.close} onClick={onClose} aria-label="Cerrar">
+      <button className={styles.close} onClick={onClose} aria-label={t.import.close}>
         <IconClose />
       </button>
-      <p className={styles.eyebrow}>Importar plan</p>
-      <h2 className={styles.title}>Desde un archivo Excel</h2>
+      <p className={styles.eyebrow}>{t.import.eyebrow}</p>
+      <h2 className={styles.title}>{t.import.title}</h2>
 
       {imported ? (
-        <p className={styles.success}>
-          Se importaron {result?.lanes.length ?? 0} swimlines con {totalPhases} fases (todas como "No iniciado"). Ya
-          podés revisarlas y ajustarlas como cualquier otro swimline.
-        </p>
+        <p className={styles.success}>{t.import.success(result?.lanes.length ?? 0, totalPhases, statusLabel)}</p>
       ) : (
         <>
           <div className={styles.step}>
@@ -181,17 +184,17 @@ export const ImportPanel = forwardRef<
                 }}
               />
               <IconUpload />
-              {file ? file.name : "Elegir archivo .xlsx…"}
+              {file ? file.name : t.import.chooseFilePlaceholder}
             </label>
           </div>
 
-          {loading && <p className={styles.status}>Procesando… los archivos grandes pueden tardar varios segundos.</p>}
+          {loading && <p className={styles.status}>{t.import.processing}</p>}
           {error && <p className={styles.error}>{error}</p>}
 
           {sheetNames && !result && (
             <div className={styles.step}>
               <label className={styles.sheetLabel}>
-                Hoja
+                {t.import.sheetLabel}
                 <select className={styles.sheetSelect} value={sheet} onChange={(e) => setSheet(e.target.value)}>
                   {sheetNames.map((name) => (
                     <option key={name} value={name}>
@@ -201,7 +204,7 @@ export const ImportPanel = forwardRef<
                 </select>
               </label>
               <button type="button" className={styles.primaryButton} onClick={analyzeSheet} disabled={loading}>
-                Analizar hoja
+                {t.import.analyzeButton}
               </button>
             </div>
           )}
@@ -219,18 +222,13 @@ export const ImportPanel = forwardRef<
               {result.lanes.length > 0 && (
                 <>
                   <p className={styles.summary}>
-                    {result.lanes.length} {result.lanes.length === 1 ? "swimline" : "swimlines"} · {totalPhases}{" "}
-                    {totalPhases === 1 ? "fase" : "fases"} · todas como "No iniciado"
+                    {t.import.summaryPrefix(result.lanes.length, totalPhases, statusLabel)}
                     {outOfRange > 0 && (
-                      <span className={styles.rangeWarning}>
-                        {" "}
-                        · {outOfRange} {outOfRange === 1 ? "fase cae" : "fases caen"} fuera del rango de{" "}
-                        {months} meses visible actualmente (igual se importan)
-                      </span>
+                      <span className={styles.rangeWarning}>{t.import.rangeWarning(outOfRange, months)}</span>
                     )}
                   </p>
 
-                  <p className={styles.sectionTitle}>Vista previa</p>
+                  <p className={styles.sectionTitle}>{t.import.previewSection}</p>
                   <div className={styles.preview}>
                     {result.lanes.map((l) => (
                       <div key={l.name} className={styles.previewLaneGroup}>
@@ -241,7 +239,7 @@ export const ImportPanel = forwardRef<
                           <div key={i} className={styles.previewPhaseRow}>
                             <span className={styles.previewPhaseTitle}>{p.title}</span>
                             <span className={styles.previewPhaseDates}>
-                              {formatISODate(p.startISO)} → {formatISODate(p.endISO)}
+                              {formatISODate(p.startISO, monthAbbr)} → {formatISODate(p.endISO, monthAbbr)}
                             </span>
                           </div>
                         ))}
@@ -251,10 +249,10 @@ export const ImportPanel = forwardRef<
 
                   <div className={styles.actions}>
                     <button type="button" className={styles.secondaryButton} onClick={() => setResult(null)}>
-                      Elegir otra hoja
+                      {t.import.chooseAnotherSheet}
                     </button>
                     <button type="button" className={styles.primaryButton} onClick={confirmImport}>
-                      Importar {result.lanes.length} {result.lanes.length === 1 ? "swimline" : "swimlines"}
+                      {t.import.importConfirm(result.lanes.length)}
                     </button>
                   </div>
                 </>

@@ -3,8 +3,10 @@
 import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
+import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { IconChevronRight, IconClose, IconPlus, IconSearch, IconTrash } from "./icons";
+import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./ExplorerPanel.module.css";
 
 type SortBy = "name" | "date";
@@ -34,6 +36,7 @@ function FilterBar({
   sortBy: SortBy;
   onSortBy: (v: SortBy) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className={styles.filterRow}>
       <label className={styles.searchBox}>
@@ -50,21 +53,15 @@ function FilterBar({
         className={styles.sortSelect}
         value={sortBy}
         onChange={(e) => onSortBy(e.target.value as SortBy)}
-        aria-label="Ordenar por"
+        aria-label={t.explorer.sortAriaLabel}
       >
-        <option value="name">Ordenar por nombre</option>
-        <option value="date">Ordenar por fecha</option>
+        <option value="name">{t.explorer.sortByName}</option>
+        <option value="date">{t.explorer.sortByDate}</option>
       </select>
     </div>
   );
 }
 
-const STATUS_LABEL: Record<PhaseStatus, string> = {
-  done: "Completado",
-  in_progress: "En curso",
-  at_risk: "En riesgo",
-  not_started: "No iniciado",
-};
 const STATUS_VAR: Record<PhaseStatus, string> = {
   done: "text-success",
   in_progress: "text-accent",
@@ -72,7 +69,6 @@ const STATUS_VAR: Record<PhaseStatus, string> = {
   not_started: "text-secondary",
 };
 const STATUS_OPTIONS: PhaseStatus[] = ["not_started", "in_progress", "at_risk", "done"];
-const MONTH_ABBR = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 export type ExplorerView =
   | { level: "lanes" }
@@ -87,12 +83,13 @@ function fromISODate(iso: string, startMonth: string): number {
   const [y, m, day] = iso.split("-").map(Number) as [number, number, number];
   return toAxis(new Date(Date.UTC(y, m - 1, day)), startMonth);
 }
-function formatDate(position: number, startMonth: string): string {
+function formatDate(position: number, startMonth: string, monthAbbr: string[]): string {
   const d = fromAxis(position, startMonth);
-  return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
+  return `${d.getUTCDate()} ${monthAbbr[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
 }
 
 function StatusPill({ status }: { status: PhaseStatus }) {
+  const { locale } = useLanguage();
   return (
     <span
       className={styles.pill}
@@ -102,7 +99,7 @@ function StatusPill({ status }: { status: PhaseStatus }) {
       }}
     >
       <span className={styles.pillDot} style={{ background: `var(--${STATUS_VAR[status]})` }} />
-      {STATUS_LABEL[status]}
+      {STATUS_LABELS[locale][status]}
     </span>
   );
 }
@@ -114,8 +111,9 @@ function Breadcrumb({
   items: { label: string; view?: ExplorerView }[];
   onNavigate: (view: ExplorerView) => void;
 }) {
+  const { t } = useLanguage();
   return (
-    <nav className={styles.breadcrumb} aria-label="Ruta de navegación">
+    <nav className={styles.breadcrumb} aria-label={t.explorer.breadcrumbNav}>
       {items.map((item, i) => (
         <span key={i} className={styles.breadcrumbItem}>
           {item.view ? (
@@ -186,6 +184,8 @@ export const ExplorerPanel = forwardRef<
   },
   ref,
 ) {
+  const { t, locale } = useLanguage();
+  const monthAbbr = MONTH_ABBR[locale];
   const [newLaneName, setNewLaneName] = useState("");
   const [newPhase, setNewPhase] = useState({ title: "", start: "", end: "", status: "not_started" as PhaseStatus });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
@@ -212,7 +212,7 @@ export const ExplorerPanel = forwardRef<
     if (!text) return;
     setCommentsByActivity((prev) => ({
       ...prev,
-      [activityId]: [...(prev[activityId] ?? []), { author: "Tú", date: "hoy", text }],
+      [activityId]: [...(prev[activityId] ?? []), { author: t.explorer.commentAuthorYou, date: t.explorer.commentDateJustNow, text }],
     }));
     setDraft("");
   }
@@ -242,11 +242,11 @@ export const ExplorerPanel = forwardRef<
     setNewActivity({ title: "", owner: "", start: "", end: "", status: "not_started" });
   }
 
-  const rootCrumb = { label: "Swimlines", view: { level: "lanes" } as ExplorerView };
+  const rootCrumb = { label: t.explorer.root, view: { level: "lanes" } as ExplorerView };
 
   return (
     <section ref={ref} className={styles.panel}>
-      <button className={styles.close} onClick={onClose} aria-label="Cerrar">
+      <button className={styles.close} onClick={onClose} aria-label={t.explorer.close}>
         <IconClose />
       </button>
 
@@ -260,14 +260,14 @@ export const ExplorerPanel = forwardRef<
           );
           return (
             <>
-              <p className={styles.eyebrow}>Programa</p>
-              <h2 className={styles.title}>Swimlines</h2>
+              <p className={styles.eyebrow}>{t.explorer.lanesEyebrow}</p>
+              <h2 className={styles.title}>{t.explorer.lanesTitle}</h2>
 
-              <p className={styles.sectionTitle}>Agregar swimline</p>
+              <p className={styles.sectionTitle}>{t.explorer.addLaneSection}</p>
               <div className={styles.addRow}>
                 <input
                   className={styles.textInput}
-                  placeholder="Nombre del swimline"
+                  placeholder={t.explorer.laneNamePlaceholder}
                   value={newLaneName}
                   onChange={(e) => setNewLaneName(e.target.value)}
                 />
@@ -280,14 +280,14 @@ export const ExplorerPanel = forwardRef<
                     setNewLaneName("");
                   }}
                 >
-                  <IconPlus /> Agregar
+                  <IconPlus /> {t.explorer.addButton}
                 </button>
               </div>
 
               <FilterBar
                 search={laneSearch}
                 onSearch={setLaneSearch}
-                searchLabel="Buscar swimline…"
+                searchLabel={t.explorer.searchLanePlaceholder}
                 sortBy={laneSort}
                 onSortBy={setLaneSort}
               />
@@ -301,7 +301,8 @@ export const ExplorerPanel = forwardRef<
                     >
                       <span className={styles.laneRowName}>{lane.name}</span>
                       <span className={styles.rowMeta}>
-                        {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
+                        {lane.phases.length}{" "}
+                        {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
                       </span>
                       <span className={styles.chevronRight} aria-hidden="true">
                         <IconChevronRight />
@@ -311,16 +312,16 @@ export const ExplorerPanel = forwardRef<
                       type="button"
                       className={styles.deleteButton}
                       onClick={() => onDeleteLane(lane.id)}
-                      aria-label={`Eliminar swimline ${lane.name}`}
+                      aria-label={t.explorer.deleteLaneAria(lane.name)}
                     >
                       <IconTrash />
                     </button>
                   </div>
                 ))}
                 {visibleLanes.length === 0 && lanes.length > 0 && (
-                  <p className={styles.empty}>Ningún swimline coincide con la búsqueda.</p>
+                  <p className={styles.empty}>{t.explorer.noLaneMatch}</p>
                 )}
-                {lanes.length === 0 && <p className={styles.empty}>No hay swimlines todavía.</p>}
+                {lanes.length === 0 && <p className={styles.empty}>{t.explorer.noLanes}</p>}
               </div>
             </>
           );
@@ -341,14 +342,15 @@ export const ExplorerPanel = forwardRef<
               <Breadcrumb items={[rootCrumb, { label: lane.name }]} onNavigate={onNavigate} />
               <h2 className={styles.title}>{lane.name}</h2>
               <p className={styles.subtitle}>
-                {lane.phases.length} {lane.phases.length === 1 ? "fase" : "fases"}
+                {lane.phases.length}{" "}
+                {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
               </p>
 
-              <p className={styles.sectionTitle}>Agregar fase</p>
+              <p className={styles.sectionTitle}>{t.explorer.addPhaseSection}</p>
               <div className={styles.addRow}>
                 <input
                   className={styles.textInput}
-                  placeholder="Título de la fase"
+                  placeholder={t.explorer.phaseTitlePlaceholder}
                   value={newPhase.title}
                   onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
                 />
@@ -357,24 +359,24 @@ export const ExplorerPanel = forwardRef<
                   className={styles.dateInput}
                   value={newPhase.start}
                   onChange={(e) => setNewPhase((p) => ({ ...p, start: e.target.value }))}
-                  aria-label="Fecha de inicio"
+                  aria-label={t.explorer.startDateAria}
                 />
                 <input
                   type="date"
                   className={styles.dateInput}
                   value={newPhase.end}
                   onChange={(e) => setNewPhase((p) => ({ ...p, end: e.target.value }))}
-                  aria-label="Fecha de fin"
+                  aria-label={t.explorer.endDateAria}
                 />
                 <select
                   className={styles.statusSelect}
                   value={newPhase.status}
                   onChange={(e) => setNewPhase((p) => ({ ...p, status: e.target.value as PhaseStatus }))}
-                  aria-label="Estado de la nueva fase"
+                  aria-label={t.explorer.newPhaseStatusAria}
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
+                      {STATUS_LABELS[locale][s]}
                     </option>
                   ))}
                 </select>
@@ -384,14 +386,14 @@ export const ExplorerPanel = forwardRef<
                   disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
                   onClick={() => submitNewPhase(lane.id)}
                 >
-                  <IconPlus /> Agregar
+                  <IconPlus /> {t.explorer.addButton}
                 </button>
               </div>
 
               <FilterBar
                 search={phaseSearch}
                 onSearch={setPhaseSearch}
-                searchLabel="Buscar fase…"
+                searchLabel={t.explorer.searchPhasePlaceholder}
                 sortBy={phaseSort}
                 onSortBy={setPhaseSort}
               />
@@ -399,10 +401,10 @@ export const ExplorerPanel = forwardRef<
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>Título</th>
-                      <th>Inicio</th>
-                      <th>Fin</th>
-                      <th>Estado</th>
+                      <th>{t.explorer.tableTitle}</th>
+                      <th>{t.explorer.tableStart}</th>
+                      <th>{t.explorer.tableEnd}</th>
+                      <th>{t.explorer.tableStatus}</th>
                       <th aria-hidden="true" />
                       <th aria-hidden="true" />
                     </tr>
@@ -415,7 +417,7 @@ export const ExplorerPanel = forwardRef<
                             className={styles.tableTextInput}
                             value={phase.title}
                             onChange={(e) => onUpdatePhase(lane.id, phase.id, { title: e.target.value })}
-                            aria-label="Título de la fase"
+                            aria-label={t.explorer.phaseTitleAria}
                           />
                         </td>
                         <td>
@@ -426,7 +428,7 @@ export const ExplorerPanel = forwardRef<
                             onChange={(e) => {
                               if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
                             }}
-                            aria-label="Fecha de inicio"
+                            aria-label={t.explorer.startDateAria}
                           />
                         </td>
                         <td>
@@ -437,7 +439,7 @@ export const ExplorerPanel = forwardRef<
                             onChange={(e) => {
                               if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
                             }}
-                            aria-label="Fecha de fin"
+                            aria-label={t.explorer.endDateAria}
                           />
                         </td>
                         <td>
@@ -445,11 +447,11 @@ export const ExplorerPanel = forwardRef<
                             className={styles.statusSelect}
                             value={phase.status}
                             onChange={(e) => onUpdatePhase(lane.id, phase.id, { status: e.target.value as PhaseStatus })}
-                            aria-label="Estado de la fase"
+                            aria-label={t.explorer.phaseStatusAria}
                           >
                             {STATUS_OPTIONS.map((s) => (
                               <option key={s} value={s}>
-                                {STATUS_LABEL[s]}
+                                {STATUS_LABELS[locale][s]}
                               </option>
                             ))}
                           </select>
@@ -459,7 +461,7 @@ export const ExplorerPanel = forwardRef<
                             type="button"
                             className={styles.viewButton}
                             onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
-                            aria-label={`Ver actividades de ${phase.title}`}
+                            aria-label={t.explorer.viewActivitiesAria(phase.title)}
                           >
                             <IconChevronRight />
                           </button>
@@ -469,7 +471,7 @@ export const ExplorerPanel = forwardRef<
                             type="button"
                             className={styles.deleteButton}
                             onClick={() => onDeletePhase(lane.id, phase.id)}
-                            aria-label={`Eliminar fase ${phase.title}`}
+                            aria-label={t.explorer.deletePhaseAria(phase.title)}
                           >
                             <IconTrash />
                           </button>
@@ -479,14 +481,14 @@ export const ExplorerPanel = forwardRef<
                     {visiblePhases.length === 0 && lane.phases.length > 0 && (
                       <tr>
                         <td colSpan={6} className={styles.emptyCell}>
-                          Ninguna fase coincide con la búsqueda.
+                          {t.explorer.noPhaseMatch}
                         </td>
                       </tr>
                     )}
                     {lane.phases.length === 0 && (
                       <tr>
                         <td colSpan={6} className={styles.emptyCell}>
-                          Este swimline no tiene fases todavía.
+                          {t.explorer.noPhases}
                         </td>
                       </tr>
                     )}
@@ -512,17 +514,17 @@ export const ExplorerPanel = forwardRef<
               <h2 className={styles.title}>{phase.title}</h2>
               <StatusPill status={phase.status} />
 
-              <p className={styles.sectionTitle}>Agregar actividad</p>
+              <p className={styles.sectionTitle}>{t.explorer.addActivitySection}</p>
               <div className={styles.addRow}>
                 <input
                   className={styles.textInput}
-                  placeholder="Título"
+                  placeholder={t.explorer.activityTitlePlaceholder}
                   value={newActivity.title}
                   onChange={(e) => setNewActivity((a) => ({ ...a, title: e.target.value }))}
                 />
                 <input
                   className={styles.ownerInput}
-                  placeholder="Owner"
+                  placeholder={t.explorer.ownerPlaceholder}
                   value={newActivity.owner}
                   onChange={(e) => setNewActivity((a) => ({ ...a, owner: e.target.value }))}
                 />
@@ -531,24 +533,24 @@ export const ExplorerPanel = forwardRef<
                   className={styles.dateInput}
                   value={newActivity.start}
                   onChange={(e) => setNewActivity((a) => ({ ...a, start: e.target.value }))}
-                  aria-label="Fecha de inicio"
+                  aria-label={t.explorer.startDateAria}
                 />
                 <input
                   type="date"
                   className={styles.dateInput}
                   value={newActivity.end}
                   onChange={(e) => setNewActivity((a) => ({ ...a, end: e.target.value }))}
-                  aria-label="Fecha de fin"
+                  aria-label={t.explorer.endDateAria}
                 />
                 <select
                   className={styles.statusSelect}
                   value={newActivity.status}
                   onChange={(e) => setNewActivity((a) => ({ ...a, status: e.target.value as PhaseStatus }))}
-                  aria-label="Estado de la nueva actividad"
+                  aria-label={t.explorer.newActivityStatusAria}
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
+                      {STATUS_LABELS[locale][s]}
                     </option>
                   ))}
                 </select>
@@ -558,17 +560,15 @@ export const ExplorerPanel = forwardRef<
                   disabled={!newActivity.title.trim() || !newActivity.owner.trim() || !newActivity.start || !newActivity.end}
                   onClick={() => submitNewActivity(phase)}
                 >
-                  <IconPlus /> Agregar
+                  <IconPlus /> {t.explorer.addButton}
                 </button>
               </div>
 
-              <p className={styles.sectionTitle}>
-                Actividades ({activities.length})
-              </p>
+              <p className={styles.sectionTitle}>{t.explorer.activitiesHeading(activities.length)}</p>
               <FilterBar
                 search={activitySearch}
                 onSearch={setActivitySearch}
-                searchLabel="Buscar actividad…"
+                searchLabel={t.explorer.searchActivityPlaceholder}
                 sortBy={activitySort}
                 onSortBy={setActivitySort}
               />
@@ -593,7 +593,7 @@ export const ExplorerPanel = forwardRef<
                             <span className={styles.activityRowTitle}>{a.title}</span>
                             <span className={styles.rowMeta}>{a.owner}</span>
                             <span className={styles.rowMeta}>
-                              {formatDate(a.start, startMonth)} – {formatDate(a.end, startMonth)}
+                              {formatDate(a.start, startMonth, monthAbbr)} – {formatDate(a.end, startMonth, monthAbbr)}
                             </span>
                             <span className={styles.chevronRight} aria-hidden="true">
                               <IconChevronRight />
@@ -603,16 +603,16 @@ export const ExplorerPanel = forwardRef<
                             type="button"
                             className={styles.deleteButton}
                             onClick={() => onDeleteActivity(phase, a.id)}
-                            aria-label={`Eliminar actividad ${a.title}`}
+                            aria-label={t.explorer.deleteActivityAria(a.title)}
                           >
                             <IconTrash />
                           </button>
                         </div>
                       ))}
                       {visibleActivities.length === 0 && activities.length > 0 && (
-                        <p className={styles.empty}>Ninguna actividad coincide con la búsqueda.</p>
+                        <p className={styles.empty}>{t.explorer.noActivityMatch}</p>
                       )}
-                      {activities.length === 0 && <p className={styles.empty}>Esta fase no tiene actividades todavía.</p>}
+                      {activities.length === 0 && <p className={styles.empty}>{t.explorer.noActivities}</p>}
                     </>
                   );
                 })()}
@@ -646,21 +646,21 @@ export const ExplorerPanel = forwardRef<
               <StatusPill status={activity.status} />
               <dl className={styles.detailGrid}>
                 <div className={styles.detailItem}>
-                  <dt>Owner</dt>
+                  <dt>{t.explorer.ownerLabel}</dt>
                   <dd>{activity.owner}</dd>
                 </div>
                 <div className={styles.detailItem}>
-                  <dt>Inicio</dt>
-                  <dd>{formatDate(activity.start, startMonth)}</dd>
+                  <dt>{t.explorer.startLabel}</dt>
+                  <dd>{formatDate(activity.start, startMonth, monthAbbr)}</dd>
                 </div>
                 <div className={styles.detailItem}>
-                  <dt>Fin</dt>
-                  <dd>{formatDate(activity.end, startMonth)}</dd>
+                  <dt>{t.explorer.endLabel}</dt>
+                  <dd>{formatDate(activity.end, startMonth, monthAbbr)}</dd>
                 </div>
               </dl>
 
-              <p className={styles.sectionTitle}>Comentarios</p>
-              {allComments.length === 0 && <p className={styles.noComments}>Aún no hay comentarios.</p>}
+              <p className={styles.sectionTitle}>{t.explorer.commentsSection}</p>
+              {allComments.length === 0 && <p className={styles.noComments}>{t.explorer.noComments}</p>}
               {allComments.map((c, i) => (
                 <div key={i} className={styles.comment}>
                   <div className={styles.commentHead}>
@@ -672,12 +672,12 @@ export const ExplorerPanel = forwardRef<
               ))}
               <div className={styles.commentForm}>
                 <textarea
-                  placeholder="Añadir un comentario…"
+                  placeholder={t.explorer.commentPlaceholder}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                 />
                 <button type="button" disabled={!draft.trim()} onClick={() => submitComment(activity.id)}>
-                  Comentar
+                  {t.explorer.commentButton}
                 </button>
               </div>
             </>

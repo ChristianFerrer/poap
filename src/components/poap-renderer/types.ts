@@ -36,6 +36,12 @@ export interface Band {
 export interface PoapRendererProps {
   months: number;
   startMonth: string; // ISO 'YYYY-MM'
+  /** Which language the renderer's own literal strings (zoom labels,
+   * tooltips, "Hoy"/"Today", month abbreviations, ...) render in. Just
+   * another data-in prop, same as `months` — the renderer never reaches
+   * into app-level state/context to decide this itself. Defaults to "es"
+   * to match this app's original, pre-i18n behavior. */
+  locale?: import("@/lib/i18n").Locale;
   lanes: Lane[];
   gates?: Gate[];
   bands?: Band[];

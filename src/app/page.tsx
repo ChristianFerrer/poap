@@ -17,6 +17,8 @@ import {
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { GatesPanel } from "./GatesPanel";
 import { ImportPanel } from "./ImportPanel";
+import { useLanguage } from "./i18n/LanguageProvider";
+import { MONTH_ABBR, type Locale } from "@/lib/i18n";
 import styles from "./page.module.css";
 
 const PANEL_WIDTH_DEFAULT = 400;
@@ -29,7 +31,19 @@ function panelWidthMax(): number {
   return typeof window === "undefined" ? PANEL_WIDTH_DEFAULT : Math.floor(window.innerWidth * 0.5);
 }
 
+/** "jun 2026 — may 2027" / "Jun 2026 — May 2027" — built from the plan's
+ * own START_MONTH/MONTHS rather than hardcoded, so it can't drift out of
+ * sync with the data and picks up locale-appropriate month abbreviations. */
+function formatMonthRange(startMonth: string, months: number, monthAbbr: string[]): string {
+  const [y, m] = startMonth.split("-").map(Number) as [number, number];
+  const startIdx = m - 1;
+  const endIdx = startIdx + months - 1;
+  const endYear = y + Math.floor(endIdx / 12);
+  return `${monthAbbr[startIdx % 12]} ${y} — ${monthAbbr[endIdx % 12]} ${endYear}`;
+}
+
 export default function Page() {
+  const { locale, setLocale, t } = useLanguage();
   const [lanes, setLanes] = useState<Lane[]>(INITIAL_LANES);
   const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>(INITIAL_ACTIVITIES);
   const [explorer, setExplorer] = useState<ExplorerView | null>(null);
@@ -221,15 +235,19 @@ export default function Page() {
     <main className={styles.main}>
       <div className={styles.headerRow}>
         <div>
-          <p className={styles.eyebrow}>PoAP · Plan on a Page</p>
-          <h1 className={styles.title}>Programa UK/PL — plan on a page</h1>
+          <p className={styles.eyebrow}>{t.header.eyebrow}</p>
+          <h1 className={styles.title}>{t.header.title}</h1>
           <p className={styles.meta}>
-            {lanes.length} carriles · {phaseCount} fases · {MONTHS} meses · jun 2026 — may 2027
+            {lanes.length} {t.header.lanesWord} · {phaseCount} {t.header.phasesWord} · {MONTHS}{" "}
+            {t.header.monthsWord} · {formatMonthRange(START_MONTH, MONTHS, MONTH_ABBR[locale])}
           </p>
         </div>
-        <button type="button" className={styles.importButton} onClick={openImportPanel}>
-          Importar desde Excel
-        </button>
+        <div className={styles.headerActions}>
+          <LanguageSwitch locale={locale} onChange={setLocale} ariaLabel={t.header.languageAria} />
+          <button type="button" className={styles.importButton} onClick={openImportPanel}>
+            {t.header.importButton}
+          </button>
+        </div>
       </div>
 
       <div className={styles.layout}>
@@ -245,6 +263,7 @@ export default function Page() {
             activeGateIds={activeGateIds}
             onGateClick={handleGateClick}
             onLaneClick={handleLaneClick}
+            locale={locale}
           />
         </div>
       </div>
@@ -260,7 +279,7 @@ export default function Page() {
             onMouseDown={startResize}
             role="separator"
             aria-orientation="vertical"
-            aria-label="Ajustar ancho del panel"
+            aria-label={t.header.resizeHandleAria}
           />
           <div className={styles.sidePanelContent}>
             {explorer && (
@@ -309,5 +328,34 @@ export default function Page() {
         </div>
       )}
     </main>
+  );
+}
+
+/** ES/EN toggle — two buttons rather than a <select>, since there are only
+ * ever two options and the current one should be visible at a glance
+ * without opening anything. */
+function LanguageSwitch({
+  locale,
+  onChange,
+  ariaLabel,
+}: {
+  locale: Locale;
+  onChange: (locale: Locale) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div className={styles.languageSwitch} role="group" aria-label={ariaLabel}>
+      {(["es", "en"] as const).map((l) => (
+        <button
+          key={l}
+          type="button"
+          className={`${styles.languageButton} ${l === locale ? styles.languageButtonActive : ""}`}
+          onClick={() => onChange(l)}
+          aria-pressed={l === locale}
+        >
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
   );
 }

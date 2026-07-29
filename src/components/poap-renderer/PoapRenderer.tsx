@@ -6,6 +6,15 @@ import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
 import type { Lane, Phase, PhaseStatus, PoapRendererProps } from "./types";
 import {
+  DEFAULT_LOCALE,
+  MONTH_ABBR,
+  RENDERER_STRINGS,
+  STATUS_LABELS,
+  ZOOM_LABELS,
+  pluralForm,
+  type Locale,
+} from "@/lib/i18n";
+import {
   BAR_HEIGHT,
   BAR_MIN_TEXT_PX,
   GATES_ROW_BASE_HEIGHT,
@@ -27,23 +36,11 @@ import {
 } from "./constants";
 import styles from "./PoapRenderer.module.css";
 
-const MONTH_ABBR = [
-  "ene", "feb", "mar", "abr", "may", "jun",
-  "jul", "ago", "sep", "oct", "nov", "dic",
-];
-
 const STATUS_CLASS: Record<PhaseStatus, string> = {
   done: styles.statusDone!,
   in_progress: styles.statusInProgress!,
   at_risk: styles.statusAtRisk!,
   not_started: styles.statusNotStarted!,
-};
-
-const STATUS_LABEL: Record<PhaseStatus, string> = {
-  done: "Completado",
-  in_progress: "En curso",
-  at_risk: "En riesgo",
-  not_started: "No iniciado",
 };
 
 const STATUS_RANK: Record<PhaseStatus, number> = {
@@ -123,12 +120,12 @@ interface MonthSegment {
   startIdx: number;
 }
 
-function monthSegments(startMonth: string, months: number): MonthSegment[] {
+function monthSegments(startMonth: string, months: number, monthAbbr: string[]): MonthSegment[] {
   const parts = startMonth.split("-").map(Number);
   const startMonthNum = parts[1] ?? 1;
   return Array.from({ length: months }, (_, i) => {
     const idx = (startMonthNum - 1 + i) % 12;
-    return { label: MONTH_ABBR[idx]!.toUpperCase(), startIdx: i };
+    return { label: monthAbbr[idx]!.toUpperCase(), startIdx: i };
   });
 }
 
@@ -223,15 +220,21 @@ function columnRange(rawPosition: number, unit: ColumnUnit, startMonth: string):
   return { start, end: start + 1 };
 }
 
-function formatColumnLabel(range: ColumnRange, unit: ColumnUnit, startMonth: string): string {
+function formatColumnLabel(
+  range: ColumnRange,
+  unit: ColumnUnit,
+  startMonth: string,
+  monthAbbr: string[],
+  weekOfPrefix: string,
+): string {
   const start = fromAxis(range.start, startMonth);
   if (unit === "day") {
-    return `${start.getUTCDate()} ${MONTH_ABBR[start.getUTCMonth()]} ${String(start.getUTCFullYear()).slice(2)}`;
+    return `${start.getUTCDate()} ${monthAbbr[start.getUTCMonth()]} ${String(start.getUTCFullYear()).slice(2)}`;
   }
   if (unit === "week") {
-    return `Semana del ${start.getUTCDate()} ${MONTH_ABBR[start.getUTCMonth()]}`;
+    return `${weekOfPrefix} ${start.getUTCDate()} ${monthAbbr[start.getUTCMonth()]}`;
   }
-  return `${MONTH_ABBR[start.getUTCMonth()]!.charAt(0).toUpperCase()}${MONTH_ABBR[start.getUTCMonth()]!.slice(1)} ${start.getUTCFullYear()}`;
+  return `${monthAbbr[start.getUTCMonth()]!.charAt(0).toUpperCase()}${monthAbbr[start.getUTCMonth()]!.slice(1)} ${start.getUTCFullYear()}`;
 }
 
 function laneRowHeight(rowCount: number): number {
@@ -267,9 +270,9 @@ function aggregateLane(lane: Lane): LaneAggregate {
   };
 }
 
-function formatAxisDate(position: number, startMonth: string): string {
+function formatAxisDate(position: number, startMonth: string, monthAbbr: string[]): string {
   const d = fromAxis(position, startMonth);
-  return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
+  return `${d.getUTCDate()} ${monthAbbr[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
 }
 
 interface TooltipState {
@@ -318,6 +321,7 @@ interface GateTooltipState {
 export function PoapRenderer({
   months,
   startMonth,
+  locale = DEFAULT_LOCALE,
   lanes,
   gates = [],
   bands = [],
@@ -327,6 +331,9 @@ export function PoapRenderer({
   onGateClick,
   onLaneClick,
 }: PoapRendererProps) {
+  const monthAbbr = MONTH_ABBR[locale];
+  const statusLabels = STATUS_LABELS[locale];
+  const strings = RENDERER_STRINGS[locale];
   const timelineRef = useRef<HTMLDivElement>(null);
   const labelsColRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -387,7 +394,7 @@ export function PoapRenderer({
     return { gateOffsets: offsets, gateRowLevels: Math.max(rowLastX.length, 1) };
   }, [sortedGates, effectiveWidth, scale]);
 
-  const mSegments = useMemo(() => monthSegments(startMonth, months), [startMonth, months]);
+  const mSegments = useMemo(() => monthSegments(startMonth, months, monthAbbr), [startMonth, months, monthAbbr]);
   const ySegments = useMemo(() => yearSegments(startMonth, months), [startMonth, months]);
   // Internal year-change boundaries only (excludes idx 0, the plan's own
   // left edge) — these are the sole month-grid lines allowed to cross the
@@ -486,7 +493,12 @@ export function PoapRenderer({
   }
 
   function showGateTooltip(e: { clientX: number; clientY: number }, gate: { label: string; position: number }) {
-    setGateTooltip({ x: e.clientX, y: e.clientY, label: gate.label, date: formatAxisDate(gate.position, startMonth) });
+    setGateTooltip({
+      x: e.clientX,
+      y: e.clientY,
+      label: gate.label,
+      date: formatAxisDate(gate.position, startMonth, monthAbbr),
+    });
   }
 
   // The label column and the timeline are separate scroll containers (the
@@ -502,15 +514,15 @@ export function PoapRenderer({
   return (
     <div className={styles.card}>
       <div className={styles.toolbar}>
-        <Legend />
+        <Legend statusLabels={statusLabels} />
         <div className={styles.toolbarControls}>
-          <div className={styles.scaleGroup} role="group" aria-label="Zoom continuo">
+          <div className={styles.scaleGroup} role="group" aria-label={strings.continuousZoom}>
             <button
               type="button"
               className={styles.scaleButton}
               onClick={() => nudgeZoomScale(-ZOOM_SCALE_STEP)}
               disabled={zoomScale <= ZOOM_SCALE_MIN}
-              aria-label="Reducir zoom"
+              aria-label={strings.zoomOut}
             >
               −
             </button>
@@ -520,12 +532,12 @@ export function PoapRenderer({
               className={styles.scaleButton}
               onClick={() => nudgeZoomScale(ZOOM_SCALE_STEP)}
               disabled={zoomScale >= ZOOM_SCALE_MAX}
-              aria-label="Aumentar zoom"
+              aria-label={strings.zoomIn}
             >
               +
             </button>
           </div>
-          <div className={styles.zoomGroup} role="group" aria-label="Nivel de zoom temporal">
+          <div className={styles.zoomGroup} role="group" aria-label={strings.zoomLevel}>
             {ZOOM_LEVELS.map((z) => (
               <button
                 key={z.key}
@@ -533,7 +545,7 @@ export function PoapRenderer({
                 className={`${styles.zoomButton} ${z.key === zoomKey ? styles.zoomButtonActive : ""}`}
                 onClick={() => selectZoom(z.key)}
               >
-                {z.label}
+                {ZOOM_LABELS[locale][z.key]}
               </button>
             ))}
           </div>
@@ -552,7 +564,7 @@ export function PoapRenderer({
             className={`${styles.labelCell} ${styles.gatesLabelCell}`}
             style={{ height: gateRowHeight }}
           >
-            Stage gates
+            {strings.stageGates}
           </div>
           {packedLanes.map(({ lane, rows }) => {
             const isCollapsed = rows === null;
@@ -564,7 +576,7 @@ export function PoapRenderer({
                   className={styles.chevronButton}
                   onClick={() => toggleLane(lane.id)}
                   aria-expanded={!isCollapsed}
-                  aria-label={isCollapsed ? "Expandir carril" : "Colapsar carril"}
+                  aria-label={isCollapsed ? strings.expandLane : strings.collapseLane}
                 >
                   <span className={`${styles.chevron} ${isCollapsed ? styles.chevronCollapsed : ""}`} aria-hidden="true">
                     ▾
@@ -691,6 +703,7 @@ export function PoapRenderer({
                         scale={scale}
                         onHover={showTooltip}
                         onLeave={() => setTooltip(null)}
+                        strings={strings}
                       />
                     </div>
                   </div>
@@ -730,7 +743,7 @@ export function PoapRenderer({
                 <>
                   <div className={styles.todayLine} style={{ left: pct(todayPosition, scale) }} />
                   <div className={styles.todayBadge} style={{ left: pct(todayPosition, scale), top: rulerHeight }}>
-                    Hoy
+                    {strings.today}
                   </div>
                 </>
               )}
@@ -764,8 +777,8 @@ export function PoapRenderer({
                     className={styles.columnBadge}
                     style={{ left: pct(selectedColumn.range.start, scale), top: rulerHeight }}
                   >
-                    {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth)} · {touchedCount}{" "}
-                    {touchedCount === 1 ? "fase" : "fases"}
+                    {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth, monthAbbr, strings.weekOfPrefix)} ·{" "}
+                    {touchedCount} {pluralForm(touchedCount, { one: strings.phaseOne, other: strings.phaseOther })}
                   </div>
                 </>
               )}
@@ -774,8 +787,10 @@ export function PoapRenderer({
         </div>
       </div>
 
-      {tooltip && <Tooltip data={tooltip} startMonth={startMonth} />}
-      {gateTooltip && <GateTooltip data={gateTooltip} />}
+      {tooltip && (
+        <Tooltip data={tooltip} startMonth={startMonth} monthAbbr={monthAbbr} strings={strings} statusLabels={statusLabels} />
+      )}
+      {gateTooltip && <GateTooltip data={gateTooltip} strings={strings} />}
     </div>
   );
 }
@@ -834,12 +849,14 @@ function AggregateBar({
   scale,
   onHover,
   onLeave,
+  strings,
 }: {
   agg: LaneAggregate;
   laneName: string;
   scale: DayScale;
   onHover: (e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) => void;
   onLeave: () => void;
+  strings: (typeof RENDERER_STRINGS)[Locale];
 }) {
   return (
     <div
@@ -847,7 +864,7 @@ function AggregateBar({
       style={{ left: pct(agg.start, scale), width: pctSpan(agg.start, agg.end, scale), cursor: "default" }}
       onMouseMove={(e) =>
         onHover(e, {
-          title: `${laneName} — resumen`,
+          title: `${laneName} — ${strings.summarySuffix}`,
           start: agg.start,
           end: agg.end,
           owners: agg.owners,
@@ -856,55 +873,69 @@ function AggregateBar({
       }
       onMouseLeave={onLeave}
     >
-      <span className={styles.barLabel}>Resumen — {agg.phaseCount} fases</span>
+      <span className={styles.barLabel}>
+        {strings.summaryLabel} — {agg.phaseCount} {strings.phaseOther}
+      </span>
     </div>
   );
 }
 
-function Tooltip({ data, startMonth }: { data: TooltipState; startMonth: string }) {
+function Tooltip({
+  data,
+  startMonth,
+  monthAbbr,
+  strings,
+  statusLabels,
+}: {
+  data: TooltipState;
+  startMonth: string;
+  monthAbbr: string[];
+  strings: (typeof RENDERER_STRINGS)[Locale];
+  statusLabels: Record<PhaseStatus, string>;
+}) {
   return (
     <div className={styles.tooltip} style={{ left: data.x + 14, top: data.y + 14 }}>
       <p className={styles.tooltipTitle}>{data.title}</p>
       <div className={styles.tooltipRow}>
-        <span>Inicio</span>
-        <b>{formatAxisDate(data.start, startMonth)}</b>
+        <span>{strings.start}</span>
+        <b>{formatAxisDate(data.start, startMonth, monthAbbr)}</b>
       </div>
       <div className={styles.tooltipRow}>
-        <span>Fin</span>
-        <b>{formatAxisDate(data.end, startMonth)}</b>
+        <span>{strings.end}</span>
+        <b>{formatAxisDate(data.end, startMonth, monthAbbr)}</b>
       </div>
       <div className={styles.tooltipRow}>
-        <span>Involucrados</span>
+        <span>{strings.involved}</span>
         <b>{data.owners.length ? data.owners.join(", ") : "—"}</b>
       </div>
       <div className={styles.tooltipStatus}>
         <span className={styles.tooltipDot} style={{ background: `var(--${legendColorVar(data.status)})` }} />
-        {STATUS_LABEL[data.status]}
+        {statusLabels[data.status]}
       </div>
     </div>
   );
 }
 
-function GateTooltip({ data }: { data: GateTooltipState }) {
+function GateTooltip({ data, strings }: { data: GateTooltipState; strings: (typeof RENDERER_STRINGS)[Locale] }) {
   return (
     <div className={styles.tooltip} style={{ left: data.x + 14, top: data.y + 14 }}>
       <p className={styles.tooltipTitle}>{data.label}</p>
       <div className={styles.tooltipRow}>
-        <span>Fecha</span>
+        <span>{strings.date}</span>
         <b>{data.date}</b>
       </div>
     </div>
   );
 }
 
-function Legend() {
+function Legend({ statusLabels }: { statusLabels: Record<PhaseStatus, string> }) {
   const items: PhaseStatus[] = ["done", "in_progress", "at_risk", "not_started"];
   return (
     <div className={styles.legend}>
       {items.map((status) => (
         <span key={status} className={styles.legendItem}>
           <span className={styles.legendDot} style={{ background: `var(--${legendColorVar(status)})` }} />
-          {STATUS_LABEL[status]}
+          {statusLabels[status]}
         </span>
       ))}
     </div>

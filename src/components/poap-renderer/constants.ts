@@ -20,7 +20,6 @@ export type SubRowGranularity = "none" | "week" | "day";
 
 export interface ZoomLevel {
   key: "anio" | "mes" | "semana" | "dia";
-  label: string;
   /** Per-month width floor in px at 100% scale — the actual value used is
    * this times the continuous zoomScale multiplier (see ZOOM_SCALE_*). The
    * date range shown never changes, only how many px each month gets;
@@ -33,11 +32,14 @@ export interface ZoomLevel {
   subRowGranularity: SubRowGranularity;
 }
 
+// Display labels ("Año"/"Year", ...) live in src/lib/i18n's ZOOM_LABELS,
+// keyed by the same `key` values below — this array only carries the
+// locale-independent layout data.
 export const ZOOM_LEVELS: ZoomLevel[] = [
-  { key: "anio", label: "Año", pxPerMonth: 60, subRowGranularity: "none" },
-  { key: "mes", label: "Mes", pxPerMonth: 170, subRowGranularity: "week" },
-  { key: "semana", label: "Semana", pxPerMonth: 430, subRowGranularity: "week" },
-  { key: "dia", label: "Día", pxPerMonth: 1000, subRowGranularity: "day" },
+  { key: "anio", pxPerMonth: 60, subRowGranularity: "none" },
+  { key: "mes", pxPerMonth: 170, subRowGranularity: "week" },
+  { key: "semana", pxPerMonth: 430, subRowGranularity: "week" },
+  { key: "dia", pxPerMonth: 1000, subRowGranularity: "day" },
 ];
 
 /** Continuous zoom (the "+ 100% -" stepper), layered on top of whichever
