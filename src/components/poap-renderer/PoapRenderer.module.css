@@ -1,7 +1,7 @@
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 14px 16px 16px;
   max-width: 100%;
   position: relative;
@@ -48,14 +48,15 @@
   border: none;
   background: transparent;
   color: var(--text-secondary);
+  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   width: 20px;
   height: 22px;
   border-radius: 5px;
   cursor: pointer;
-  font-family: inherit;
   line-height: 1;
+  transition: background-color 0.1s ease, color 0.1s ease;
 }
 .scaleButton:hover:not(:disabled) {
   background: var(--card-bg);
@@ -66,6 +67,7 @@
   cursor: not-allowed;
 }
 .scaleValue {
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
@@ -86,20 +88,23 @@
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
-  font-family: inherit;
+  transition: color 0.1s ease;
 }
 .zoomButton:hover {
   color: var(--ink);
 }
 .zoomButtonActive {
   background: var(--card-bg);
-  color: var(--text-accent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 0 var(--accent-live);
 }
 
 /* Label column is a fixed-width flex sibling; the timeline is its own
@@ -199,10 +204,11 @@
   transform: translate(4px, 4px);
   background: var(--text-accent);
   color: var(--card-bg);
+  font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 600;
   padding: 2px 7px;
-  border-radius: 99px;
+  border-radius: 3px;
   white-space: nowrap;
 }
 
@@ -221,13 +227,14 @@
   position: absolute;
   transform: translate(4px, 0);
   background: var(--today-line);
-  color: #10210a;
+  color: var(--accent-live-ink);
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 3px;
   white-space: nowrap;
 }
 
@@ -249,7 +256,11 @@
   flex-shrink: 0;
 }
 .gatesLabelCell {
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 /* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
    equivalent spacer on the label-column side, so the two stay visually
@@ -286,8 +297,10 @@
   display: flex;
   align-items: center;
   padding-left: 4px;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--text-secondary);
   border-left: 0.5px solid var(--border);
 }
@@ -324,8 +337,10 @@
   position: absolute;
   top: 0;
   height: 100%;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.03em;
   color: var(--ink);
   text-align: left;
   padding-left: 2px;
@@ -366,6 +381,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-accent);
   font-variant-numeric: tabular-nums;
@@ -412,7 +428,9 @@
   transition: background-color 0.1s ease;
 }
 .gateLabel {
+  font-family: var(--font-mono);
   font-size: 11px;
+  font-weight: 500;
   color: var(--text-secondary);
   transition: color 0.1s ease;
 }
@@ -512,11 +530,12 @@
   position: absolute;
   top: 0;
   height: 100%;
-  border-radius: 3px;
+  border-radius: 2px;
   display: flex;
   align-items: center;
   padding: 0 4px;
   font-size: 11px;
+  font-weight: 500;
   line-height: 1;
   border: none;
   cursor: pointer;
@@ -527,12 +546,25 @@
   white-space: nowrap;
   text-align: left;
   font-family: inherit;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
+}
+/* A thin, darker top stripe reads as a technical annotation mark (like a
+   grease-pencil tick on a printed schedule) rather than relying on hover
+   alone to give each bar depth. */
+.bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: color-mix(in srgb, currentColor 55%, transparent);
 }
 .bar:hover {
   filter: brightness(0.97);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px -2px rgba(var(--shadow-ink), 0.35);
 }
 .bar:focus-visible {
-  outline: 1.5px solid var(--border-strong);
+  outline: 1.5px solid var(--accent-live);
   outline-offset: 1px;
 }
 .barSelected {
@@ -580,7 +612,11 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--text-secondary);
 }
 .legendDot {
@@ -596,16 +632,19 @@
   pointer-events: none;
   background: var(--ink);
   color: var(--card-bg);
-  border-radius: 8px;
+  border-radius: 6px;
+  border-top: 2px solid var(--accent-live);
   padding: 10px 12px;
   font-size: 12px;
   max-width: 260px;
-  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px -8px rgba(var(--shadow-ink), 0.5);
 }
 .tooltipTitle {
   margin: 0 0 6px;
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 15px;
+  letter-spacing: -0.005em;
 }
 .tooltipRow {
   display: flex;
@@ -614,7 +653,14 @@
   color: color-mix(in srgb, var(--card-bg) 70%, transparent);
   margin-top: 3px;
 }
+.tooltipRow span {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+}
 .tooltipRow b {
+  font-family: var(--font-mono);
   color: var(--card-bg);
   font-weight: 600;
 }
@@ -625,6 +671,10 @@
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid color-mix(in srgb, var(--card-bg) 20%, transparent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   font-weight: 600;
 }
 .tooltipDot {

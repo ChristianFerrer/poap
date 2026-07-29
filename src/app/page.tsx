@@ -17,6 +17,7 @@ import {
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { GatesPanel } from "./GatesPanel";
 import { ImportPanel } from "./ImportPanel";
+import { IconUpload } from "./icons";
 import styles from "./page.module.css";
 
 const PANEL_WIDTH_DEFAULT = 400;
@@ -228,7 +229,7 @@ export default function Page() {
           </p>
         </div>
         <button type="button" className={styles.importButton} onClick={openImportPanel}>
-          Importar desde Excel
+          <IconUpload /> Importar desde Excel
         </button>
       </div>
 
