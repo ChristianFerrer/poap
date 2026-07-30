@@ -104,23 +104,25 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
         {sorted.length === 0 && <p className={styles.empty}>{t.gates.noGates}</p>}
       </div>
 
-      <p className={styles.sectionTitle}>{t.gates.addSection}</p>
-      <div className={styles.addRow}>
-        <input
-          className={styles.labelInput}
-          placeholder={t.gates.namePlaceholder}
-          value={newLabel}
-          onChange={(e) => setNewLabel(e.target.value)}
-        />
-        <input
-          type="date"
-          className={styles.dateInput}
-          value={newDate}
-          onChange={(e) => setNewDate(e.target.value)}
-        />
-        <button type="button" className={styles.addButton} disabled={!newLabel.trim() || !newDate} onClick={submitNew}>
-          <IconPlus /> {t.gates.addButton}
-        </button>
+      <div className={styles.addGroup}>
+        <p className={styles.sectionTitle}>{t.gates.addSection}</p>
+        <div className={styles.addRow}>
+          <input
+            className={styles.labelInput}
+            placeholder={t.gates.namePlaceholder}
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+          />
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+          />
+          <button type="button" className={styles.addButton} disabled={!newLabel.trim() || !newDate} onClick={submitNew}>
+            <IconPlus /> {t.gates.addButton}
+          </button>
+        </div>
       </div>
     </section>
   );

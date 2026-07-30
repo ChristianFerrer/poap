@@ -266,36 +266,39 @@ export const ExplorerPanel = forwardRef<
               <p className={styles.eyebrow}>{t.explorer.lanesEyebrow}</p>
               <h2 className={styles.title}>{t.explorer.lanesTitle}</h2>
 
-              <p className={styles.sectionTitle}>{t.explorer.addLaneSection}</p>
-              <div className={styles.addRow}>
-                <input
-                  className={styles.textInput}
-                  placeholder={t.explorer.laneNamePlaceholder}
-                  value={newLaneName}
-                  onChange={(e) => setNewLaneName(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className={styles.addButton}
-                  disabled={!newLaneName.trim()}
-                  onClick={() => {
-                    onAddLane(newLaneName.trim());
-                    setNewLaneName("");
-                  }}
-                >
-                  <IconPlus /> {t.explorer.addButton}
-                </button>
+              <div className={styles.addGroup}>
+                <p className={styles.sectionTitle}>{t.explorer.addLaneSection}</p>
+                <div className={styles.addRow}>
+                  <input
+                    className={styles.textInput}
+                    placeholder={t.explorer.laneNamePlaceholder}
+                    value={newLaneName}
+                    onChange={(e) => setNewLaneName(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={styles.addButton}
+                    disabled={!newLaneName.trim()}
+                    onClick={() => {
+                      onAddLane(newLaneName.trim());
+                      setNewLaneName("");
+                    }}
+                  >
+                    <IconPlus /> {t.explorer.addButton}
+                  </button>
+                </div>
               </div>
 
-              <FilterBar
-                search={laneSearch}
-                onSearch={setLaneSearch}
-                searchLabel={t.explorer.searchLanePlaceholder}
-                sortBy={laneSort}
-                onSortBy={setLaneSort}
-              />
-              <div className={styles.list}>
-                {visibleLanes.map((lane) => (
+              <div className={styles.listGroup}>
+                <FilterBar
+                  search={laneSearch}
+                  onSearch={setLaneSearch}
+                  searchLabel={t.explorer.searchLanePlaceholder}
+                  sortBy={laneSort}
+                  onSortBy={setLaneSort}
+                />
+                <div className={styles.list}>
+                  {visibleLanes.map((lane) => (
                   <div key={lane.id} className={styles.laneRow}>
                     <button
                       type="button"
@@ -321,10 +324,11 @@ export const ExplorerPanel = forwardRef<
                     </button>
                   </div>
                 ))}
-                {visibleLanes.length === 0 && lanes.length > 0 && (
-                  <p className={styles.empty}>{t.explorer.noLaneMatch}</p>
-                )}
-                {lanes.length === 0 && <p className={styles.empty}>{t.explorer.noLanes}</p>}
+                  {visibleLanes.length === 0 && lanes.length > 0 && (
+                    <p className={styles.empty}>{t.explorer.noLaneMatch}</p>
+                  )}
+                  {lanes.length === 0 && <p className={styles.empty}>{t.explorer.noLanes}</p>}
+                </div>
               </div>
             </>
           );
@@ -340,6 +344,13 @@ export const ExplorerPanel = forwardRef<
             (p) => p.title,
             (p) => p.start,
           );
+          const laneRange =
+            lane.phases.length > 0
+              ? {
+                  start: Math.min(...lane.phases.map((p) => p.start)),
+                  end: Math.max(...lane.phases.map((p) => p.end)),
+                }
+              : null;
           return (
             <>
               <Breadcrumb items={[rootCrumb, { label: lane.name }]} onNavigate={onNavigate} />
@@ -347,50 +358,58 @@ export const ExplorerPanel = forwardRef<
               <p className={styles.subtitle}>
                 {lane.phases.length}{" "}
                 {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
+                {laneRange && (
+                  <>
+                    {" "}
+                    · {formatDate(laneRange.start, startMonth, monthAbbr)} – {formatDate(laneRange.end, startMonth, monthAbbr)}
+                  </>
+                )}
               </p>
 
-              <p className={styles.sectionTitle}>{t.explorer.addPhaseSection}</p>
-              <div className={styles.addRow}>
-                <input
-                  className={styles.textInput}
-                  placeholder={t.explorer.phaseTitlePlaceholder}
-                  value={newPhase.title}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
-                />
-                <input
-                  type="date"
-                  className={styles.dateInput}
-                  value={newPhase.start}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, start: e.target.value }))}
-                  aria-label={t.explorer.startDateAria}
-                />
-                <input
-                  type="date"
-                  className={styles.dateInput}
-                  value={newPhase.end}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, end: e.target.value }))}
-                  aria-label={t.explorer.endDateAria}
-                />
-                <select
-                  className={styles.statusSelect}
-                  value={newPhase.status}
-                  onChange={(e) => setNewPhase((p) => ({ ...p, status: e.target.value as PhaseStatus }))}
-                  aria-label={t.explorer.newPhaseStatusAria}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[locale][s]}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className={styles.addButton}
-                  disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
-                  onClick={() => submitNewPhase(lane.id)}
-                >
-                  <IconPlus /> {t.explorer.addButton}
-                </button>
+              <div className={styles.addGroup}>
+                <p className={styles.sectionTitle}>{t.explorer.addPhaseSection}</p>
+                <div className={styles.addRow}>
+                  <input
+                    className={styles.textInput}
+                    placeholder={t.explorer.phaseTitlePlaceholder}
+                    value={newPhase.title}
+                    onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
+                  />
+                  <input
+                    type="date"
+                    className={styles.dateInput}
+                    value={newPhase.start}
+                    onChange={(e) => setNewPhase((p) => ({ ...p, start: e.target.value }))}
+                    aria-label={t.explorer.startDateAria}
+                  />
+                  <input
+                    type="date"
+                    className={styles.dateInput}
+                    value={newPhase.end}
+                    onChange={(e) => setNewPhase((p) => ({ ...p, end: e.target.value }))}
+                    aria-label={t.explorer.endDateAria}
+                  />
+                  <select
+                    className={styles.statusSelect}
+                    value={newPhase.status}
+                    onChange={(e) => setNewPhase((p) => ({ ...p, status: e.target.value as PhaseStatus }))}
+                    aria-label={t.explorer.newPhaseStatusAria}
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABELS[locale][s]}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className={styles.addButton}
+                    disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
+                    onClick={() => submitNewPhase(lane.id)}
+                  >
+                    <IconPlus /> {t.explorer.addButton}
+                  </button>
+                </div>
               </div>
 
               <FilterBar
@@ -515,67 +534,75 @@ export const ExplorerPanel = forwardRef<
                 onNavigate={onNavigate}
               />
               <h2 className={styles.title}>{phase.title}</h2>
-              <StatusPill status={phase.status} />
+              <div className={styles.headerMeta}>
+                <StatusPill status={phase.status} />
+                <span className={styles.headerDates}>
+                  {formatDate(phase.start, startMonth, monthAbbr)} – {formatDate(phase.end, startMonth, monthAbbr)}
+                </span>
+              </div>
 
-              <p className={styles.sectionTitle}>{t.explorer.addActivitySection}</p>
-              <div className={styles.addRow}>
-                <input
-                  className={styles.textInput}
-                  placeholder={t.explorer.activityTitlePlaceholder}
-                  value={newActivity.title}
-                  onChange={(e) => setNewActivity((a) => ({ ...a, title: e.target.value }))}
-                />
-                <input
-                  className={styles.ownerInput}
-                  placeholder={t.explorer.ownerPlaceholder}
-                  value={newActivity.owner}
-                  onChange={(e) => setNewActivity((a) => ({ ...a, owner: e.target.value }))}
-                />
-                <input
-                  type="date"
-                  className={styles.dateInput}
-                  value={newActivity.start}
-                  onChange={(e) => setNewActivity((a) => ({ ...a, start: e.target.value }))}
-                  aria-label={t.explorer.startDateAria}
-                />
-                <input
-                  type="date"
-                  className={styles.dateInput}
-                  value={newActivity.end}
-                  onChange={(e) => setNewActivity((a) => ({ ...a, end: e.target.value }))}
-                  aria-label={t.explorer.endDateAria}
-                />
-                <select
-                  className={styles.statusSelect}
-                  value={newActivity.status}
-                  onChange={(e) => setNewActivity((a) => ({ ...a, status: e.target.value as PhaseStatus }))}
-                  aria-label={t.explorer.newActivityStatusAria}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[locale][s]}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className={styles.addButton}
-                  disabled={!newActivity.title.trim() || !newActivity.owner.trim() || !newActivity.start || !newActivity.end}
-                  onClick={() => submitNewActivity(phase)}
-                >
-                  <IconPlus /> {t.explorer.addButton}
-                </button>
+              <div className={styles.addGroup}>
+                <p className={styles.sectionTitle}>{t.explorer.addActivitySection}</p>
+                <div className={styles.addRow}>
+                  <input
+                    className={styles.textInput}
+                    placeholder={t.explorer.activityTitlePlaceholder}
+                    value={newActivity.title}
+                    onChange={(e) => setNewActivity((a) => ({ ...a, title: e.target.value }))}
+                  />
+                  <input
+                    className={styles.ownerInput}
+                    placeholder={t.explorer.ownerPlaceholder}
+                    value={newActivity.owner}
+                    onChange={(e) => setNewActivity((a) => ({ ...a, owner: e.target.value }))}
+                  />
+                  <input
+                    type="date"
+                    className={styles.dateInput}
+                    value={newActivity.start}
+                    onChange={(e) => setNewActivity((a) => ({ ...a, start: e.target.value }))}
+                    aria-label={t.explorer.startDateAria}
+                  />
+                  <input
+                    type="date"
+                    className={styles.dateInput}
+                    value={newActivity.end}
+                    onChange={(e) => setNewActivity((a) => ({ ...a, end: e.target.value }))}
+                    aria-label={t.explorer.endDateAria}
+                  />
+                  <select
+                    className={styles.statusSelect}
+                    value={newActivity.status}
+                    onChange={(e) => setNewActivity((a) => ({ ...a, status: e.target.value as PhaseStatus }))}
+                    aria-label={t.explorer.newActivityStatusAria}
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABELS[locale][s]}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className={styles.addButton}
+                    disabled={!newActivity.title.trim() || !newActivity.owner.trim() || !newActivity.start || !newActivity.end}
+                    onClick={() => submitNewActivity(phase)}
+                  >
+                    <IconPlus /> {t.explorer.addButton}
+                  </button>
+                </div>
               </div>
 
               <p className={styles.sectionTitle}>{t.explorer.activitiesHeading(activities.length)}</p>
-              <FilterBar
-                search={activitySearch}
-                onSearch={setActivitySearch}
-                searchLabel={t.explorer.searchActivityPlaceholder}
-                sortBy={activitySort}
-                onSortBy={setActivitySort}
-              />
-              <div className={styles.list}>
+              <div className={styles.listGroup}>
+                <FilterBar
+                  search={activitySearch}
+                  onSearch={setActivitySearch}
+                  searchLabel={t.explorer.searchActivityPlaceholder}
+                  sortBy={activitySort}
+                  onSortBy={setActivitySort}
+                />
+                <div className={styles.list}>
                 {(() => {
                   const visibleActivities = sortItems(
                     filterByName(activities, activitySearch, (a) => a.title),
@@ -619,6 +646,7 @@ export const ExplorerPanel = forwardRef<
                     </>
                   );
                 })()}
+                </div>
               </div>
             </>
           );
@@ -646,19 +674,16 @@ export const ExplorerPanel = forwardRef<
                 onNavigate={onNavigate}
               />
               <h2 className={styles.title}>{activity.title}</h2>
-              <StatusPill status={activity.status} />
+              <div className={styles.headerMeta}>
+                <StatusPill status={activity.status} />
+                <span className={styles.headerDates}>
+                  {formatDate(activity.start, startMonth, monthAbbr)} – {formatDate(activity.end, startMonth, monthAbbr)}
+                </span>
+              </div>
               <dl className={styles.detailGrid}>
                 <div className={styles.detailItem}>
                   <dt>{t.explorer.ownerLabel}</dt>
                   <dd>{activity.owner}</dd>
-                </div>
-                <div className={styles.detailItem}>
-                  <dt>{t.explorer.startLabel}</dt>
-                  <dd>{formatDate(activity.start, startMonth, monthAbbr)}</dd>
-                </div>
-                <div className={styles.detailItem}>
-                  <dt>{t.explorer.endLabel}</dt>
-                  <dd>{formatDate(activity.end, startMonth, monthAbbr)}</dd>
                 </div>
               </dl>
 

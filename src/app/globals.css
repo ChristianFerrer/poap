@@ -10,41 +10,43 @@
  * actionable right now"). --gate-active and --today-line are intentionally
  * separate hues from the primary accent and from each other — a gate
  * cut-line, the current-day marker, and "in progress" are three different
- * facts about the plan and must never be visually confusable.
+ * facts about the plan and must never be visually confusable. The actual
+ * hex values below are the app's original palette (restored after a
+ * later redesign pass changed them) — only the palette; the radius/type
+ * scale from that redesign stayed.
  */
 :root {
   color-scheme: light;
 
-  --page-bg: #f6f7f8;
+  --page-bg: #f5f5f3;
   --card-bg: #ffffff;
-  --ink: #14181f;
-  --text-secondary: #5b6472;
+  --ink: #16171a;
+  --text-secondary: #6b6b66;
 
-  --border: #e3e6ea;
-  --border-strong: #c3c9d1;
+  --border: #e5e5e2;
+  --border-strong: #b9b9b3;
 
-  --surface-0: #f0f2f4; /* period bands: reads as background, not content */
-  --surface-1: #eaedf0; /* not_started fill */
+  --surface-0: #f7f7f5; /* period bands: reads as background, not content */
+  --surface-1: #f2f2f0; /* not_started fill */
 
-  --bg-success: #e1f5e9;
-  --text-success: #1e8a4c;
+  --bg-success: #e3f4e1;
+  --text-success: #1e7b34;
 
-  --bg-accent: #def2ef;
-  --text-accent: #0e7a6e;
+  --bg-accent: #e1ebfb;
+  --text-accent: #1d4e96;
 
-  --bg-warning: #fdecd1;
-  --text-warning: #b45309;
+  --bg-warning: #fceed9;
+  --text-warning: #92530a;
 
   /* Stage-gate activation — distinct from status/accent so an activated
      gate never reads as "in progress" or "on track". */
-  --gate-active: #6d4aff;
+  --gate-active: #7c3aed;
 
   /* Today marker — deliberately not a status/accent color: it should read
-     as a fixed reference line, not as "in progress" or a selection. A
-     single, narrowly-scoped exception to "restrained saturation" — this is
-     the one place in the UI meant to read as a highlighter mark. */
-  --today-line: #c2f542;
-  --accent-live-ink: #17240a; /* readable text/icon color set against --today-line fills */
+     as a fixed reference line, not as "in progress" or a selection. Neon
+     lime is saturated enough to stay legible on both themes as-is. */
+  --today-line: #c6ff00;
+  --accent-live-ink: #10210a; /* readable text/icon color set against --today-line fills */
 
   /* Radius scale — technical/sharp language: small, consistent steps
      rather than soft pill shapes. */
@@ -69,27 +71,27 @@
   :root {
     color-scheme: dark;
 
-    --page-bg: #0b0d10;
-    --card-bg: #14171c;
-    --ink: #eceef1;
-    --text-secondary: #9aa3af;
+    --page-bg: #101012;
+    --card-bg: #17181b;
+    --ink: #eceeea;
+    --text-secondary: #a8a8a2;
 
-    --border: #262b33;
-    --border-strong: #3c4350;
+    --border: #313134;
+    --border-strong: #55555a;
 
-    --surface-0: #191d23;
-    --surface-1: #1e232a;
+    --surface-0: #1b1b1e;
+    --surface-1: #232327;
 
-    --bg-success: #163826;
-    --text-success: #56c285;
+    --bg-success: #16351e;
+    --text-success: #6fd98a;
 
-    --bg-accent: #0f2e2a;
-    --text-accent: #2dd4c4;
+    --bg-accent: #17273f;
+    --text-accent: #8fb6ee;
 
-    --bg-warning: #3a2a10;
-    --text-warning: #f0a947;
+    --bg-warning: #3a2a0e;
+    --text-warning: #f0b75c;
 
-    --gate-active: #b39dff;
+    --gate-active: #a78bfa;
     --accent-live-ink: #10210a;
   }
 }

@@ -113,6 +113,26 @@
   border-radius: 2px;
 }
 
+/* Header row pairing the status pill with the entity's own start/end
+   dates — every drill-down level (a phase's activities, a single
+   activity) always shows its date range here, not buried further down
+   the panel. */
+.headerMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.headerMeta .pill {
+  margin-bottom: 0;
+}
+.headerDates {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .sectionTitle {
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -120,6 +140,24 @@
   text-transform: uppercase;
   color: var(--text-secondary);
   margin: 24px 0 8px;
+}
+
+/* "Add" is a distinct, boxed group from the list/table below it — a small
+   form card, not just another section in the same continuous flow. */
+.addGroup {
+  padding: 12px;
+  margin: 4px 0 24px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.addGroup .sectionTitle {
+  margin-top: 0;
+}
+
+.listGroup {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Search + sort toolbar sitting directly above whatever list/table it

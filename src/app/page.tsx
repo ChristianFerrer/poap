@@ -51,7 +51,11 @@ export default function Page() {
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
+  // Opens at its maximum width (half the viewport) rather than some smaller
+  // default — the drag handle still lets you shrink it back down from
+  // there. Lazy initializer so this reads window.innerWidth once, at
+  // mount, rather than on every render.
+  const [panelWidth, setPanelWidth] = useState(panelWidthMax);
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const panelRef = useRef<HTMLDivElement>(null);
 

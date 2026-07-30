@@ -743,8 +743,16 @@ export function PoapRenderer({
               {todayPosition !== null && (
                 <>
                   <div className={styles.todayLine} style={{ left: pct(todayPosition, scale) }} />
-                  <div className={styles.todayBadge} style={{ left: pct(todayPosition, scale), top: rulerHeight }}>
-                    {strings.today}
+                  {/* Sticks to the top of the visible (vertically scrolled)
+                      area, just below the ruler, instead of scrolling away
+                      with the lane rows — same wrapper+sticky-child trick as
+                      .yearCellLabel, just on the Y axis: the outer anchor
+                      spans the plan's full height for horizontal placement,
+                      the inner badge is what actually sticks. */}
+                  <div className={styles.badgeAnchor} style={{ left: pct(todayPosition, scale) }}>
+                    <div className={styles.todayBadge} style={{ top: rulerHeight + 6 }}>
+                      {strings.today}
+                    </div>
                   </div>
                 </>
               )}
@@ -774,12 +782,11 @@ export function PoapRenderer({
                       width: pctSpan(selectedColumn.range.start, selectedColumn.range.end, scale),
                     }}
                   />
-                  <div
-                    className={styles.columnBadge}
-                    style={{ left: pct(selectedColumn.range.start, scale), top: rulerHeight }}
-                  >
-                    {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth, monthAbbr, strings.weekOfPrefix)} ·{" "}
-                    {touchedCount} {pluralForm(touchedCount, { one: strings.phaseOne, other: strings.phaseOther })}
+                  <div className={styles.badgeAnchor} style={{ left: pct(selectedColumn.range.start, scale) }}>
+                    <div className={styles.columnBadge} style={{ top: rulerHeight + 6 }}>
+                      {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth, monthAbbr, strings.weekOfPrefix)} ·{" "}
+                      {touchedCount} {pluralForm(touchedCount, { one: strings.phaseOne, other: strings.phaseOther })}
+                    </div>
                   </div>
                 </>
               )}

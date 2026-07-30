@@ -65,6 +65,22 @@
   border-top: 1px solid var(--border);
 }
 
+/* "Add" is a distinct, boxed group from the list above it — the box's own
+   border already separates it, so the section title's divider line
+   (meant for when it sits in plain flow) would be redundant here. */
+.addGroup {
+  padding: 12px;
+  margin-top: 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.addGroup .sectionTitle {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 .list {
   display: flex;
   flex-direction: column;
