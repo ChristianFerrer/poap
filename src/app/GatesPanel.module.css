@@ -80,35 +80,51 @@
   border-top: none;
 }
 
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* Each gate is its own bordered card, same as a swimline/phase row —
-   structural parity across every list in the app instead of a plain
-   unbounded flex row. */
-.row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Same table shape as the swimlines/phases/activities panel — structural
+   parity across every detail panel in the app. */
+.tableWrap {
+  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--card-bg);
-  padding: 8px 10px;
 }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th {
+  text-align: left;
+  font-size: var(--text-3xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+  white-space: nowrap;
+}
+.table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+.table tbody tr:hover td {
+  background: var(--surface-1);
+}
+.emptyCell {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 12px 10px;
+}
+
 .addRow {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.empty {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  font-style: italic;
-  margin: 4px 0;
 }
 
 .visToggle {
@@ -136,7 +152,8 @@
 
 .labelInput {
   flex: 1 1 auto;
-  min-width: 0;
+  width: 100%;
+  min-width: 140px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 6px 8px;
@@ -206,12 +223,17 @@
 }
 
 @media (max-width: 520px) {
-  .row,
   .addRow {
     flex-wrap: wrap;
   }
   .dateInput {
     width: auto;
     flex: 1 1 auto;
+  }
+  /* .tableWrap already scrolls horizontally on its own, so the table's
+     columns keep their natural widths on mobile instead of squeezing
+     inputs down to unusable sizes. */
+  .table {
+    min-width: 380px;
   }
 }

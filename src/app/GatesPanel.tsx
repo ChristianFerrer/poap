@@ -81,48 +81,74 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
         </div>
       </div>
 
-      <div className={styles.list}>
-        {sorted.map((gate) => {
-          const active = activeGateIds.has(gate.id);
-          return (
-            <div key={gate.id} className={styles.row}>
-              <button
-                type="button"
-                className={`${styles.visToggle} ${active ? styles.visToggleActive : ""}`}
-                onClick={() => onToggle(gate.id)}
-                aria-pressed={active}
-                aria-label={active ? t.gates.hideLineAria : t.gates.showLineAria}
-                title={active ? t.gates.visibleTitle : t.gates.hiddenTitle}
-              >
-                {active && <IconCheck />}
-              </button>
-              <input
-                className={styles.labelInput}
-                value={gate.label}
-                onChange={(e) => onUpdate(gate.id, { label: e.target.value })}
-                aria-label={t.gates.milestoneNameAria}
-              />
-              <input
-                type="date"
-                className={styles.dateInput}
-                value={toISODate(gate.position, startMonth)}
-                onChange={(e) => {
-                  if (e.target.value) onUpdate(gate.id, { position: fromISODate(e.target.value, startMonth) });
-                }}
-                aria-label={t.gates.milestoneDateAria}
-              />
-              <button
-                type="button"
-                className={styles.delete}
-                onClick={() => onDelete(gate.id)}
-                aria-label={t.gates.deleteGateAria(gate.label)}
-              >
-                <IconTrash />
-              </button>
-            </div>
-          );
-        })}
-        {sorted.length === 0 && <p className={styles.empty}>{t.gates.noGates}</p>}
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>{t.gates.tableVisible}</th>
+              <th>{t.gates.tableName}</th>
+              <th>{t.gates.tableDate}</th>
+              <th aria-hidden="true" />
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((gate) => {
+              const active = activeGateIds.has(gate.id);
+              return (
+                <tr key={gate.id}>
+                  <td>
+                    <button
+                      type="button"
+                      className={`${styles.visToggle} ${active ? styles.visToggleActive : ""}`}
+                      onClick={() => onToggle(gate.id)}
+                      aria-pressed={active}
+                      aria-label={active ? t.gates.hideLineAria : t.gates.showLineAria}
+                      title={active ? t.gates.visibleTitle : t.gates.hiddenTitle}
+                    >
+                      {active && <IconCheck />}
+                    </button>
+                  </td>
+                  <td>
+                    <input
+                      className={styles.labelInput}
+                      value={gate.label}
+                      onChange={(e) => onUpdate(gate.id, { label: e.target.value })}
+                      aria-label={t.gates.milestoneNameAria}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="date"
+                      className={styles.dateInput}
+                      value={toISODate(gate.position, startMonth)}
+                      onChange={(e) => {
+                        if (e.target.value) onUpdate(gate.id, { position: fromISODate(e.target.value, startMonth) });
+                      }}
+                      aria-label={t.gates.milestoneDateAria}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className={styles.delete}
+                      onClick={() => onDelete(gate.id)}
+                      aria-label={t.gates.deleteGateAria(gate.label)}
+                    >
+                      <IconTrash />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={4} className={styles.emptyCell}>
+                  {t.gates.noGates}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </section>
   );

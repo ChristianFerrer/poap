@@ -222,11 +222,6 @@
   outline: none;
 }
 
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .empty {
   font-size: var(--text-xs);
   color: var(--text-secondary);
@@ -234,84 +229,81 @@
   margin: 4px 0;
 }
 
-/* Level: lanes — a row is two independent buttons (navigate + delete), not
-   one, same reasoning as the chart's lane chevron/name split. */
-.laneRow {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  width: 100%;
+/* One table shape for every drill-down level (swimlines, phases,
+   activities) — same header row, cell padding and row-hover feedback,
+   whether a row's fields are editable inline (phases) or read-only
+   (swimlines, activities). */
+.tableWrap {
+  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--card-bg);
 }
-.laneRowMain {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 10px 12px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font: inherit;
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th {
   text-align: left;
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
-}
-.laneRowMain:hover {
-  background: var(--surface-1);
-}
-.laneRowName {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-3xs);
   font-weight: 600;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
   white-space: nowrap;
 }
-.rowMeta {
-  flex: 0 0 auto;
-  font-size: var(--text-2xs);
-  color: var(--text-secondary);
+.table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
-.chevronRight {
-  flex: 0 0 auto;
-  display: flex;
-  color: var(--text-secondary);
-  transition: transform 0.12s ease, color 0.12s ease;
+.table tbody tr:last-child td {
+  border-bottom: none;
 }
-.laneRowMain:hover .chevronRight,
-.activityRowMain:hover .chevronRight {
-  transform: translateX(2px);
-  color: var(--text-accent);
+.table tbody tr:hover td {
+  background: var(--surface-1);
+}
+.emptyCell {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 12px 10px;
+}
+.tableNameCell {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tableMetaCell {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.tableStatusCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.activityDot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
 }
 
-/* Level: phases — same bordered-card list as .laneRow/.activityRow
-   (structural parity across all three drill-down levels), just with
-   editable fields inline instead of a single "navigate" button, since a
-   phase's title/dates/status are edited directly here rather than behind
-   a drill-down. */
-.phaseRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--card-bg);
-  padding: 8px 10px;
-}
 .tableTextInput {
-  flex: 1 1 auto;
-  min-width: 0;
+  width: 100%;
+  min-width: 140px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   padding: 6px 8px;
   font-size: var(--text-xs);
-  font-weight: 600;
   font-family: inherit;
   background: transparent;
   color: var(--ink);
@@ -344,7 +336,6 @@
 }
 .deleteButton {
   flex: 0 0 auto;
-  align-self: center;
   width: 24px;
   height: 24px;
   display: flex;
@@ -359,54 +350,6 @@
 .deleteButton:hover {
   color: var(--text-warning);
   border-color: var(--text-warning);
-}
-.laneRow > .deleteButton,
-.activityRow > .deleteButton {
-  margin-right: 10px;
-}
-
-/* Level: activities — same two-buttons-not-one row as .laneRow */
-.activityRow {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--card-bg);
-}
-.activityRowMain {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 8px 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
-}
-.activityRowMain:hover {
-  background: var(--surface-1);
-}
-.activityDot {
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-.activityRowTitle {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Level: activity detail */
@@ -590,11 +533,10 @@
     width: auto;
     flex: 1 1 120px;
   }
-  .activityRow,
-  .phaseRow {
-    flex-wrap: wrap;
-  }
-  .phaseRow .tableTextInput {
-    flex: 1 1 100%;
+  /* .tableWrap already scrolls horizontally on its own, so a table's
+     columns keep their natural widths on mobile instead of squeezing
+     inputs down to unusable sizes. */
+  .table {
+    min-width: 480px;
   }
 }

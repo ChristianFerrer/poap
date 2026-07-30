@@ -297,37 +297,62 @@ export const ExplorerPanel = forwardRef<
                   sortBy={laneSort}
                   onSortBy={setLaneSort}
                 />
-                <div className={styles.list}>
-                  {visibleLanes.map((lane) => (
-                  <div key={lane.id} className={styles.laneRow}>
-                    <button
-                      type="button"
-                      className={styles.laneRowMain}
-                      onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
-                    >
-                      <span className={styles.laneRowName}>{lane.name}</span>
-                      <span className={styles.rowMeta}>
-                        {lane.phases.length}{" "}
-                        {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
-                      </span>
-                      <span className={styles.chevronRight} aria-hidden="true">
-                        <IconChevronRight />
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.deleteButton}
-                      onClick={() => onDeleteLane(lane.id)}
-                      aria-label={t.explorer.deleteLaneAria(lane.name)}
-                    >
-                      <IconTrash />
-                    </button>
-                  </div>
-                ))}
-                  {visibleLanes.length === 0 && lanes.length > 0 && (
-                    <p className={styles.empty}>{t.explorer.noLaneMatch}</p>
-                  )}
-                  {lanes.length === 0 && <p className={styles.empty}>{t.explorer.noLanes}</p>}
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>{t.explorer.tableName}</th>
+                        <th>{t.explorer.tablePhases}</th>
+                        <th aria-hidden="true" />
+                        <th aria-hidden="true" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleLanes.map((lane) => (
+                        <tr key={lane.id}>
+                          <td className={styles.tableNameCell}>{lane.name}</td>
+                          <td className={styles.tableMetaCell}>
+                            {lane.phases.length}{" "}
+                            {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={styles.viewButton}
+                              onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
+                              aria-label={t.explorer.viewPhasesAria(lane.name)}
+                            >
+                              <IconChevronRight />
+                            </button>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={styles.deleteButton}
+                              onClick={() => onDeleteLane(lane.id)}
+                              aria-label={t.explorer.deleteLaneAria(lane.name)}
+                            >
+                              <IconTrash />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {visibleLanes.length === 0 && lanes.length > 0 && (
+                        <tr>
+                          <td colSpan={4} className={styles.emptyCell}>
+                            {t.explorer.noLaneMatch}
+                          </td>
+                        </tr>
+                      )}
+                      {lanes.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className={styles.emptyCell}>
+                            {t.explorer.noLanes}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </>
@@ -420,67 +445,103 @@ export const ExplorerPanel = forwardRef<
                   sortBy={phaseSort}
                   onSortBy={setPhaseSort}
                 />
-                <div className={styles.list}>
-                  {visiblePhases.map((phase) => (
-                    <div key={phase.id} className={styles.phaseRow}>
-                      <input
-                        className={styles.tableTextInput}
-                        value={phase.title}
-                        onChange={(e) => onUpdatePhase(lane.id, phase.id, { title: e.target.value })}
-                        aria-label={t.explorer.phaseTitleAria}
-                      />
-                      <input
-                        type="date"
-                        className={styles.dateInput}
-                        value={toISODate(phase.start, startMonth)}
-                        onChange={(e) => {
-                          if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
-                        }}
-                        aria-label={t.explorer.startDateAria}
-                      />
-                      <input
-                        type="date"
-                        className={styles.dateInput}
-                        value={toISODate(phase.end, startMonth)}
-                        onChange={(e) => {
-                          if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
-                        }}
-                        aria-label={t.explorer.endDateAria}
-                      />
-                      <select
-                        className={styles.statusSelect}
-                        value={phase.status}
-                        onChange={(e) => onUpdatePhase(lane.id, phase.id, { status: e.target.value as PhaseStatus })}
-                        aria-label={t.explorer.phaseStatusAria}
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABELS[locale][s]}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        className={styles.viewButton}
-                        onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
-                        aria-label={t.explorer.viewActivitiesAria(phase.title)}
-                      >
-                        <IconChevronRight />
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.deleteButton}
-                        onClick={() => onDeletePhase(lane.id, phase.id)}
-                        aria-label={t.explorer.deletePhaseAria(phase.title)}
-                      >
-                        <IconTrash />
-                      </button>
-                    </div>
-                  ))}
-                  {visiblePhases.length === 0 && lane.phases.length > 0 && (
-                    <p className={styles.empty}>{t.explorer.noPhaseMatch}</p>
-                  )}
-                  {lane.phases.length === 0 && <p className={styles.empty}>{t.explorer.noPhases}</p>}
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>{t.explorer.tableTitle}</th>
+                        <th>{t.explorer.tableStart}</th>
+                        <th>{t.explorer.tableEnd}</th>
+                        <th>{t.explorer.tableStatus}</th>
+                        <th aria-hidden="true" />
+                        <th aria-hidden="true" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visiblePhases.map((phase) => (
+                        <tr key={phase.id}>
+                          <td>
+                            <input
+                              className={styles.tableTextInput}
+                              value={phase.title}
+                              onChange={(e) => onUpdatePhase(lane.id, phase.id, { title: e.target.value })}
+                              aria-label={t.explorer.phaseTitleAria}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="date"
+                              className={styles.dateInput}
+                              value={toISODate(phase.start, startMonth)}
+                              onChange={(e) => {
+                                if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
+                              }}
+                              aria-label={t.explorer.startDateAria}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="date"
+                              className={styles.dateInput}
+                              value={toISODate(phase.end, startMonth)}
+                              onChange={(e) => {
+                                if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
+                              }}
+                              aria-label={t.explorer.endDateAria}
+                            />
+                          </td>
+                          <td>
+                            <select
+                              className={styles.statusSelect}
+                              value={phase.status}
+                              onChange={(e) => onUpdatePhase(lane.id, phase.id, { status: e.target.value as PhaseStatus })}
+                              aria-label={t.explorer.phaseStatusAria}
+                            >
+                              {STATUS_OPTIONS.map((s) => (
+                                <option key={s} value={s}>
+                                  {STATUS_LABELS[locale][s]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={styles.viewButton}
+                              onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
+                              aria-label={t.explorer.viewActivitiesAria(phase.title)}
+                            >
+                              <IconChevronRight />
+                            </button>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={styles.deleteButton}
+                              onClick={() => onDeletePhase(lane.id, phase.id)}
+                              aria-label={t.explorer.deletePhaseAria(phase.title)}
+                            >
+                              <IconTrash />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {visiblePhases.length === 0 && lane.phases.length > 0 && (
+                        <tr>
+                          <td colSpan={6} className={styles.emptyCell}>
+                            {t.explorer.noPhaseMatch}
+                          </td>
+                        </tr>
+                      )}
+                      {lane.phases.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className={styles.emptyCell}>
+                            {t.explorer.noPhases}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </>
@@ -568,50 +629,86 @@ export const ExplorerPanel = forwardRef<
                   sortBy={activitySort}
                   onSortBy={setActivitySort}
                 />
-                <div className={styles.list}>
-                {(() => {
-                  const visibleActivities = sortItems(
-                    filterByName(activities, activitySearch, (a) => a.title),
-                    activitySort,
-                    (a) => a.title,
-                    (a) => a.start,
-                  );
-                  return (
-                    <>
-                      {visibleActivities.map((a) => (
-                        <div key={a.id} className={styles.activityRow}>
-                          <button
-                            type="button"
-                            className={styles.activityRowMain}
-                            onClick={() => onNavigate({ level: "activity", phaseId: phase.id, activityId: a.id })}
-                          >
-                            <span className={styles.activityDot} style={{ background: `var(--${STATUS_VAR[a.status]})` }} />
-                            <span className={styles.activityRowTitle}>{a.title}</span>
-                            <span className={styles.rowMeta}>{a.owner}</span>
-                            <span className={styles.rowMeta}>
-                              {formatDate(a.start, startMonth, monthAbbr)} – {formatDate(a.end, startMonth, monthAbbr)}
-                            </span>
-                            <span className={styles.chevronRight} aria-hidden="true">
-                              <IconChevronRight />
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.deleteButton}
-                            onClick={() => onDeleteActivity(phase, a.id)}
-                            aria-label={t.explorer.deleteActivityAria(a.title)}
-                          >
-                            <IconTrash />
-                          </button>
-                        </div>
-                      ))}
-                      {visibleActivities.length === 0 && activities.length > 0 && (
-                        <p className={styles.empty}>{t.explorer.noActivityMatch}</p>
-                      )}
-                      {activities.length === 0 && <p className={styles.empty}>{t.explorer.noActivities}</p>}
-                    </>
-                  );
-                })()}
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>{t.explorer.tableTitle}</th>
+                        <th>{t.explorer.tableOwner}</th>
+                        <th>{t.explorer.tableStart}</th>
+                        <th>{t.explorer.tableEnd}</th>
+                        <th>{t.explorer.tableStatus}</th>
+                        <th aria-hidden="true" />
+                        <th aria-hidden="true" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const visibleActivities = sortItems(
+                          filterByName(activities, activitySearch, (a) => a.title),
+                          activitySort,
+                          (a) => a.title,
+                          (a) => a.start,
+                        );
+                        return (
+                          <>
+                            {visibleActivities.map((a) => (
+                              <tr key={a.id}>
+                                <td className={styles.tableNameCell}>{a.title}</td>
+                                <td className={styles.tableMetaCell}>{a.owner}</td>
+                                <td className={styles.tableMetaCell}>{formatDate(a.start, startMonth, monthAbbr)}</td>
+                                <td className={styles.tableMetaCell}>{formatDate(a.end, startMonth, monthAbbr)}</td>
+                                <td>
+                                  <span className={styles.tableStatusCell}>
+                                    <span
+                                      className={styles.activityDot}
+                                      style={{ background: `var(--${STATUS_VAR[a.status]})` }}
+                                      aria-hidden="true"
+                                    />
+                                    {STATUS_LABELS[locale][a.status]}
+                                  </span>
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className={styles.viewButton}
+                                    onClick={() => onNavigate({ level: "activity", phaseId: phase.id, activityId: a.id })}
+                                    aria-label={t.explorer.viewActivityAria(a.title)}
+                                  >
+                                    <IconChevronRight />
+                                  </button>
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className={styles.deleteButton}
+                                    onClick={() => onDeleteActivity(phase, a.id)}
+                                    aria-label={t.explorer.deleteActivityAria(a.title)}
+                                  >
+                                    <IconTrash />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                            {visibleActivities.length === 0 && activities.length > 0 && (
+                              <tr>
+                                <td colSpan={7} className={styles.emptyCell}>
+                                  {t.explorer.noActivityMatch}
+                                </td>
+                              </tr>
+                            )}
+                            {activities.length === 0 && (
+                              <tr>
+                                <td colSpan={7} className={styles.emptyCell}>
+                                  {t.explorer.noActivities}
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </>

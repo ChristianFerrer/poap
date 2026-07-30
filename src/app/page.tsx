@@ -222,6 +222,16 @@ export default function Page() {
     scrollToPanel();
   }
 
+  // Opens the gates panel without toggling any one gate's visibility —
+  // for clicking the "Stage gates" row label itself, same idea as
+  // handleLaneClick opening a lane's phases.
+  function openGatesPanel() {
+    setExplorer(null);
+    setImportOpen(false);
+    setGatesPanelOpen(true);
+    scrollToPanel();
+  }
+
   function updateGate(id: string, patch: Partial<Pick<Gate, "label" | "position">>) {
     setGates((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
   }
@@ -267,6 +277,7 @@ export default function Page() {
             activeGateIds={activeGateIds}
             onGateClick={handleGateClick}
             onLaneClick={handleLaneClick}
+            onGatesLabelClick={openGatesPanel}
             locale={locale}
           />
         </div>

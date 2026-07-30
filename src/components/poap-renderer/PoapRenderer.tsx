@@ -331,6 +331,7 @@ export function PoapRenderer({
   activeGateIds: activeGateIdsProp = [],
   onGateClick,
   onLaneClick,
+  onGatesLabelClick,
 }: PoapRendererProps) {
   const monthAbbr = MONTH_ABBR[locale];
   const statusLabels = STATUS_LABELS[locale];
@@ -565,7 +566,13 @@ export function PoapRenderer({
             className={`${styles.labelCell} ${styles.gatesLabelCell}`}
             style={{ height: gateRowHeight }}
           >
-            {strings.stageGates}
+            {onGatesLabelClick ? (
+              <button type="button" className={styles.gatesLabelButton} onClick={onGatesLabelClick}>
+                {strings.stageGates}
+              </button>
+            ) : (
+              strings.stageGates
+            )}
           </div>
           {packedLanes.map(({ lane, rows }) => {
             const isCollapsed = rows === null;

@@ -57,4 +57,8 @@ export interface PoapRendererProps {
    * a management view for that lane without the renderer knowing what
    * "managing a lane" means. */
   onLaneClick?: (laneId: string) => void;
+  /** Clicking the "Stage gates" row label itself (not a specific gate
+   * diamond) — same idea as onLaneClick, opens whatever management view
+   * the app has for gates in general rather than one gate in particular. */
+  onGatesLabelClick?: () => void;
 }

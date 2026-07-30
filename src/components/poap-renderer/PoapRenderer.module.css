@@ -268,6 +268,27 @@
 .gatesLabelCell {
   font-weight: 500;
 }
+/* Same "open the management view for this row" affordance as
+   .laneNameButton — clicking the row's own name, not a specific gate
+   diamond, opens the gates panel in general. */
+.gatesLabelButton {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0 4px 0 0;
+}
+.gatesLabelButton:hover {
+  background: var(--surface-1);
+}
 /* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
    equivalent spacer on the label-column side, so the two stay visually
    locked together as both scroll (see syncScroll in the .tsx). Needs its
