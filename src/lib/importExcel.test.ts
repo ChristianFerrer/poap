@@ -11,6 +11,8 @@ describe("listSheetNames", () => {
   });
 });
 
+const SOLID_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FFAABBCC" } } as const;
+
 describe("parseSheet — explicit date row", () => {
   function buildSheet() {
     const wb = new ExcelJS.Workbook();
@@ -31,14 +33,60 @@ describe("parseSheet — explicit date row", () => {
     return ws;
   }
 
-  it("locates phases using the date row and forward-fills the lane name", () => {
+  it("locates phases using the date row and forward-fills the lane name, ending each on the Friday of the week its color ends", () => {
     const result = parseSheet(buildSheet());
     expect(result.warnings).toEqual([]);
     expect(result.lanes).toHaveLength(1);
     expect(result.lanes[0]!.name).toBe("Team A");
     expect(result.lanes[0]!.phases).toEqual([
-      { title: "Phase X", startISO: "2026-01-05", endISO: "2026-01-18" },
-      { title: "Phase Y", startISO: "2026-01-19", endISO: "2026-01-25" },
+      // Merge covers Jan 5–18 (through the week starting Jan 12); the
+      // phase closes on that week's Friday, Jan 16, not its Sunday.
+      { title: "Phase X", startISO: "2026-01-05", endISO: "2026-01-16" },
+      // Single-week phase in the week starting Jan 19; ends Friday Jan 23.
+      { title: "Phase Y", startISO: "2026-01-19", endISO: "2026-01-23" },
+    ]);
+  });
+
+  it("extends a phase past its own merge through filled-but-untitled cells, stopping the instant another phase's name appears", () => {
+    const ws = buildSheet();
+    ws.getCell("A5").value = "Team B";
+    ws.mergeCells("B5:C5");
+    ws.getCell("B5").value = "Phase A";
+    ws.getCell("B5").fill = SOLID_FILL;
+    ws.getCell("C5").fill = SOLID_FILL;
+    // D5 is not merged into Phase A's bar and carries no title, but the
+    // sheet still colors it — the bar visually continues past the merge.
+    ws.getCell("D5").fill = SOLID_FILL;
+    // Phase B's name starts immediately in the very next column, with no
+    // blank gap — it must end Phase A right there, regardless of D5's fill.
+    ws.getCell("E5").value = "Phase B";
+    ws.getCell("E5").fill = SOLID_FILL;
+
+    const result = parseSheet(ws);
+    const teamB = result.lanes.find((l) => l.name === "Team B")!;
+    expect(teamB.phases).toEqual([
+      // Color visually reaches through D (week of Jan 19), so Phase A
+      // closes on that week's Friday, Jan 23 — even though its own merge
+      // only covered through C.
+      { title: "Phase A", startISO: "2026-01-05", endISO: "2026-01-23" },
+      { title: "Phase B", startISO: "2026-01-26", endISO: "2026-01-30" },
+    ]);
+  });
+
+  it("without a following phase, extends through every filled cell and ends on the Friday the color runs out", () => {
+    const ws = buildSheet();
+    ws.getCell("A6").value = "Team C";
+    ws.mergeCells("B6:C6");
+    ws.getCell("B6").value = "Phase Z";
+    ws.getCell("B6").fill = SOLID_FILL;
+    ws.getCell("C6").fill = SOLID_FILL;
+    ws.getCell("D6").fill = SOLID_FILL; // colored continuation, no title
+    // E6 is left uncolored — the bar's color genuinely ends there.
+
+    const result = parseSheet(ws);
+    const teamC = result.lanes.find((l) => l.name === "Team C")!;
+    expect(teamC.phases).toEqual([
+      { title: "Phase Z", startISO: "2026-01-05", endISO: "2026-01-23" },
     ]);
   });
 });

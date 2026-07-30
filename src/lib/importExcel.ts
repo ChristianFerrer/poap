@@ -4,7 +4,8 @@ export interface ImportedPhase {
   title: string;
   /** ISO yyyy-mm-dd */
   startISO: string;
-  /** ISO yyyy-mm-dd, exclusive (the day after the last covered period) */
+  /** ISO yyyy-mm-dd — the last day the phase covers, always a Friday (see
+   * parseSheet's boundary-scan for how it's derived from the sheet). */
   endISO: string;
 }
 
@@ -114,6 +115,13 @@ function cellNumberValue(cell: ExcelJS.Cell): number | null {
   return typeof v === "number" ? v : null;
 }
 
+/** True when the cell carries an actual solid background fill — i.e. it's
+ * part of a colored phase bar, as opposed to a blank grid cell. */
+function cellHasFill(cell: ExcelJS.Cell): boolean {
+  const fill = cell.fill as { type?: string; pattern?: string } | undefined;
+  return !!fill && fill.type === "pattern" && fill.pattern === "solid";
+}
+
 function toISO(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -122,6 +130,16 @@ function addDays(d: Date, days: number): Date {
 }
 function daysInMonth(year: number, monthIndex0: number): number {
   return new Date(Date.UTC(year, monthIndex0 + 1, 0)).getUTCDate();
+}
+
+/** The Friday that falls in the same Monday–Sunday week as `d`. Phases are
+ * meant to always close out on a Friday, matching how the source sheets lay
+ * out work-weeks, regardless of which day the underlying column data lands
+ * on. */
+function fridayOfWeek(d: Date): Date {
+  const dayOfWeek = d.getUTCDay(); // 0=Sun..6=Sat
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
+  return addDays(d, 4 - daysSinceMonday);
 }
 
 const HEADER_SCAN_ROWS = 8;
@@ -282,19 +300,41 @@ export function parseSheet(ws: ExcelJS.Worksheet): ParseResult {
       const startCol = merge ? merge.minCol : c;
       const endCol = merge ? merge.maxCol : c;
       const startRange = columnRange(startCol);
-      const endRange = columnRange(endCol);
-      if (!startRange || !endRange) {
+      if (!startRange || !columnRange(endCol)) {
         unresolvedTitles.add(title);
         continue;
       }
 
-      // endRange.end is the start of the *next* period (exclusive) — the
-      // rest of the app treats Phase.end as the last covered calendar day
-      // (see mock-data.ts), so step back one day to match.
+      // The phase's own title cell (or merge) only marks where its bar
+      // *starts* being unambiguous — the bar's actual end is wherever its
+      // fill color stops, which can run past the merge when the sheet
+      // colors extra cells without merging them in. Walk forward from
+      // there: another phase's name ends the current one immediately
+      // (two adjacent bars in the same swimlane, whether or not their fill
+      // color happens to match); otherwise the current phase keeps going
+      // until the fill runs out.
+      let boundaryCol = endCol;
+      for (let cc = endCol + 1; cc <= maxCol; cc++) {
+        const cellMerge = mergeIndex.get(`${r}:${cc}`);
+        if (cellMerge && cc !== cellMerge.minCol) continue;
+
+        const nextCell = ws.getCell(r, cc);
+        if (cellTextValue(nextCell)) break; // another phase's name starts here
+        if (!cellHasFill(nextCell)) break; // the color ends here
+
+        const candidateEndCol = cellMerge ? cellMerge.maxCol : cc;
+        if (!columnRange(candidateEndCol)) break; // past known dates
+        boundaryCol = candidateEndCol;
+        if (cellMerge) cc = cellMerge.maxCol;
+      }
+
+      const endRange = columnRange(boundaryCol)!;
+      // Phases always close out on the Friday of the week in which their
+      // color ends, not mid-week or on the week's last calendar day.
       laneMap.get(currentLane)!.push({
         title,
         startISO: toISO(startRange.start),
-        endISO: toISO(addDays(endRange.end, -1)),
+        endISO: toISO(fridayOfWeek(endRange.start)),
       });
     }
   }
