@@ -677,14 +677,21 @@ export function PoapRenderer({
               )}
             </div>
 
-            {/* A single sticky strip pinned just below the ruler (not
-                nested inside another positioned overlay — that nesting was
-                fragile and let badges render underneath/behind gate
-                labels when they landed at the same spot, see git history).
-                Its own height is 0 so it never pushes the gates row down;
-                the badges inside are plain absolute children positioned by
-                `left`, same trick as everywhere else on this axis. */}
-            <div className={styles.badgeRow} style={{ top: rulerHeight }} aria-hidden="true">
+            {/* A single sticky strip pinned to the bottom edge of the
+                ruler's month row (not nested inside another positioned
+                overlay — that nesting was fragile and let badges render
+                underneath/behind gate labels when they landed at the same
+                spot, see git history), so the badge hangs mostly over the
+                ruler itself rather than sitting on top of gate labels or
+                bars in the row below. Its own height is 0 so it never
+                pushes the gates row down; the badges inside are plain
+                absolute children positioned by `left`, same trick as
+                everywhere else on this axis. */}
+            <div
+              className={styles.badgeRow}
+              style={{ top: YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT - 8 }}
+              aria-hidden="true"
+            >
               {todayPosition !== null && (
                 <div className={styles.todayBadge} style={{ left: pct(todayPosition, scale) }}>
                   {strings.today}

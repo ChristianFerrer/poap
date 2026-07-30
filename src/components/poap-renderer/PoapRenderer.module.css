@@ -209,17 +209,20 @@
   pointer-events: none;
 }
 
+/* Small on purpose — just legible, not a shout. A soft shadow gives it
+   enough definition against whatever's behind it without the heavier,
+   attention-grabbing outline a hard border reads as. */
 .columnBadge {
   position: absolute;
-  top: 6px;
+  top: 4px;
   transform: translateX(4px);
   background: var(--text-accent);
   color: var(--card-bg);
-  border: 2px solid color-mix(in srgb, var(--text-accent) 70%, black);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-size: var(--text-3xs);
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
   white-space: nowrap;
 }
 
@@ -236,15 +239,17 @@
 }
 .todayBadge {
   position: absolute;
-  top: 6px;
+  top: 4px;
   transform: translateX(4px);
   background: var(--today-line);
   color: var(--accent-live-ink);
-  border: 2px solid var(--accent-live-ink);
-  font-size: var(--text-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-size: var(--text-3xs);
   font-weight: 700;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
   white-space: nowrap;
 }
 
