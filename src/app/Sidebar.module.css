@@ -47,6 +47,16 @@
   border-color: color-mix(in srgb, var(--text-accent) 35%, transparent);
 }
 
+/* Separates the fixed-panel visibility toggle from the content-selector
+   buttons above it — different kind of control, not another destination. */
+.divider {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
 @media (max-width: 640px) {
   .sidebar {
     width: 48px;

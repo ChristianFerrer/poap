@@ -49,6 +49,13 @@ function panelWidthMax(): number {
   return typeof window === "undefined" ? PANEL_WIDTH_DEFAULT : Math.floor(window.innerWidth * 0.5);
 }
 
+// Opens at 30% of the viewport rather than the old "always maxed out"
+// default — the drag handle still lets you grow it from there, up to
+// panelWidthMax.
+function panelWidthDefault(): number {
+  return typeof window === "undefined" ? PANEL_WIDTH_DEFAULT : Math.floor(window.innerWidth * 0.3);
+}
+
 /** "jun 2026 — may 2027" / "Jun 2026 — May 2027" — built from the plan's
  * own START_MONTH/MONTHS rather than hardcoded, so it can't drift out of
  * sync with the data and picks up locale-appropriate month abbreviations. */
@@ -70,11 +77,15 @@ export default function Page() {
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // Opens at its maximum width (half the viewport) rather than some smaller
-  // default — the drag handle still lets you shrink it back down from
-  // there. Lazy initializer so this reads window.innerWidth once, at
-  // mount, rather than on every render.
-  const [panelWidth, setPanelWidth] = useState(panelWidthMax);
+  // "Fixed" panel mode only: whether the docked panel is actually shown.
+  // Independent of explorer/gatesPanelOpen/importOpen/settingsOpen, which
+  // track *what* it would show — closing (X) in fixed mode hides the dock
+  // without forgetting what was open, so reactivating it (see the sidebar's
+  // panel toggle) restores the same content instead of resetting to empty.
+  const [fixedPanelVisible, setFixedPanelVisible] = useState(false);
+  // Lazy initializer so this reads window.innerWidth once, at mount,
+  // rather than on every render.
+  const [panelWidth, setPanelWidth] = useState(panelWidthDefault);
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const panelRef = useRef<HTMLDivElement>(null);
   const sidePanelWrapperRef = useRef<HTMLDivElement>(null);
@@ -175,6 +186,7 @@ export default function Page() {
     setGatesPanelOpen(false);
     setImportOpen(false);
     setSettingsOpen(false);
+    setFixedPanelVisible(true);
     // On narrow viewports the panel stacks below the calendar instead of
     // sitting beside it — bring it into view there, since it can otherwise
     // open off-screen with no indication anything happened.
@@ -186,6 +198,7 @@ export default function Page() {
     setExplorer(null);
     setGatesPanelOpen(false);
     setSettingsOpen(false);
+    setFixedPanelVisible(true);
     scrollToPanel();
   }
 
@@ -194,17 +207,53 @@ export default function Page() {
     setExplorer(null);
     setGatesPanelOpen(false);
     setImportOpen(false);
+    setFixedPanelVisible(true);
     scrollToPanel();
   }
 
   // "Home" in the side nav — just backs out of whatever panel is open
   // rather than navigating anywhere, since the calendar itself is the
-  // only "page" this app has.
+  // only "page" this app has. In "fixed" mode this also collapses the
+  // docked panel, so Home reliably means "just the calendar, full width".
   function goHome() {
     setExplorer(null);
     setGatesPanelOpen(false);
     setImportOpen(false);
     setSettingsOpen(false);
+    setFixedPanelVisible(false);
+  }
+
+  // Shared close ("X") handler for whichever panel is currently showing.
+  // In "overlay" mode this clears its content, which is enough to make the
+  // whole floating panel disappear (it's only ever rendered while
+  // something is open). In "fixed" mode the docked panel would otherwise
+  // stay put forever — clearing content wouldn't remove it, it'd just show
+  // the empty-state placeholder — so this hides the dock instead, without
+  // forgetting what was open (see fixedPanelVisible).
+  function closePanel() {
+    if (sidePanelMode === "fixed") {
+      setFixedPanelVisible(false);
+      return;
+    }
+    setExplorer(null);
+    setGatesPanelOpen(false);
+    setImportOpen(false);
+    setSettingsOpen(false);
+  }
+
+  function toggleFixedPanel() {
+    setFixedPanelVisible((v) => !v);
+  }
+
+  // Switching into "fixed" mode while something was already open (in the
+  // floating panel) should dock it visibly right away, not silently drop
+  // it — the user didn't ask to close anything, just to change how the
+  // panel behaves.
+  function handleSidePanelModeChange(mode: SidePanelMode) {
+    setSidePanelMode(mode);
+    if (mode === "fixed" && (explorer || gatesPanelOpen || importOpen || settingsOpen)) {
+      setFixedPanelVisible(true);
+    }
   }
 
   function importLanes(newLanes: Lane[]) {
@@ -308,6 +357,7 @@ export default function Page() {
     setImportOpen(false);
     setSettingsOpen(false);
     setGatesPanelOpen(true);
+    setFixedPanelVisible(true);
     scrollToPanel();
   }
 
@@ -319,6 +369,7 @@ export default function Page() {
     setImportOpen(false);
     setSettingsOpen(false);
     setGatesPanelOpen(true);
+    setFixedPanelVisible(true);
     scrollToPanel();
   }
 
@@ -352,7 +403,7 @@ export default function Page() {
       view={explorer}
       getActivities={getActivities}
       onNavigate={setExplorer}
-      onClose={() => setExplorer(null)}
+      onClose={closePanel}
       onAddLane={addLane}
       onUpdatePhase={updatePhase}
       onAddPhase={addPhase}
@@ -367,7 +418,7 @@ export default function Page() {
       gates={gates}
       activeGateIds={new Set(activeGateIds)}
       startMonth={START_MONTH}
-      onClose={() => setGatesPanelOpen(false)}
+      onClose={closePanel}
       onToggle={toggleGateActive}
       onUpdate={updateGate}
       onAdd={addGate}
@@ -378,7 +429,7 @@ export default function Page() {
       ref={panelRef}
       startMonth={START_MONTH}
       months={MONTHS}
-      onClose={() => setImportOpen(false)}
+      onClose={closePanel}
       onImport={importLanes}
     />
   ) : settingsOpen ? (
@@ -389,10 +440,10 @@ export default function Page() {
       showToday={showToday}
       onShowTodayChange={setShowToday}
       sidePanelMode={sidePanelMode}
-      onSidePanelModeChange={setSidePanelMode}
+      onSidePanelModeChange={handleSidePanelModeChange}
       navPosition={navPosition}
       onNavPositionChange={setNavPosition}
-      onClose={() => setSettingsOpen(false)}
+      onClose={closePanel}
     />
   ) : null;
 
@@ -405,6 +456,9 @@ export default function Page() {
         onSwimlines={() => openExplorer({ level: "lanes" })}
         onGates={openGatesPanel}
         onSettings={openSettingsPanel}
+        showPanelToggle={sidePanelMode === "fixed"}
+        panelVisible={fixedPanelVisible}
+        onTogglePanel={toggleFixedPanel}
       />
       <main className={`${styles.main} ${navPosition === "left" ? styles.mainNavLeft : styles.mainNavRight}`}>
         <div className={styles.headerRow}>
@@ -445,9 +499,11 @@ export default function Page() {
           </div>
 
           {/* "Fixed" side-panel mode: a normal flex sibling of the calendar,
-              always docked (never overlaying it), so it's rendered here
-              rather than as the floating variant below. */}
-          {sidePanelMode === "fixed" && (
+              docked (never overlaying it) rather than the floating variant
+              below — but only actually rendered while fixedPanelVisible,
+              so the calendar reclaims the full width instead of a docked-
+              but-empty box sitting there wasting it. */}
+          {sidePanelMode === "fixed" && fixedPanelVisible && (
             <div className={styles.sidePanelFixed} style={{ width: panelWidth }}>
               <div
                 className={styles.resizeHandle}

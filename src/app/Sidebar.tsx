@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IconGateDiamond, IconHome, IconLanes, IconSettings } from "@/lib/icons";
+import { IconGateDiamond, IconHome, IconLanes, IconPanel, IconSettings } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
@@ -22,6 +22,9 @@ export function Sidebar({
   onSwimlines,
   onGates,
   onSettings,
+  showPanelToggle,
+  panelVisible,
+  onTogglePanel,
 }: {
   position: SidebarPosition;
   active: SidebarActive;
@@ -29,6 +32,12 @@ export function Sidebar({
   onSwimlines: () => void;
   onGates: () => void;
   onSettings: () => void;
+  /** Only meaningful in "fixed" side-panel mode — a floating panel already
+   * fully appears/disappears on its own, so this extra show/hide control
+   * would be redundant there. */
+  showPanelToggle: boolean;
+  panelVisible: boolean;
+  onTogglePanel: () => void;
 }) {
   const { t } = useLanguage();
   const items: { key: SidebarActive; icon: ReactNode; label: string; onClick: () => void }[] = [
@@ -56,6 +65,27 @@ export function Sidebar({
           {item.icon}
         </button>
       ))}
+
+      {showPanelToggle && (
+        <>
+          {/* Separate from the content-selector buttons above — this one
+              only shows/hides the fixed panel dock, it doesn't change what
+              it's showing. Explicit control for reopening it once closed
+              via the panel's own X, since a docked panel (unlike the
+              floating one) won't otherwise reappear on its own. */}
+          <span className={styles.divider} aria-hidden="true" />
+          <button
+            type="button"
+            className={`${styles.navButton} ${panelVisible ? styles.navButtonActive : ""}`}
+            onClick={onTogglePanel}
+            aria-pressed={panelVisible}
+            aria-label={panelVisible ? t.sidebar.hidePanelAria : t.sidebar.showPanelAria}
+            title={panelVisible ? t.sidebar.hidePanelAria : t.sidebar.showPanelAria}
+          >
+            <IconPanel />
+          </button>
+        </>
+      )}
     </nav>
   );
 }
