@@ -1,6 +1,13 @@
 .main {
-  max-width: 1680px;
-  margin: 0 auto;
+  /* No max-width/centering — the whole point is to use every pixel the
+     screen offers, not cap out at a fixed content width and leave the
+     rest as dead margin. The old max-width:1680px + margin:0 auto also
+     centered relative to the *full* viewport, ignoring that the fixed
+     sidebar (see Sidebar.module.css) already claims real space on one
+     edge — that's what produced the lopsided gaps: centering math that
+     didn't know the sidebar existed, on top of an unnecessary cap.
+     mainNavLeft/mainNavRight below reserve exactly the sidebar's width;
+     everything else goes to actual content. */
   padding: 20px 32px 16px;
   /* The calendar fills the rest of the viewport below the header — .main
      is the full page height with its own two flex-item rows (header, then
