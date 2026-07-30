@@ -195,17 +195,18 @@
   border-left: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
   border-right: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
 }
-/* A single sticky strip, not a per-badge sticky element nested inside an
-   absolute anchor (that combination let a badge render underneath/behind
-   whatever gate or bar happened to share its spot). One sticky container,
-   plain absolutely-positioned badges inside it — clamps to the top of
-   .timelineScroll's visible area, just below the ruler, as you scroll
-   through lanes, and a z-index above every bar/gate/ruler cell guarantees
-   it's never covered by them. */
-.badgeRow {
+/* Reserved, otherwise-empty strip above the ruler (see BADGE_STRIP_HEIGHT)
+   — the today/selected-column badges live here instead of overlapping the
+   year row or gate/bar content below. Sticky to the very top of
+   .timelineScroll, one step above the ruler's own sticky offset (which
+   starts right at this strip's bottom edge), so both stay glued together
+   while scrolling through lanes. Not a per-badge sticky element nested
+   inside an absolute anchor — that combination used to let a badge render
+   underneath/behind whatever gate or bar happened to share its spot. */
+.badgeStrip {
   position: sticky;
-  z-index: 4;
-  height: 0;
+  top: 0;
+  z-index: 5;
   pointer-events: none;
 }
 
@@ -214,7 +215,7 @@
    attention-grabbing outline a hard border reads as. */
 .columnBadge {
   position: absolute;
-  top: 4px;
+  top: 1px;
   transform: translateX(4px);
   background: var(--text-accent);
   color: var(--card-bg);
@@ -239,7 +240,7 @@
 }
 .todayBadge {
   position: absolute;
-  top: 4px;
+  top: 1px;
   transform: translateX(4px);
   background: var(--today-line);
   color: var(--accent-live-ink);

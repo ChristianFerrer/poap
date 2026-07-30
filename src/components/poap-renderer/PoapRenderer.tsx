@@ -16,6 +16,7 @@ import {
 } from "@/lib/i18n";
 import { IconChevronDown, IconMinus, IconPlus } from "@/lib/icons";
 import {
+  BADGE_STRIP_HEIGHT,
   BAR_HEIGHT,
   BAR_MIN_TEXT_PX,
   GATES_ROW_BASE_HEIGHT,
@@ -561,7 +562,10 @@ export function PoapRenderer({
           style={{ width: LABEL_COL_WIDTH }}
           onScroll={(e) => syncScroll(e.currentTarget, timelineRef.current)}
         >
-          <div className={`${styles.labelCell} ${styles.labelHeaderCell}`} style={{ height: rulerHeight }} />
+          <div
+            className={`${styles.labelCell} ${styles.labelHeaderCell}`}
+            style={{ height: rulerHeight + BADGE_STRIP_HEIGHT }}
+          />
           <div
             className={`${styles.labelCell} ${styles.gatesLabelCell}`}
             style={{ height: gateRowHeight }}
@@ -614,14 +618,19 @@ export function PoapRenderer({
                 />
               ))}
               {/* Month lines only cross the year row at an actual year
-                  change (top: 0) — everywhere else they start below it, at
-                  the top of the month row, so they don't draw through the
-                  year label. */}
+                  change (top: BADGE_STRIP_HEIGHT, i.e. right at the ruler's
+                  own top) — everywhere else they start below it, at the
+                  top of the month row, so they don't draw through the
+                  year label. Both offsets are pushed down by the badge
+                  strip reserved above the ruler. */}
               {Array.from({ length: months + 1 }, (_, i) => (
                 <div
                   key={`m${i}`}
                   className={styles.monthGridLine}
-                  style={{ left: pct(i, scale), top: yearBoundaries.has(i) ? 0 : YEAR_ROW_HEIGHT }}
+                  style={{
+                    left: pct(i, scale),
+                    top: BADGE_STRIP_HEIGHT + (yearBoundaries.has(i) ? 0 : YEAR_ROW_HEIGHT),
+                  }}
                 />
               ))}
               {/* Day/week lines only reach up to the sub row — they never
@@ -630,12 +639,31 @@ export function PoapRenderer({
                 <div
                   key={`s${i}`}
                   className={styles.subGridLine}
-                  style={{ left: pct(cell.start, scale), top: YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT }}
+                  style={{ left: pct(cell.start, scale), top: BADGE_STRIP_HEIGHT + YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT }}
                 />
               ))}
             </div>
 
-            <div className={styles.ruler} style={{ height: rulerHeight }}>
+            {/* Reserved, otherwise-invisible strip above the ruler —
+                where the today/selected-column badges actually live, so
+                they never overlap the year row or any content below it.
+                Sticky at the very top, above the ruler's own sticky
+                offset (which starts right below this strip). */}
+            <div className={styles.badgeStrip} style={{ height: BADGE_STRIP_HEIGHT }} aria-hidden="true">
+              {todayPosition !== null && (
+                <div className={styles.todayBadge} style={{ left: pct(todayPosition, scale) }}>
+                  {strings.today}
+                </div>
+              )}
+              {selectedColumn !== null && (
+                <div className={styles.columnBadge} style={{ left: pct(selectedColumn.range.start, scale) }}>
+                  {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth, monthAbbr, strings.weekOfPrefix)} ·{" "}
+                  {touchedCount} {pluralForm(touchedCount, { one: strings.phaseOne, other: strings.phaseOther })}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.ruler} style={{ height: rulerHeight, top: BADGE_STRIP_HEIGHT }}>
               <div className={styles.yearRow} style={{ height: YEAR_ROW_HEIGHT }}>
                 {ySegments.map((seg) => (
                   <div
@@ -673,34 +701,6 @@ export function PoapRenderer({
                       {cell.label}
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-
-            {/* A single sticky strip pinned to the bottom edge of the
-                ruler's month row (not nested inside another positioned
-                overlay — that nesting was fragile and let badges render
-                underneath/behind gate labels when they landed at the same
-                spot, see git history), so the badge hangs mostly over the
-                ruler itself rather than sitting on top of gate labels or
-                bars in the row below. Its own height is 0 so it never
-                pushes the gates row down; the badges inside are plain
-                absolute children positioned by `left`, same trick as
-                everywhere else on this axis. */}
-            <div
-              className={styles.badgeRow}
-              style={{ top: YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT - 8 }}
-              aria-hidden="true"
-            >
-              {todayPosition !== null && (
-                <div className={styles.todayBadge} style={{ left: pct(todayPosition, scale) }}>
-                  {strings.today}
-                </div>
-              )}
-              {selectedColumn !== null && (
-                <div className={styles.columnBadge} style={{ left: pct(selectedColumn.range.start, scale) }}>
-                  {formatColumnLabel(selectedColumn.range, selectedColumn.unit, startMonth, monthAbbr, strings.weekOfPrefix)} ·{" "}
-                  {touchedCount} {pluralForm(touchedCount, { one: strings.phaseOne, other: strings.phaseOther })}
                 </div>
               )}
             </div>
@@ -789,7 +789,7 @@ export function PoapRenderer({
                       // not at the top of the whole gates track — otherwise
                       // the line cuts across the icon/label instead of
                       // growing out from underneath it.
-                      top: rulerHeight + (gateOffsets[g.id] ?? 0) + GATE_SHIFT_PX,
+                      top: BADGE_STRIP_HEIGHT + rulerHeight + (gateOffsets[g.id] ?? 0) + GATE_SHIFT_PX,
                     }}
                   />
                 ))}

@@ -16,6 +16,13 @@ export const MONTH_ROW_HEIGHT = 22;
 export const SUB_ROW_HEIGHT = 16;
 export const GATES_ROW_BASE_HEIGHT = 22;
 
+/** A reserved, otherwise-empty strip above the year row — exists only so
+ * the today/selected-column badges have real space to sit in above the
+ * ruler, instead of overlapping the year label or any gate/bar content
+ * below it. Sticky, same as the ruler, so it stays pinned to the top of
+ * the calendar's internal scroll alongside it. */
+export const BADGE_STRIP_HEIGHT = 20;
+
 export type SubRowGranularity = "none" | "week" | "day";
 
 export interface ZoomLevel {
