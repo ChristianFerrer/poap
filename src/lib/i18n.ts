@@ -19,6 +19,14 @@ export const ZOOM_LABELS: Record<Locale, Record<"anio" | "mes" | "semana" | "dia
   en: { anio: "Year", mes: "Month", semana: "Week", dia: "Day" },
 };
 
+/** Single-letter weekday initials, indexed like Date#getUTCDay() (0=Sunday
+ * … 6=Saturday) — shown above the day number in the Día zoom's sub row.
+ * Spanish uses X for Wednesday (not M) so Tue/Wed/Sat don't collide. */
+export const DAY_INITIALS: Record<Locale, string[]> = {
+  es: ["D", "L", "M", "X", "J", "V", "S"],
+  en: ["S", "M", "T", "W", "T", "F", "S"],
+};
+
 /**
  * poap-renderer/ only ever receives data in and fires callbacks out (see
  * the component's own architecture comment) — it never reaches into app

@@ -98,3 +98,36 @@ export function IconSort() {
     </svg>
   );
 }
+
+export function IconHome() {
+  return (
+    <svg {...base}>
+      <path d="M4 11 12 4l8 7M6 9.5V20h12V9.5" />
+    </svg>
+  );
+}
+
+export function IconGateDiamond() {
+  return (
+    <svg {...base}>
+      <path d="M12 4 20 12 12 20 4 12Z" />
+    </svg>
+  );
+}
+
+export function IconLanes() {
+  return (
+    <svg {...base}>
+      <path d="M4 7h16M4 12h10M4 17h13" />
+    </svg>
+  );
+}
+
+export function IconSettings() {
+  return (
+    <svg {...base}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3v2.2M12 18.8V21M4.9 4.9l1.55 1.55M17.55 17.55 19.1 19.1M3 12h2.2M18.8 12H21M4.9 19.1l1.55-1.55M17.55 6.45 19.1 4.9" />
+    </svg>
+  );
+}

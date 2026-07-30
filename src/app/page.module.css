@@ -13,6 +13,16 @@
   overflow: hidden;
 }
 
+/* Extra clearance for the fixed icon sidebar (see Sidebar.module.css),
+   whichever edge it's docked to — added on top of .main's own base
+   padding, not replacing it, since only one side's padding changes here. */
+.mainNavLeft {
+  padding-left: 96px;
+}
+.mainNavRight {
+  padding-right: 96px;
+}
+
 .headerRow {
   display: flex;
   justify-content: space-between;
@@ -146,9 +156,41 @@
   overflow-y: auto;
 }
 
+/* "Fixed" panel mode — a normal flex sibling of .calendarCol inside
+   .layout (see .layout above), docked in the page's own flow instead of
+   floating over it. Same internal structure (.resizeHandle +
+   .sidePanelContent) as the overlay variant, just without position:fixed,
+   the box-shadow, or the border-left doubling as an escape from .main's
+   overflow:hidden. */
+.sidePanelFixed {
+  flex: 0 0 auto;
+  min-height: 0;
+  display: flex;
+  background: var(--card-bg);
+  border-left: 1px solid var(--border);
+}
+
+.emptyPanel {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
 @media (max-width: 640px) {
   .main {
     padding: 14px 12px 10px;
+  }
+  .mainNavLeft {
+    padding-left: 72px;
+  }
+  .mainNavRight {
+    padding-right: 72px;
   }
   .title {
     font-size: var(--text-lg);
@@ -163,6 +205,22 @@
     width: 100% !important;
   }
   .resizeHandle {
+    display: none;
+  }
+  /* A permanently docked panel can't also claim a horizontal slice of a
+     phone-sized viewport without leaving no room for the calendar — stack
+     it below instead, full width, with its own capped height/scroll. */
+  .layoutStacked {
+    flex-direction: column;
+  }
+  .layoutStacked .sidePanelFixed {
+    width: 100% !important;
+    flex: 0 0 auto;
+    max-height: 45vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .layoutStacked .resizeHandle {
     display: none;
   }
 }

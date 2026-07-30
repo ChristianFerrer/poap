@@ -17,12 +17,30 @@ import {
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { GatesPanel } from "./GatesPanel";
 import { ImportPanel } from "./ImportPanel";
+import { SettingsPanel, type NavPosition, type SidePanelMode } from "./SettingsPanel";
+import { Sidebar, type SidebarActive } from "./Sidebar";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { MONTH_ABBR, type Locale } from "@/lib/i18n";
 import styles from "./page.module.css";
 
 const PANEL_WIDTH_DEFAULT = 400;
 const PANEL_WIDTH_MIN = 320;
+
+const SETTINGS_STORAGE_KEY = "poap-settings";
+
+interface AppSettings {
+  showWeekends: boolean;
+  showToday: boolean;
+  sidePanelMode: SidePanelMode;
+  navPosition: NavPosition;
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  showWeekends: true,
+  showToday: true,
+  sidePanelMode: "overlay",
+  navPosition: "left",
+};
 
 // The panel can grow up to half the viewport, never more — read live off
 // window.innerWidth rather than a fixed px cap, since "half the screen" is
@@ -51,6 +69,7 @@ export default function Page() {
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // Opens at its maximum width (half the viewport) rather than some smaller
   // default — the drag handle still lets you shrink it back down from
   // there. Lazy initializer so this reads window.innerWidth once, at
@@ -58,6 +77,35 @@ export default function Page() {
   const [panelWidth, setPanelWidth] = useState(panelWidthMax);
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const panelRef = useRef<HTMLDivElement>(null);
+  const sidePanelWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Display preferences from the settings panel — persisted across visits
+  // the same way the language choice is (see LanguageProvider), under one
+  // JSON blob rather than one localStorage key each.
+  const [showWeekends, setShowWeekends] = useState(DEFAULT_SETTINGS.showWeekends);
+  const [showToday, setShowToday] = useState(DEFAULT_SETTINGS.showToday);
+  const [sidePanelMode, setSidePanelMode] = useState<SidePanelMode>(DEFAULT_SETTINGS.sidePanelMode);
+  const [navPosition, setNavPosition] = useState<NavPosition>(DEFAULT_SETTINGS.navPosition);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as Partial<AppSettings>;
+      if (typeof parsed.showWeekends === "boolean") setShowWeekends(parsed.showWeekends);
+      if (typeof parsed.showToday === "boolean") setShowToday(parsed.showToday);
+      if (parsed.sidePanelMode === "overlay" || parsed.sidePanelMode === "fixed") setSidePanelMode(parsed.sidePanelMode);
+      if (parsed.navPosition === "left" || parsed.navPosition === "right") setNavPosition(parsed.navPosition);
+    } catch {
+      // Malformed/foreign localStorage value — fall back to defaults rather
+      // than throw during render.
+    }
+  }, []);
+
+  useEffect(() => {
+    const settings: AppSettings = { showWeekends, showToday, sidePanelMode, navPosition };
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  }, [showWeekends, showToday, sidePanelMode, navPosition]);
 
   // If the window shrinks (e.g. rotating a tablet) below the panel's
   // current width, re-clamp it to the new 50% cap instead of leaving it
@@ -69,6 +117,26 @@ export default function Page() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Click-outside-to-close — only meaningful in "overlay" mode, since a
+  // "fixed" panel is docked in the layout permanently and closing it on an
+  // outside click would fight the whole point of pinning it. Attached only
+  // while a panel is actually open, so it never intercepts the mousedown
+  // that opens the very first panel.
+  useEffect(() => {
+    if (sidePanelMode !== "overlay") return;
+    if (!(explorer || gatesPanelOpen || importOpen || settingsOpen)) return;
+    function onPointerDown(e: MouseEvent) {
+      if (sidePanelWrapperRef.current && !sidePanelWrapperRef.current.contains(e.target as Node)) {
+        setExplorer(null);
+        setGatesPanelOpen(false);
+        setImportOpen(false);
+        setSettingsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [sidePanelMode, explorer, gatesPanelOpen, importOpen, settingsOpen]);
 
   // Drag-to-resize the side panel — the handle sits on the panel's left
   // edge, so dragging left (away from the right-anchored panel) grows it.
@@ -106,6 +174,7 @@ export default function Page() {
     setExplorer(view);
     setGatesPanelOpen(false);
     setImportOpen(false);
+    setSettingsOpen(false);
     // On narrow viewports the panel stacks below the calendar instead of
     // sitting beside it — bring it into view there, since it can otherwise
     // open off-screen with no indication anything happened.
@@ -116,7 +185,26 @@ export default function Page() {
     setImportOpen(true);
     setExplorer(null);
     setGatesPanelOpen(false);
+    setSettingsOpen(false);
     scrollToPanel();
+  }
+
+  function openSettingsPanel() {
+    setSettingsOpen(true);
+    setExplorer(null);
+    setGatesPanelOpen(false);
+    setImportOpen(false);
+    scrollToPanel();
+  }
+
+  // "Home" in the side nav — just backs out of whatever panel is open
+  // rather than navigating anywhere, since the calendar itself is the
+  // only "page" this app has.
+  function goHome() {
+    setExplorer(null);
+    setGatesPanelOpen(false);
+    setImportOpen(false);
+    setSettingsOpen(false);
   }
 
   function importLanes(newLanes: Lane[]) {
@@ -218,6 +306,7 @@ export default function Page() {
     toggleGateActive(gateId);
     setExplorer(null);
     setImportOpen(false);
+    setSettingsOpen(false);
     setGatesPanelOpen(true);
     scrollToPanel();
   }
@@ -228,6 +317,7 @@ export default function Page() {
   function openGatesPanel() {
     setExplorer(null);
     setImportOpen(false);
+    setSettingsOpen(false);
     setGatesPanelOpen(true);
     scrollToPanel();
   }
@@ -245,104 +335,155 @@ export default function Page() {
     setActiveGateIds((prev) => prev.filter((gid) => gid !== id));
   }
 
+  const anyPanelOpen = Boolean(explorer || gatesPanelOpen || importOpen || settingsOpen);
+  const sidebarActive: SidebarActive = settingsOpen
+    ? "settings"
+    : gatesPanelOpen
+      ? "gates"
+      : explorer
+        ? "swimlines"
+        : "home";
+
+  const panelContent = explorer ? (
+    <ExplorerPanel
+      ref={panelRef}
+      lanes={lanes}
+      startMonth={START_MONTH}
+      view={explorer}
+      getActivities={getActivities}
+      onNavigate={setExplorer}
+      onClose={() => setExplorer(null)}
+      onAddLane={addLane}
+      onUpdatePhase={updatePhase}
+      onAddPhase={addPhase}
+      onAddActivity={addActivity}
+      onDeleteLane={deleteLane}
+      onDeletePhase={deletePhase}
+      onDeleteActivity={deleteActivity}
+    />
+  ) : gatesPanelOpen ? (
+    <GatesPanel
+      ref={panelRef}
+      gates={gates}
+      activeGateIds={new Set(activeGateIds)}
+      startMonth={START_MONTH}
+      onClose={() => setGatesPanelOpen(false)}
+      onToggle={toggleGateActive}
+      onUpdate={updateGate}
+      onAdd={addGate}
+      onDelete={deleteGate}
+    />
+  ) : importOpen ? (
+    <ImportPanel
+      ref={panelRef}
+      startMonth={START_MONTH}
+      months={MONTHS}
+      onClose={() => setImportOpen(false)}
+      onImport={importLanes}
+    />
+  ) : settingsOpen ? (
+    <SettingsPanel
+      ref={panelRef}
+      showWeekends={showWeekends}
+      onShowWeekendsChange={setShowWeekends}
+      showToday={showToday}
+      onShowTodayChange={setShowToday}
+      sidePanelMode={sidePanelMode}
+      onSidePanelModeChange={setSidePanelMode}
+      navPosition={navPosition}
+      onNavPositionChange={setNavPosition}
+      onClose={() => setSettingsOpen(false)}
+    />
+  ) : null;
+
   return (
-    <main className={styles.main}>
-      <div className={styles.headerRow}>
-        <div>
-          <p className={styles.eyebrow}>{t.header.eyebrow}</p>
-          <h1 className={styles.title}>{t.header.title}</h1>
-          <p className={styles.meta}>
-            {lanes.length} {t.header.lanesWord} · {phaseCount} {t.header.phasesWord} · {MONTHS}{" "}
-            {t.header.monthsWord} · {formatMonthRange(START_MONTH, MONTHS, MONTH_ABBR[locale])}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <LanguageSwitch locale={locale} onChange={setLocale} ariaLabel={t.header.languageAria} />
-          <button type="button" className={styles.importButton} onClick={openImportPanel}>
-            {t.header.importButton}
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.layout}>
-        <div className={styles.calendarCol}>
-          <PoapRenderer
-            months={MONTHS}
-            startMonth={START_MONTH}
-            lanes={lanes}
-            gates={gates}
-            bands={BANDS}
-            selectedPhaseId={selectedPhaseId}
-            onPhaseClick={handlePhaseClick}
-            activeGateIds={activeGateIds}
-            onGateClick={handleGateClick}
-            onLaneClick={handleLaneClick}
-            onGatesLabelClick={openGatesPanel}
-            locale={locale}
-          />
-        </div>
-      </div>
-
-      {/* Fixed, right-anchored overlay — not part of the flex layout above,
-          so it floats over the calendar instead of squeezing it, and
-          deliberately has no dimming backdrop behind it: the calendar stays
-          fully interactive/visible while the panel is open. */}
-      {(explorer || gatesPanelOpen || importOpen) && (
-        <div className={styles.sidePanel} style={{ width: panelWidth }}>
-          <div
-            className={styles.resizeHandle}
-            onMouseDown={startResize}
-            role="separator"
-            aria-orientation="vertical"
-            aria-label={t.header.resizeHandleAria}
-          />
-          <div className={styles.sidePanelContent}>
-            {explorer && (
-              <ExplorerPanel
-                ref={panelRef}
-                lanes={lanes}
-                startMonth={START_MONTH}
-                view={explorer}
-                getActivities={getActivities}
-                onNavigate={setExplorer}
-                onClose={() => setExplorer(null)}
-                onAddLane={addLane}
-                onUpdatePhase={updatePhase}
-                onAddPhase={addPhase}
-                onAddActivity={addActivity}
-                onDeleteLane={deleteLane}
-                onDeletePhase={deletePhase}
-                onDeleteActivity={deleteActivity}
-              />
-            )}
-
-            {gatesPanelOpen && (
-              <GatesPanel
-                ref={panelRef}
-                gates={gates}
-                activeGateIds={new Set(activeGateIds)}
-                startMonth={START_MONTH}
-                onClose={() => setGatesPanelOpen(false)}
-                onToggle={toggleGateActive}
-                onUpdate={updateGate}
-                onAdd={addGate}
-                onDelete={deleteGate}
-              />
-            )}
-
-            {importOpen && (
-              <ImportPanel
-                ref={panelRef}
-                startMonth={START_MONTH}
-                months={MONTHS}
-                onClose={() => setImportOpen(false)}
-                onImport={importLanes}
-              />
-            )}
+    <>
+      <Sidebar
+        position={navPosition}
+        active={sidebarActive}
+        onHome={goHome}
+        onSwimlines={() => openExplorer({ level: "lanes" })}
+        onGates={openGatesPanel}
+        onSettings={openSettingsPanel}
+      />
+      <main className={`${styles.main} ${navPosition === "left" ? styles.mainNavLeft : styles.mainNavRight}`}>
+        <div className={styles.headerRow}>
+          <div>
+            <p className={styles.eyebrow}>{t.header.eyebrow}</p>
+            <h1 className={styles.title}>{t.header.title}</h1>
+            <p className={styles.meta}>
+              {lanes.length} {t.header.lanesWord} · {phaseCount} {t.header.phasesWord} · {MONTHS}{" "}
+              {t.header.monthsWord} · {formatMonthRange(START_MONTH, MONTHS, MONTH_ABBR[locale])}
+            </p>
+          </div>
+          <div className={styles.headerActions}>
+            <LanguageSwitch locale={locale} onChange={setLocale} ariaLabel={t.header.languageAria} />
+            <button type="button" className={styles.importButton} onClick={openImportPanel}>
+              {t.header.importButton}
+            </button>
           </div>
         </div>
-      )}
-    </main>
+
+        <div className={`${styles.layout} ${sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
+          <div className={styles.calendarCol}>
+            <PoapRenderer
+              months={MONTHS}
+              startMonth={START_MONTH}
+              lanes={lanes}
+              gates={gates}
+              bands={BANDS}
+              selectedPhaseId={selectedPhaseId}
+              onPhaseClick={handlePhaseClick}
+              activeGateIds={activeGateIds}
+              onGateClick={handleGateClick}
+              onLaneClick={handleLaneClick}
+              onGatesLabelClick={openGatesPanel}
+              locale={locale}
+              showWeekends={showWeekends}
+              showToday={showToday}
+            />
+          </div>
+
+          {/* "Fixed" side-panel mode: a normal flex sibling of the calendar,
+              always docked (never overlaying it), so it's rendered here
+              rather than as the floating variant below. */}
+          {sidePanelMode === "fixed" && (
+            <div className={styles.sidePanelFixed} style={{ width: panelWidth }}>
+              <div
+                className={styles.resizeHandle}
+                onMouseDown={startResize}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label={t.header.resizeHandleAria}
+              />
+              <div className={styles.sidePanelContent}>
+                {panelContent ?? <p className={styles.emptyPanel}>{t.settings.emptyPanel}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* "Overlay" side-panel mode (the default): fixed, right-anchored,
+            not part of the flex layout above, so it floats over the
+            calendar instead of squeezing it, and deliberately has no
+            dimming backdrop behind it — the calendar stays fully
+            interactive/visible while the panel is open. Only rendered
+            while something is actually open, and closes on an outside
+            click (see the effect above). */}
+        {sidePanelMode === "overlay" && anyPanelOpen && (
+          <div ref={sidePanelWrapperRef} className={styles.sidePanel} style={{ width: panelWidth }}>
+            <div
+              className={styles.resizeHandle}
+              onMouseDown={startResize}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t.header.resizeHandleAria}
+            />
+            <div className={styles.sidePanelContent}>{panelContent}</div>
+          </div>
+        )}
+      </main>
+    </>
   );
 }
 

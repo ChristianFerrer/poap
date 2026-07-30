@@ -61,4 +61,10 @@ export interface PoapRendererProps {
    * diamond) — same idea as onLaneClick, opens whatever management view
    * the app has for gates in general rather than one gate in particular. */
   onGatesLabelClick?: () => void;
+  /** Whether Saturday/Sunday columns get a tinted background across the
+   * whole calendar body. Purely visual — defaults on. */
+  showWeekends?: boolean;
+  /** Whether the current-day marker (line + "Hoy"/"Today" badge) renders
+   * at all. Defaults on. */
+  showToday?: boolean;
 }

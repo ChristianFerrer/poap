@@ -6,6 +6,7 @@ import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
 import type { Lane, Phase, PhaseStatus, PoapRendererProps } from "./types";
 import {
+  DAY_INITIALS,
   DEFAULT_LOCALE,
   MONTH_ABBR,
   RENDERER_STRINGS,
@@ -156,6 +157,10 @@ interface SubCell {
   start: number;
   end: number;
   label: number;
+  /** Date#getUTCDay() of the cell's start day (0=Sun…6=Sat) — used to show
+   * the weekday initial above the day number at the Día zoom, and to know
+   * which sub-row cells fall on a weekend. */
+  dow: number;
 }
 
 /**
@@ -180,9 +185,39 @@ function subCells(startMonth: string, months: number, granularity: SubRowGranula
     d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + stepDays))
   ) {
     const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + stepDays));
-    cells.push({ start: toAxis(d, startMonth), end: toAxis(next, startMonth), label: d.getUTCDate() });
+    cells.push({ start: toAxis(d, startMonth), end: toAxis(next, startMonth), label: d.getUTCDate(), dow: d.getUTCDay() });
   }
   return cells;
+}
+
+interface DayRange {
+  start: number;
+  end: number;
+}
+
+/** Every Saturday/Sunday in the plan's range, as axis start/end pairs —
+ * used to tint weekend columns across the whole calendar body regardless
+ * of zoom level (unlike subCells, which only exists at week/day
+ * granularity and is Año/Mes-zoom-dependent). */
+function weekendRanges(startMonth: string, months: number): DayRange[] {
+  const parts = startMonth.split("-").map(Number);
+  const y = parts[0] ?? 0;
+  const m = parts[1] ?? 1;
+  const rangeStart = new Date(Date.UTC(y, m - 1, 1));
+  const rangeEnd = new Date(Date.UTC(y, m - 1 + months, 1));
+
+  const ranges: DayRange[] = [];
+  for (
+    let d = rangeStart;
+    d < rangeEnd;
+    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1))
+  ) {
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) continue;
+    const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1));
+    ranges.push({ start: toAxis(d, startMonth), end: toAxis(next, startMonth) });
+  }
+  return ranges;
 }
 
 type ColumnUnit = "day" | "week" | "month";
@@ -333,6 +368,8 @@ export function PoapRenderer({
   onGateClick,
   onLaneClick,
   onGatesLabelClick,
+  showWeekends = true,
+  showToday = true,
 }: PoapRendererProps) {
   const monthAbbr = MONTH_ABBR[locale];
   const statusLabels = STATUS_LABELS[locale];
@@ -411,6 +448,11 @@ export function PoapRenderer({
     () => subCells(startMonth, months, zoom.subRowGranularity),
     [startMonth, months, zoom.subRowGranularity],
   );
+  const wRanges = useMemo(
+    () => (showWeekends ? weekendRanges(startMonth, months) : []),
+    [startMonth, months, showWeekends],
+  );
+  const dayInitials = DAY_INITIALS[locale];
 
   // Today marker — only rendered when "today" actually falls inside the
   // plan's own axis range, since a plan viewed months before/after its
@@ -570,12 +612,20 @@ export function PoapRenderer({
             className={`${styles.labelCell} ${styles.gatesLabelCell}`}
             style={{ height: gateRowHeight }}
           >
+            {/* Same left indent as a lane row's chevron+gap, and the same
+                laneLabelText styling, so "Stage gates" reads as one more
+                row in the same list rather than a visually distinct
+                heading. */}
             {onGatesLabelClick ? (
               <button type="button" className={styles.gatesLabelButton} onClick={onGatesLabelClick}>
-                {strings.stageGates}
+                <span className={styles.gatesLabelSpacer} aria-hidden="true" />
+                <span className={styles.laneLabelText}>{strings.stageGates}</span>
               </button>
             ) : (
-              strings.stageGates
+              <>
+                <span className={styles.gatesLabelSpacer} aria-hidden="true" />
+                <span className={styles.laneLabelText}>{strings.stageGates}</span>
+              </>
             )}
           </div>
           {packedLanes.map(({ lane, rows }) => {
@@ -617,6 +667,17 @@ export function PoapRenderer({
                   title={band.label}
                 />
               ))}
+              {/* Weekend tint — painted after period bands so it stays
+                  visibly distinct even where a band already tints the
+                  background. Sits behind every bar/gate (see .weekendBand),
+                  same "behind everything" role as .band. */}
+              {wRanges.map((range, i) => (
+                <div
+                  key={`we${i}`}
+                  className={styles.weekendBand}
+                  style={{ left: pct(range.start, scale), width: pctSpan(range.start, range.end, scale) }}
+                />
+              ))}
               {/* Month lines only cross the year row at an actual year
                   change (top: BADGE_STRIP_HEIGHT, i.e. right at the ruler's
                   own top) — everywhere else they start below it, at the
@@ -650,7 +711,7 @@ export function PoapRenderer({
                 Sticky at the very top, above the ruler's own sticky
                 offset (which starts right below this strip). */}
             <div className={styles.badgeStrip} style={{ height: BADGE_STRIP_HEIGHT }} aria-hidden="true">
-              {todayPosition !== null && (
+              {showToday && todayPosition !== null && (
                 <div className={styles.todayBadge} style={{ left: pct(todayPosition, scale) }}>
                   {strings.today}
                 </div>
@@ -692,15 +753,25 @@ export function PoapRenderer({
                   style={{ height: SUB_ROW_HEIGHT }}
                   onClick={(e) => focusColumn(e, zoom.subRowGranularity as ColumnUnit)}
                 >
-                  {sCells.map((cell, i) => (
-                    <div
-                      key={i}
-                      className={styles.subCell}
-                      style={{ left: pct(cell.start, scale), width: pctSpan(cell.start, cell.end, scale) }}
-                    >
-                      {cell.label}
-                    </div>
-                  ))}
+                  {sCells.map((cell, i) => {
+                    const isWeekend = cell.dow === 0 || cell.dow === 6;
+                    return (
+                      <div
+                        key={i}
+                        className={[
+                          styles.subCell,
+                          zoom.subRowGranularity === "day" ? styles.subCellDay : "",
+                          showWeekends && isWeekend ? styles.subCellWeekend : "",
+                        ].join(" ").trim()}
+                        style={{ left: pct(cell.start, scale), width: pctSpan(cell.start, cell.end, scale) }}
+                      >
+                        {zoom.subRowGranularity === "day" && (
+                          <span className={styles.subCellDow}>{dayInitials[cell.dow]}</span>
+                        )}
+                        {cell.label}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -775,7 +846,7 @@ export function PoapRenderer({
                 Holds both Focus Cell's highlight and active stage-gate
                 lines — unrelated features, same "always on top" need. */}
             <div className={styles.focusOverlay} aria-hidden="true">
-              {todayPosition !== null && <div className={styles.todayLine} style={{ left: pct(todayPosition, scale) }} />}
+              {showToday && todayPosition !== null && <div className={styles.todayLine} style={{ left: pct(todayPosition, scale) }} />}
               {sortedGates
                 .filter((g) => activeGateIds.has(g.id))
                 .map((g) => (

@@ -161,6 +161,18 @@
   background: var(--surface-0);
 }
 
+/* Saturday/Sunday columns, tinted across the whole calendar body (behind
+   the ruler's own opaque row backgrounds, which paint over it there — see
+   the .tsx comment on where this renders in DOM order). A translucent
+   dark mix rather than a flat color so it still reads as "shaded" over a
+   period band's own tint instead of one flatly replacing the other. */
+.weekendBand {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
 .monthGridLine {
   position: absolute;
   top: 0;
@@ -272,7 +284,15 @@
   flex-shrink: 0;
 }
 .gatesLabelCell {
-  font-weight: 500;
+  gap: 2px;
+}
+/* Matches .chevronButton's width so "Stage gates" starts at the exact same
+   x-position as a lane name (which sits after its own chevron+gap) —
+   without this the row reads as indented differently from every other
+   swimlane label. */
+.gatesLabelSpacer {
+  flex: 0 0 auto;
+  width: 18px;
 }
 /* Same "open the management view for this row" affordance as
    .laneNameButton — clicking the row's own name, not a specific gate
@@ -282,12 +302,12 @@
   height: 100%;
   display: flex;
   align-items: center;
+  gap: 2px;
   background: none;
   border: none;
   border-radius: var(--radius-xs);
   cursor: pointer;
   font: inherit;
-  font-weight: inherit;
   color: inherit;
   text-align: left;
   padding: 0 4px 0 0;
@@ -419,6 +439,26 @@
      the boundary needs its own border right here to read as one continuous
      line with the body divider beneath it. */
   border-left: 1px solid var(--border);
+}
+/* Día zoom only — stacks the weekday initial above the day number instead
+   of showing the number alone, same cell otherwise. */
+.subCellDay {
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.15;
+}
+.subCellDow {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+/* Weekend shading inside the sub row itself — same tint idea as
+   .weekendBand, but opaque enough to read against this row's own solid
+   background (color-mix(bg-accent) on .subRow), which a translucent mix
+   alone wouldn't contrast against reliably. */
+.subCellWeekend {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 .gatesTrack {
