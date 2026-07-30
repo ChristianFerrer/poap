@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LanguageProvider } from "./i18n/LanguageProvider";
+import { ProjectsProvider } from "./ProjectsProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,7 +12,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body>
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          <ProjectsProvider>{children}</ProjectsProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

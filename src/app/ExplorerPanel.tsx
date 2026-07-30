@@ -2,9 +2,9 @@
 
 import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
-import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
-import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
+import { MONTH_ABBR, STAGE_CATEGORIES, STAGE_CATEGORY_LABELS, STATUS_LABELS, pluralForm, type StageCategory } from "@/lib/i18n";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
+import { formatDate, fromISODate, toISODate } from "./dateAxis";
 import { IconChevronRight, IconClose, IconPlus, IconSearch, IconSort, IconTrash } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./ExplorerPanel.module.css";
@@ -79,18 +79,6 @@ export type ExplorerView =
   | { level: "activities"; phaseId: string }
   | { level: "activity"; phaseId: string; activityId: string };
 
-function toISODate(position: number, startMonth: string): string {
-  return fromAxis(position, startMonth).toISOString().slice(0, 10);
-}
-function fromISODate(iso: string, startMonth: string): number {
-  const [y, m, day] = iso.split("-").map(Number) as [number, number, number];
-  return toAxis(new Date(Date.UTC(y, m - 1, day)), startMonth);
-}
-function formatDate(position: number, startMonth: string, monthAbbr: string[]): string {
-  const d = fromAxis(position, startMonth);
-  return `${d.getUTCDate()} ${monthAbbr[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
-}
-
 function StatusPill({ status }: { status: PhaseStatus }) {
   const { locale } = useLanguage();
   return (
@@ -161,7 +149,7 @@ export const ExplorerPanel = forwardRef<
     onUpdatePhase: (
       laneId: string,
       phaseId: string,
-      patch: Partial<Pick<Phase, "title" | "start" | "end" | "status">>,
+      patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category">>,
     ) => void;
     onAddPhase: (laneId: string, phase: Phase) => void;
     onAddActivity: (phase: Phase, activity: ActivitySeed) => void;
@@ -190,7 +178,13 @@ export const ExplorerPanel = forwardRef<
   const { t, locale } = useLanguage();
   const monthAbbr = MONTH_ABBR[locale];
   const [newLaneName, setNewLaneName] = useState("");
-  const [newPhase, setNewPhase] = useState({ title: "", start: "", end: "", status: "not_started" as PhaseStatus });
+  const [newPhase, setNewPhase] = useState({
+    title: "",
+    start: "",
+    end: "",
+    status: "not_started" as PhaseStatus,
+    category: "" as StageCategory | "",
+  });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
   const [draft, setDraft] = useState("");
@@ -228,8 +222,9 @@ export const ExplorerPanel = forwardRef<
       start: fromISODate(newPhase.start, startMonth),
       end: fromISODate(newPhase.end, startMonth),
       status: newPhase.status,
+      category: newPhase.category || undefined,
     });
-    setNewPhase({ title: "", start: "", end: "", status: "not_started" });
+    setNewPhase({ title: "", start: "", end: "", status: "not_started", category: "" });
   }
 
   function submitNewActivity(phase: Phase) {
@@ -426,6 +421,19 @@ export const ExplorerPanel = forwardRef<
                       </option>
                     ))}
                   </select>
+                  <select
+                    className={styles.statusSelect}
+                    value={newPhase.category}
+                    onChange={(e) => setNewPhase((p) => ({ ...p, category: e.target.value as StageCategory | "" }))}
+                    aria-label={t.explorer.categoryAria}
+                  >
+                    <option value="">{t.explorer.categoryNone}</option>
+                    {STAGE_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {STAGE_CATEGORY_LABELS[locale][c]}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
                     className={styles.addButton}
@@ -453,6 +461,7 @@ export const ExplorerPanel = forwardRef<
                         <th>{t.explorer.tableStart}</th>
                         <th>{t.explorer.tableEnd}</th>
                         <th>{t.explorer.tableStatus}</th>
+                        <th>{t.explorer.tableCategory}</th>
                         <th aria-hidden="true" />
                         <th aria-hidden="true" />
                       </tr>
@@ -505,6 +514,23 @@ export const ExplorerPanel = forwardRef<
                             </select>
                           </td>
                           <td>
+                            <select
+                              className={styles.statusSelect}
+                              value={phase.category ?? ""}
+                              onChange={(e) =>
+                                onUpdatePhase(lane.id, phase.id, { category: (e.target.value || undefined) as StageCategory | undefined })
+                              }
+                              aria-label={t.explorer.categoryAria}
+                            >
+                              <option value="">{t.explorer.categoryNone}</option>
+                              {STAGE_CATEGORIES.map((c) => (
+                                <option key={c} value={c}>
+                                  {STAGE_CATEGORY_LABELS[locale][c]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
                             <button
                               type="button"
                               className={styles.viewButton}
@@ -528,14 +554,14 @@ export const ExplorerPanel = forwardRef<
                       ))}
                       {visiblePhases.length === 0 && lane.phases.length > 0 && (
                         <tr>
-                          <td colSpan={6} className={styles.emptyCell}>
+                          <td colSpan={7} className={styles.emptyCell}>
                             {t.explorer.noPhaseMatch}
                           </td>
                         </tr>
                       )}
                       {lane.phases.length === 0 && (
                         <tr>
-                          <td colSpan={6} className={styles.emptyCell}>
+                          <td colSpan={7} className={styles.emptyCell}>
                             {t.explorer.noPhases}
                           </td>
                         </tr>

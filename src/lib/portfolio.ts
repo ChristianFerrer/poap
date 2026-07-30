@@ -83,10 +83,13 @@ export function deriveProjectSummary(project: Project, locale: Locale): Phase[] 
  * (Program-level) calendar is just another instance of the same
  * PoapRenderer used for a single project's detail view, with "lane"
  * reinterpreted as "project" instead of "team" and its phases coming from
- * deriveProjectSummary instead of being authored directly.
+ * deriveProjectSummary instead of being authored directly. Takes the
+ * project list directly (not a whole Program) so callers can pass a live,
+ * possibly-just-edited list (e.g. from ProjectsProvider) without needing
+ * a full Program object to wrap it in.
  */
-export function deriveProgramLanes(program: Program, locale: Locale): Lane[] {
-  return [...program.projects]
+export function deriveProgramLanes(projects: Project[], locale: Locale): Lane[] {
+  return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((project) => ({
       id: project.id,

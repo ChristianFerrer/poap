@@ -100,10 +100,10 @@ const PMF_LANES: Lane[] = [
       { id: "smoke", title: "Smoke Test + SIT Prep", start: axis(2026, 6, 1), end: axis(2026, 6, 19), status: "done", owners: ["Equipo Producto"], category: "sit" },
       { id: "sit-exec", title: "SIT Ejecución", start: axis(2026, 6, 22), end: axis(2026, 7, 24), status: "at_risk", owners: ["Equipo Producto", "J. Alonso"], category: "sit" },
       { id: "rt-readiness", title: "RT Readiness", start: axis(2026, 7, 6), end: axis(2026, 9, 4), status: "in_progress", owners: ["Equipo Producto"] },
-      { id: "tco-readiness", title: "TCO Readiness", start: axis(2026, 7, 13), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Producto"], category: "tco" },
+      { id: "tco-readiness", title: "TCO Readiness", start: axis(2026, 7, 13), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Producto"], category: "go_live" },
       { id: "uat-prep", title: "UAT Preparación", start: axis(2026, 7, 27), end: axis(2026, 8, 21), status: "at_risk", owners: ["Equipo Producto"], category: "uat" },
       { id: "uat", title: "UAT", start: axis(2026, 8, 24), end: axis(2026, 10, 16), status: "not_started", owners: ["Equipo Producto", "Negocio UK/PL"], category: "uat" },
-      { id: "bu-ramp", title: "BU Adoption Ramp Up", start: axis(2026, 12, 7), end: axis(2027, 5, 31), status: "not_started", owners: ["Negocio UK/PL"], category: "rollout" },
+      { id: "bu-ramp", title: "BU Adoption Ramp Up", start: axis(2026, 12, 7), end: axis(2027, 5, 31), status: "not_started", owners: ["Negocio UK/PL"], category: "sustain" },
     ],
   },
   {
@@ -117,7 +117,7 @@ const PMF_LANES: Lane[] = [
       { id: "red-sit", title: "Red & SIT", start: axis(2026, 8, 3), end: axis(2026, 9, 25), status: "at_risk", owners: ["Equipo Datos", "Redes"], category: "sit" },
       { id: "uat-bdv", title: "UAT BDV", start: axis(2026, 8, 3), end: axis(2026, 8, 31), status: "in_progress", owners: ["Equipo Datos"], category: "uat" },
       { id: "dfu", title: "Mantenimiento DFU continuo", start: axis(2026, 7, 13), end: axis(2027, 5, 31), status: "in_progress", owners: ["Equipo Datos"] },
-      { id: "tco", title: "TCO", start: axis(2026, 11, 30), end: axis(2026, 12, 11), status: "not_started", owners: ["Equipo Datos"], category: "tco" },
+      { id: "tco", title: "TCO", start: axis(2026, 11, 30), end: axis(2026, 12, 11), status: "not_started", owners: ["Equipo Datos"], category: "go_live" },
     ],
   },
   {
@@ -138,12 +138,12 @@ const PMF_LANES: Lane[] = [
     name: "Cambio y Formación",
     sortOrder: 3,
     phases: [
-      { id: "form-t1", title: "Formación UAT UK/PL — Tanda 1", start: axis(2026, 6, 1), end: axis(2026, 6, 26), status: "done", owners: ["Equipo C&L"], category: "rollout" },
-      { id: "form-t2", title: "Formación UAT UK/PL — Tanda 2", start: axis(2026, 9, 14), end: axis(2026, 9, 25), status: "not_started", owners: ["Equipo C&L"], category: "rollout" },
-      { id: "eu-pl-training", title: "EU PL Training", start: axis(2026, 10, 5), end: axis(2027, 1, 8), status: "not_started", owners: ["Equipo C&L"], category: "rollout" },
-      { id: "dp-comms", title: "DP PL Comms", start: axis(2026, 10, 5), end: axis(2027, 2, 26), status: "in_progress", owners: ["Equipo C&L"], category: "rollout" },
-      { id: "isoe", title: "iS&OE / iS&OP Onboarding", start: axis(2026, 11, 30), end: axis(2026, 12, 18), status: "at_risk", owners: ["Equipo C&L", "Negocio UK/PL"], category: "rollout" },
-      { id: "guided-forums", title: "Guided Forums", start: axis(2027, 1, 18), end: axis(2027, 5, 31), status: "not_started", owners: ["Equipo C&L"], category: "rollout" },
+      { id: "form-t1", title: "Formación UAT UK/PL — Tanda 1", start: axis(2026, 6, 1), end: axis(2026, 6, 26), status: "done", owners: ["Equipo C&L"], category: "uat" },
+      { id: "form-t2", title: "Formación UAT UK/PL — Tanda 2", start: axis(2026, 9, 14), end: axis(2026, 9, 25), status: "not_started", owners: ["Equipo C&L"], category: "uat" },
+      { id: "eu-pl-training", title: "EU PL Training", start: axis(2026, 10, 5), end: axis(2027, 1, 8), status: "not_started", owners: ["Equipo C&L"], category: "hypercare" },
+      { id: "dp-comms", title: "DP PL Comms", start: axis(2026, 10, 5), end: axis(2027, 2, 26), status: "in_progress", owners: ["Equipo C&L"], category: "hypercare" },
+      { id: "isoe", title: "iS&OE / iS&OP Onboarding", start: axis(2026, 11, 30), end: axis(2026, 12, 18), status: "at_risk", owners: ["Equipo C&L", "Negocio UK/PL"], category: "hypercare" },
+      { id: "guided-forums", title: "Guided Forums", start: axis(2027, 1, 18), end: axis(2027, 5, 31), status: "not_started", owners: ["Equipo C&L"], category: "sustain" },
     ],
   },
 ];
@@ -169,10 +169,10 @@ const VMI_LANES: Lane[] = [
     name: "Equipo Implementación",
     sortOrder: 0,
     phases: [
-      { id: "vmi-script-prep", title: "Script Prep", start: axis(2026, 6, 1), end: axis(2026, 7, 3), status: "done", owners: ["Equipo Implementación"], category: "scope" },
+      { id: "vmi-script-prep", title: "Script Prep", start: axis(2026, 6, 1), end: axis(2026, 7, 3), status: "done", owners: ["Equipo Implementación"], category: "discovery" },
       { id: "vmi-sit", title: "SIT", start: axis(2026, 7, 6), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Implementación"], category: "sit" },
       { id: "vmi-uat", title: "UAT", start: axis(2026, 8, 24), end: axis(2026, 10, 16), status: "not_started", owners: ["Equipo Implementación", "Negocio Francia"], category: "uat" },
-      { id: "vmi-tco", title: "TCO", start: axis(2026, 10, 19), end: axis(2026, 11, 6), status: "not_started", owners: ["Equipo Implementación"], category: "tco" },
+      { id: "vmi-tco", title: "TCO", start: axis(2026, 10, 19), end: axis(2026, 11, 6), status: "not_started", owners: ["Equipo Implementación"], category: "go_live" },
     ],
   },
 ];
@@ -200,7 +200,7 @@ const IBERIA_LANES: Lane[] = [
     name: "QA",
     sortOrder: 1,
     phases: [
-      { id: "iberia-test", title: "Test", start: axis(2027, 2, 1), end: axis(2027, 4, 15), status: "not_started", owners: ["Equipo QA"], category: "test" },
+      { id: "iberia-test", title: "Test", start: axis(2027, 2, 1), end: axis(2027, 4, 15), status: "not_started", owners: ["Equipo QA"], category: "integration_testing" },
     ],
   },
 ];

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import { PROGRAM } from "./mock-data";
 import { deriveProgramLanes } from "@/lib/portfolio";
+import { useProjects } from "./ProjectsProvider";
+import { AddProjectPanel } from "./AddProjectPanel";
 import { SettingsPanel, type SidePanelMode } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
 import { LanguageSwitch } from "./LanguageSwitch";
@@ -13,6 +15,7 @@ import { useSidePanel } from "./useSidePanel";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { MONTH_ABBR } from "@/lib/i18n";
 import { formatMonthRange } from "./formatMonthRange";
+import { IconPlus } from "@/lib/icons";
 import styles from "./page.module.css";
 
 /**
@@ -24,48 +27,75 @@ import styles from "./page.module.css";
  * maintains a second, parallel executive-summary calendar by hand.
  * Clicking a project's name drills into its own detail page
  * (src/app/project/[projectId]/page.tsx), which is exactly the single-
- * project experience this app started as.
+ * project experience this app started as. The project list itself comes
+ * from ProjectsProvider (not the static mock-data import) so a project
+ * created here is still there once you navigate into it.
  */
 export default function ProgramPage() {
   const { locale, setLocale, t } = useLanguage();
   const router = useRouter();
   const settings = useAppSettings();
+  const { projects, addProject } = useProjects();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [addProjectOpen, setAddProjectOpen] = useState(false);
 
-  const lanes = useMemo(() => deriveProgramLanes(PROGRAM, locale), [locale]);
+  const lanes = useMemo(() => deriveProgramLanes(projects, locale), [projects, locale]);
+
+  const anyPanelOpen = settingsOpen || addProjectOpen;
+
+  function closeAllPanels() {
+    setSettingsOpen(false);
+    setAddProjectOpen(false);
+  }
 
   const sidePanel = useSidePanel({
     sidePanelMode: settings.sidePanelMode,
-    isOpen: settingsOpen,
-    onCloseAll: () => setSettingsOpen(false),
+    isOpen: anyPanelOpen,
+    onCloseAll: closeAllPanels,
   });
 
   function openSettingsPanel() {
     setSettingsOpen(true);
+    setAddProjectOpen(false);
+    sidePanel.revealFixedPanel();
+    sidePanel.scrollToPanel();
+  }
+
+  function openAddProjectPanel() {
+    setAddProjectOpen(true);
+    setSettingsOpen(false);
     sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
   // "Home" always means "just the calendar", regardless of side-panel mode.
   function goHome() {
-    setSettingsOpen(false);
+    closeAllPanels();
     sidePanel.hideFixedPanel();
   }
 
-  // Switching into "fixed" mode while Settings was already open should
+  // Switching into "fixed" mode while a panel was already open should
   // dock it visibly right away, not silently drop it.
   function handleSidePanelModeChange(mode: SidePanelMode) {
     settings.setSidePanelMode(mode);
-    if (mode === "fixed" && settingsOpen) sidePanel.revealFixedPanel();
+    if (mode === "fixed" && anyPanelOpen) sidePanel.revealFixedPanel();
   }
 
   function openProject(projectId: string) {
     router.push(`/project/${projectId}`);
   }
 
+  function createProject(input: { name: string; lanes: Parameters<typeof addProject>[0]["lanes"] }) {
+    const id = addProject({ name: input.name, lanes: input.lanes, gates: [] });
+    closeAllPanels();
+    router.push(`/project/${id}`);
+  }
+
   const sidebarActive: SidebarActive = settingsOpen ? "settings" : "home";
 
-  const panelContent = settingsOpen ? (
+  const panelContent = addProjectOpen ? (
+    <AddProjectPanel ref={sidePanel.panelRef} startMonth={PROGRAM.startMonth} onClose={sidePanel.closePanel} onCreate={createProject} />
+  ) : settingsOpen ? (
     <SettingsPanel
       ref={sidePanel.panelRef}
       showWeekends={settings.showWeekends}
@@ -97,12 +127,15 @@ export default function ProgramPage() {
             <p className={styles.eyebrow}>{t.header.eyebrow}</p>
             <h1 className={styles.title}>{t.header.programTitle(PROGRAM.name)}</h1>
             <p className={styles.meta}>
-              {PROGRAM.projects.length} {t.header.projectsWord} · {PROGRAM.months} {t.header.monthsWord} ·{" "}
+              {projects.length} {t.header.projectsWord} · {PROGRAM.months} {t.header.monthsWord} ·{" "}
               {formatMonthRange(PROGRAM.startMonth, PROGRAM.months, MONTH_ABBR[locale])}
             </p>
           </div>
           <div className={styles.headerActions}>
             <LanguageSwitch locale={locale} onChange={setLocale} ariaLabel={t.header.languageAria} />
+            <button type="button" className={styles.importButton} onClick={openAddProjectPanel}>
+              <IconPlus /> {t.header.addProjectButton}
+            </button>
           </div>
         </div>
 
@@ -141,9 +174,9 @@ export default function ProgramPage() {
 
         {/* "Overlay" side-panel mode (the default): fixed, right-anchored,
             not part of the flex layout above, so it floats over the
-            calendar instead of squeezing it. Only rendered while Settings
+            calendar instead of squeezing it. Only rendered while a panel
             is actually open, and closes on an outside click. */}
-        {settings.sidePanelMode === "overlay" && settingsOpen && (
+        {settings.sidePanelMode === "overlay" && anyPanelOpen && (
           <div ref={sidePanel.sidePanelWrapperRef} className={styles.sidePanel} style={{ width: sidePanel.panelWidth }}>
             <div
               className={styles.resizeHandle}

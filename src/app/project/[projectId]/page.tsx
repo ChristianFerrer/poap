@@ -5,7 +5,8 @@ import Link from "next/link";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
 import type { Project } from "@/lib/portfolio";
-import { ACTIVITIES_BY_PHASE, BANDS, PROGRAM, PROJECTS, activitiesFor, type ActivitySeed } from "../../mock-data";
+import { BANDS, PROGRAM, activitiesFor, type ActivitySeed } from "../../mock-data";
+import { useProjects } from "../../ProjectsProvider";
 import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
 import { GatesPanel } from "../../GatesPanel";
 import { ImportPanel } from "../../ImportPanel";
@@ -24,13 +25,14 @@ import styles from "../../page.module.css";
  * hierarchy. This is the original single-project PoAP experience the app
  * started as (swimlanes = teams, phases, drill-down to activities),
  * scoped to whichever project the Program page's calendar was clicked
- * into. Its own lanes/gates seed from this project's slice of mock-data;
- * edits here are local component state only (no persistence yet — same
- * trade-off the single-project app already had), so navigating away and
- * back currently resets to the seed data.
+ * into. Lanes/gates/activities all live in ProjectsProvider (not local
+ * component state), so edits here — and any project created from the
+ * Program page — survive navigating away and back. Still no real backend
+ * though: everything resets on a hard reload.
  */
 export default function ProjectPage({ params }: { params: { projectId: string } }) {
-  const project = PROJECTS.find((p) => p.id === params.projectId);
+  const { projects } = useProjects();
+  const project = projects.find((p) => p.id === params.projectId);
   const { t } = useLanguage();
 
   if (!project) {
@@ -51,10 +53,10 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
 function ProjectView({ project }: { project: Project }) {
   const { locale, setLocale, t } = useLanguage();
   const settings = useAppSettings();
+  const { setProjectLanes, setProjectGates, activitiesByPhase, setActivitiesByPhase } = useProjects();
 
-  const [lanes, setLanes] = useState<Lane[]>(project.lanes);
-  const [gates, setGates] = useState<Gate[]>(project.gates);
-  const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>(ACTIVITIES_BY_PHASE);
+  const lanes = project.lanes;
+  const gates = project.gates;
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
 
   const [explorer, setExplorer] = useState<ExplorerView | null>(null);
@@ -127,7 +129,7 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function importLanes(newLanes: Lane[]) {
-    setLanes((prev) => [...prev, ...newLanes.map((lane, i) => ({ ...lane, sortOrder: prev.length + i }))]);
+    setProjectLanes(project.id, (prev) => [...prev, ...newLanes.map((lane, i) => ({ ...lane, sortOrder: prev.length + i }))]);
   }
 
   function handlePhaseClick(phaseId: string) {
@@ -139,11 +141,11 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function addLane(name: string) {
-    setLanes((prev) => [...prev, { id: crypto.randomUUID(), name, sortOrder: prev.length, phases: [] }]);
+    setProjectLanes(project.id, (prev) => [...prev, { id: crypto.randomUUID(), name, sortOrder: prev.length, phases: [] }]);
   }
 
-  function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status">>) {
-    setLanes((prev) =>
+  function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category">>) {
+    setProjectLanes(project.id, (prev) =>
       prev.map((lane) =>
         lane.id !== laneId
           ? lane
@@ -153,12 +155,12 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function addPhase(laneId: string, phase: Phase) {
-    setLanes((prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, phases: [...lane.phases, phase] } : lane)));
+    setProjectLanes(project.id, (prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, phases: [...lane.phases, phase] } : lane)));
   }
 
   function deleteLane(laneId: string) {
     const lane = lanes.find((l) => l.id === laneId);
-    setLanes((prev) => prev.filter((l) => l.id !== laneId));
+    setProjectLanes(project.id, (prev) => prev.filter((l) => l.id !== laneId));
     if (lane) {
       const deletedPhaseIds = new Set(lane.phases.map((p) => p.id));
       setActivitiesByPhase((prev) =>
@@ -178,7 +180,7 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function deletePhase(laneId: string, phaseId: string) {
-    setLanes((prev) =>
+    setProjectLanes(project.id, (prev) =>
       prev.map((lane) => (lane.id === laneId ? { ...lane, phases: lane.phases.filter((p) => p.id !== phaseId) } : lane)),
     );
     setActivitiesByPhase((prev) => {
@@ -237,15 +239,15 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function updateGate(id: string, patch: Partial<Pick<Gate, "label" | "position">>) {
-    setGates((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+    setProjectGates(project.id, (prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
   }
 
   function addGate(gate: Gate) {
-    setGates((prev) => [...prev, gate]);
+    setProjectGates(project.id, (prev) => [...prev, gate]);
   }
 
   function deleteGate(id: string) {
-    setGates((prev) => prev.filter((g) => g.id !== id));
+    setProjectGates(project.id, (prev) => prev.filter((g) => g.id !== id));
     setActiveGateIds((prev) => prev.filter((gid) => gid !== id));
   }
 

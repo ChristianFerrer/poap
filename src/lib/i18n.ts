@@ -35,31 +35,54 @@ export const DAY_INITIALS: Record<Locale, string[]> = {
  * Phase (see PoapRendererProps/Phase in poap-renderer/types.ts) — untagged
  * phases just don't contribute to any project-level stage bar.
  */
-export type StageCategory = "design" | "scope" | "build" | "sit" | "uat" | "tco" | "test" | "rollout" | "other";
-export const STAGE_CATEGORIES: StageCategory[] = ["design", "scope", "build", "sit", "uat", "tco", "test", "rollout", "other"];
+export type StageCategory =
+  | "discovery"
+  | "design"
+  | "build"
+  | "sit"
+  | "uat"
+  | "integration_testing"
+  | "go_live"
+  | "hypercare"
+  | "sustain";
+
+// Standard project lifecycle order — also the order stage checkboxes/
+// options render in wherever this list drives UI (the new-project stage
+// picker, the phase category select).
+export const STAGE_CATEGORIES: StageCategory[] = [
+  "discovery",
+  "design",
+  "build",
+  "sit",
+  "uat",
+  "integration_testing",
+  "go_live",
+  "hypercare",
+  "sustain",
+];
 
 export const STAGE_CATEGORY_LABELS: Record<Locale, Record<StageCategory, string>> = {
   es: {
+    discovery: "Discovery",
     design: "Diseño",
-    scope: "Alcance",
     build: "Construcción",
     sit: "SIT",
     uat: "UAT",
-    tco: "TCO",
-    test: "Pruebas",
-    rollout: "Despliegue",
-    other: "Otro",
+    integration_testing: "Pruebas de Integración",
+    go_live: "Go Live",
+    hypercare: "Hypercare",
+    sustain: "Sostenimiento",
   },
   en: {
+    discovery: "Discovery",
     design: "Design",
-    scope: "Scope",
     build: "Build",
     sit: "SIT",
     uat: "UAT",
-    tco: "TCO",
-    test: "Test",
-    rollout: "Rollout",
-    other: "Other",
+    integration_testing: "Integration Testing",
+    go_live: "Go Live",
+    hypercare: "Hypercare",
+    sustain: "Sustain",
   },
 };
 
