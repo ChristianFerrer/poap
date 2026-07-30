@@ -28,6 +28,42 @@ export const DAY_INITIALS: Record<Locale, string[]> = {
 };
 
 /**
+ * Shared stage taxonomy for team-level phases — tagging a phase with one of
+ * these is what lets a project's portfolio-level summary bars (SIT/UAT/TCO/…)
+ * get derived automatically from whatever teams already entered, instead of
+ * someone hand-maintaining a second, parallel executive summary. Optional on
+ * Phase (see PoapRendererProps/Phase in poap-renderer/types.ts) — untagged
+ * phases just don't contribute to any project-level stage bar.
+ */
+export type StageCategory = "design" | "scope" | "build" | "sit" | "uat" | "tco" | "test" | "rollout" | "other";
+export const STAGE_CATEGORIES: StageCategory[] = ["design", "scope", "build", "sit", "uat", "tco", "test", "rollout", "other"];
+
+export const STAGE_CATEGORY_LABELS: Record<Locale, Record<StageCategory, string>> = {
+  es: {
+    design: "Diseño",
+    scope: "Alcance",
+    build: "Construcción",
+    sit: "SIT",
+    uat: "UAT",
+    tco: "TCO",
+    test: "Pruebas",
+    rollout: "Despliegue",
+    other: "Otro",
+  },
+  en: {
+    design: "Design",
+    scope: "Scope",
+    build: "Build",
+    sit: "SIT",
+    uat: "UAT",
+    tco: "TCO",
+    test: "Test",
+    rollout: "Rollout",
+    other: "Other",
+  },
+};
+
+/**
  * poap-renderer/ only ever receives data in and fires callbacks out (see
  * the component's own architecture comment) — it never reaches into app
  * state or context. Locale is just another prop, same as `months` or

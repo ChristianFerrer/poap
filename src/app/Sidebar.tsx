@@ -10,10 +10,15 @@ export type SidebarPosition = "left" | "right";
 
 /**
  * Left/right-anchored icon nav — the app's single entry point for the
- * three management panels (swimlines, stage gates, settings) plus a "home"
+ * management panels (swimlines, stage gates, settings) plus a "home"
  * action that just clears whatever's open. Position is a display
- * preference (see AppSettings in page.tsx), not something this component
- * decides for itself.
+ * preference (see useAppSettings), not something this component decides
+ * for itself.
+ *
+ * onSwimlines/onGates are optional: the Program (portfolio) page has
+ * neither concept — "teams" and "stage gates" only exist inside a single
+ * project — so it only ever passes onHome/onSettings, and those two
+ * buttons simply don't render there instead of pointing at nothing.
  */
 export function Sidebar({
   position,
@@ -29,8 +34,8 @@ export function Sidebar({
   position: SidebarPosition;
   active: SidebarActive;
   onHome: () => void;
-  onSwimlines: () => void;
-  onGates: () => void;
+  onSwimlines?: () => void;
+  onGates?: () => void;
   onSettings: () => void;
   /** Only meaningful in "fixed" side-panel mode — a floating panel already
    * fully appears/disappears on its own, so this extra show/hide control
@@ -42,8 +47,8 @@ export function Sidebar({
   const { t } = useLanguage();
   const items: { key: SidebarActive; icon: ReactNode; label: string; onClick: () => void }[] = [
     { key: "home", icon: <IconHome />, label: t.sidebar.homeAria, onClick: onHome },
-    { key: "swimlines", icon: <IconLanes />, label: t.sidebar.swimlinesAria, onClick: onSwimlines },
-    { key: "gates", icon: <IconGateDiamond />, label: t.sidebar.gatesAria, onClick: onGates },
+    ...(onSwimlines ? [{ key: "swimlines" as const, icon: <IconLanes />, label: t.sidebar.swimlinesAria, onClick: onSwimlines }] : []),
+    ...(onGates ? [{ key: "gates" as const, icon: <IconGateDiamond />, label: t.sidebar.gatesAria, onClick: onGates }] : []),
     { key: "settings", icon: <IconSettings />, label: t.sidebar.settingsAria, onClick: onSettings },
   ];
 

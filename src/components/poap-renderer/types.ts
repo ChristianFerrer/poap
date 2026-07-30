@@ -10,6 +10,12 @@ export interface Phase {
   subLane?: string | null;
   /** Teams/people involved — shown in the hover popup, not on the bar itself. */
   owners?: string[];
+  /** Which stage this phase belongs to (see StageCategory in src/lib/i18n)
+   * — purely an app-level tag the renderer never reads itself, used to
+   * derive a project's portfolio-level summary bars from its teams' own
+   * phases. Untagged phases (undefined) just don't count toward any
+   * stage's aggregate span. */
+  category?: string;
 }
 
 export interface Lane {

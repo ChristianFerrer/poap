@@ -10,13 +10,16 @@ import type { Locale } from "@/lib/i18n";
 const es = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
-    title: "Programa UK/PL — plan on a page",
+    programTitle: (name: string) => `Programa ${name}`,
+    projectTitle: (name: string) => `${name} — plan on a page`,
+    projectsWord: "proyectos",
     lanesWord: "carriles",
     phasesWord: "fases",
     monthsWord: "meses",
     importButton: "Importar desde Excel",
     languageAria: "Idioma",
     resizeHandleAria: "Ajustar ancho del panel",
+    backToProgram: "← Volver al programa",
   },
   explorer: {
     close: "Cerrar",
@@ -154,13 +157,16 @@ type Translations = typeof es;
 const en: Translations = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
-    title: "UK/PL Program — plan on a page",
+    programTitle: (name) => `${name} Program`,
+    projectTitle: (name) => `${name} — plan on a page`,
+    projectsWord: "projects",
     lanesWord: "lanes",
     phasesWord: "phases",
     monthsWord: "months",
     importButton: "Import from Excel",
     languageAria: "Language",
     resizeHandleAria: "Resize panel",
+    backToProgram: "← Back to program",
   },
   explorer: {
     close: "Close",
