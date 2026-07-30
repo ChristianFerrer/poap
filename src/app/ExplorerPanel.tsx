@@ -5,7 +5,7 @@ import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types"
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
 import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
-import { IconChevronRight, IconClose, IconPlus, IconSearch, IconTrash } from "./icons";
+import { IconChevronRight, IconClose, IconPlus, IconSearch, IconSort, IconTrash } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./ExplorerPanel.module.css";
 
@@ -49,15 +49,18 @@ function FilterBar({
           onChange={(e) => onSearch(e.target.value)}
         />
       </label>
-      <select
-        className={styles.sortSelect}
-        value={sortBy}
-        onChange={(e) => onSortBy(e.target.value as SortBy)}
-        aria-label={t.explorer.sortAriaLabel}
-      >
-        <option value="name">{t.explorer.sortByName}</option>
-        <option value="date">{t.explorer.sortByDate}</option>
-      </select>
+      <label className={styles.sortBox}>
+        <IconSort />
+        <select
+          className={styles.sortSelect}
+          value={sortBy}
+          onChange={(e) => onSortBy(e.target.value as SortBy)}
+          aria-label={t.explorer.sortAriaLabel}
+        >
+          <option value="name">{t.explorer.sortByName}</option>
+          <option value="date">{t.explorer.sortByDate}</option>
+        </select>
+      </label>
     </div>
   );
 }

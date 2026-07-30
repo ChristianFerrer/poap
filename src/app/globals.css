@@ -1,61 +1,96 @@
+/*
+ * Design tokens — see the UX/UI audit for the inconsistencies this system
+ * replaces (11 different border-radius values, 9 ad hoc font-sizes, a
+ * primary color hand-tuned separately in 5 files, ...). Every visual value
+ * used anywhere in the app should trace back to one of these.
+ *
+ * Color roles are kept deliberately narrow: --text-accent is the ONE
+ * primary/interactive color (links, primary buttons, focus rings,
+ * "in progress" status — all genuinely the same idea: "this is live/
+ * actionable right now"). --gate-active and --today-line are intentionally
+ * separate hues from the primary accent and from each other — a gate
+ * cut-line, the current-day marker, and "in progress" are three different
+ * facts about the plan and must never be visually confusable.
+ */
 :root {
   color-scheme: light;
 
-  --page-bg: #f5f5f3;
+  --page-bg: #f6f7f8;
   --card-bg: #ffffff;
-  --ink: #16171a;
-  --text-secondary: #6b6b66;
+  --ink: #14181f;
+  --text-secondary: #5b6472;
 
-  --border: #e5e5e2;
-  --border-strong: #b9b9b3;
+  --border: #e3e6ea;
+  --border-strong: #c3c9d1;
 
-  --surface-0: #f7f7f5; /* period bands: reads as background, not content */
-  --surface-1: #f2f2f0; /* not_started fill */
+  --surface-0: #f0f2f4; /* period bands: reads as background, not content */
+  --surface-1: #eaedf0; /* not_started fill */
 
-  --bg-success: #e3f4e1;
-  --text-success: #1e7b34;
+  --bg-success: #e1f5e9;
+  --text-success: #1e8a4c;
 
-  --bg-accent: #e1ebfb;
-  --text-accent: #1d4e96;
+  --bg-accent: #def2ef;
+  --text-accent: #0e7a6e;
 
-  --bg-warning: #fceed9;
-  --text-warning: #92530a;
+  --bg-warning: #fdecd1;
+  --text-warning: #b45309;
 
   /* Stage-gate activation — distinct from status/accent so an activated
      gate never reads as "in progress" or "on track". */
-  --gate-active: #7c3aed;
+  --gate-active: #6d4aff;
 
   /* Today marker — deliberately not a status/accent color: it should read
-     as a fixed reference line, not as "in progress" or a selection. Neon
-     lime is saturated enough to stay legible on both themes as-is. */
-  --today-line: #c6ff00;
+     as a fixed reference line, not as "in progress" or a selection. A
+     single, narrowly-scoped exception to "restrained saturation" — this is
+     the one place in the UI meant to read as a highlighter mark. */
+  --today-line: #c2f542;
+  --accent-live-ink: #17240a; /* readable text/icon color set against --today-line fills */
+
+  /* Radius scale — technical/sharp language: small, consistent steps
+     rather than soft pill shapes. */
+  --radius-xs: 4px; /* chips, badges, icon-only buttons */
+  --radius-sm: 6px; /* inputs, buttons, small controls */
+  --radius-md: 8px; /* cards, panels, larger surfaces */
+  --radius-lg: 12px; /* the side panel only */
+
+  /* Type scale — one family (system UI sans, kept for legibility in a
+     dense data tool), a small set of sizes reused everywhere instead of
+     one-off values like "11.5px"/"12.5px". */
+  --text-3xs: 10px;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 20px;
+  --text-xl: 26px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --page-bg: #101012;
-    --card-bg: #17181b;
-    --ink: #eceeea;
-    --text-secondary: #a8a8a2;
+    --page-bg: #0b0d10;
+    --card-bg: #14171c;
+    --ink: #eceef1;
+    --text-secondary: #9aa3af;
 
-    --border: #313134;
-    --border-strong: #55555a;
+    --border: #262b33;
+    --border-strong: #3c4350;
 
-    --surface-0: #1b1b1e;
-    --surface-1: #232327;
+    --surface-0: #191d23;
+    --surface-1: #1e232a;
 
-    --bg-success: #16351e;
-    --text-success: #6fd98a;
+    --bg-success: #163826;
+    --text-success: #56c285;
 
-    --bg-accent: #17273f;
-    --text-accent: #8fb6ee;
+    --bg-accent: #0f2e2a;
+    --text-accent: #2dd4c4;
 
-    --bg-warning: #3a2a0e;
-    --text-warning: #f0b75c;
+    --bg-warning: #3a2a10;
+    --text-warning: #f0a947;
 
-    --gate-active: #a78bfa;
+    --gate-active: #b39dff;
+    --accent-live-ink: #10210a;
   }
 }
 
@@ -74,6 +109,14 @@ body {
 body {
   font-family:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 13px;
+  font-size: var(--text-sm);
   -webkit-font-smoothing: antialiased;
+}
+
+/* One focus language for the whole app — every interactive element gets
+   the same visible ring in the primary accent color. Nothing in this
+   codebase should ever set `outline: none` without this taking its place. */
+:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
 }

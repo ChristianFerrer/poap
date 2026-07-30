@@ -3,7 +3,7 @@
 import { forwardRef, useState } from "react";
 import type { Gate } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
-import { IconClose, IconPlus, IconTrash } from "./icons";
+import { IconCheck, IconClose, IconPlus, IconTrash } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./GatesPanel.module.css";
 
@@ -73,7 +73,7 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
                 aria-label={active ? t.gates.hideLineAria : t.gates.showLineAria}
                 title={active ? t.gates.visibleTitle : t.gates.hiddenTitle}
               >
-                ✓
+                {active && <IconCheck />}
               </button>
               <input
                 className={styles.labelInput}

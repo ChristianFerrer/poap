@@ -1,6 +1,6 @@
 .panel {
   position: relative;
-  padding: 18px 18px 22px;
+  padding: 16px 16px 24px;
   animation: reveal 0.18s ease-out;
 }
 
@@ -30,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-secondary);
@@ -42,22 +42,22 @@
 }
 
 .eyebrow {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary);
   margin: 0 0 4px;
 }
 .title {
-  font-size: 17px;
+  font-size: var(--text-lg);
   font-weight: 600;
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   padding-right: 30px;
 }
 
 .success {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--text-success);
   background: color-mix(in srgb, var(--text-success) 12%, var(--card-bg));
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   margin: 0;
 }
@@ -75,9 +75,9 @@
   align-items: center;
   gap: 8px;
   border: 1px dashed var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 9px 14px;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   cursor: pointer;
   background: var(--surface-1);
@@ -95,15 +95,15 @@
 }
 
 .status {
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   margin: 0 0 12px;
 }
 .error {
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   color: var(--text-warning);
   background: color-mix(in srgb, var(--text-warning) 12%, var(--card-bg));
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   margin: 0 0 12px;
 }
@@ -112,14 +112,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 .sheetSelect {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 6px 8px;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   font-family: inherit;
   background: var(--surface-1);
   color: var(--ink);
@@ -130,9 +130,9 @@
   background: var(--text-accent);
   color: var(--card-bg);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 8px 16px;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -145,9 +145,9 @@
   background: var(--surface-1);
   color: var(--text-secondary);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 8px 16px;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -156,10 +156,10 @@
 .warnings {
   margin: 0 0 14px;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--text-warning) 10%, var(--card-bg));
   color: var(--text-warning);
-  font-size: 12px;
+  font-size: var(--text-xs);
   list-style: disc;
   padding-left: 28px;
 }
@@ -168,7 +168,7 @@
 }
 
 .summary {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--ink);
   margin: 0 0 16px;
 }
@@ -177,11 +177,12 @@
 }
 
 .sectionTitle {
-  font-size: 11px;
+  font-size: var(--text-2xs);
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-secondary);
-  margin: 18px 0 4px;
+  margin: 16px 0 4px;
 }
 
 .preview {
@@ -191,7 +192,7 @@
   max-height: 360px;
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
 }
 .previewLaneGroup + .previewLaneGroup {
@@ -201,7 +202,7 @@
 .previewLaneName {
   font-weight: 600;
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   margin: 0 0 4px;
 }
 .previewPhaseRow {
@@ -210,7 +211,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 3px 0 3px 10px;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .previewPhaseTitle {
   color: var(--ink);
@@ -226,7 +227,7 @@
 }
 .rowMeta {
   flex: 0 0 auto;
-  font-size: 11.5px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary);
   font-weight: 400;
 }
@@ -235,7 +236,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 @media (max-width: 560px) {

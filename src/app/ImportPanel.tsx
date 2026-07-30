@@ -6,7 +6,7 @@ import type { ParseResult } from "@/lib/importExcel";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { toAxis } from "@/components/poap-renderer/toAxis";
 import { MONTH_ABBR, STATUS_LABELS, type Locale } from "@/lib/i18n";
-import { IconClose, IconUpload } from "./icons";
+import { IconClose, IconUpload } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { translations } from "./i18n/translations";
 import styles from "./ImportPanel.module.css";

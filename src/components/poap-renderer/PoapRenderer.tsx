@@ -14,6 +14,7 @@ import {
   pluralForm,
   type Locale,
 } from "@/lib/i18n";
+import { IconChevronDown, IconMinus, IconPlus } from "@/lib/icons";
 import {
   BAR_HEIGHT,
   BAR_MIN_TEXT_PX,
@@ -524,7 +525,7 @@ export function PoapRenderer({
               disabled={zoomScale <= ZOOM_SCALE_MIN}
               aria-label={strings.zoomOut}
             >
-              −
+              <IconMinus />
             </button>
             <span className={styles.scaleValue}>{Math.round(zoomScale * 100)}%</span>
             <button
@@ -534,7 +535,7 @@ export function PoapRenderer({
               disabled={zoomScale >= ZOOM_SCALE_MAX}
               aria-label={strings.zoomIn}
             >
-              +
+              <IconPlus />
             </button>
           </div>
           <div className={styles.zoomGroup} role="group" aria-label={strings.zoomLevel}>
@@ -579,7 +580,7 @@ export function PoapRenderer({
                   aria-label={isCollapsed ? strings.expandLane : strings.collapseLane}
                 >
                   <span className={`${styles.chevron} ${isCollapsed ? styles.chevronCollapsed : ""}`} aria-hidden="true">
-                    ▾
+                    <IconChevronDown />
                   </span>
                 </button>
                 <button type="button" className={styles.laneNameButton} onClick={() => onLaneClick?.(lane.id)}>

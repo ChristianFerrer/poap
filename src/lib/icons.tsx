@@ -1,6 +1,10 @@
-/** Small flat/outline icon set shared across the app's panels — plain
- * inline SVG (currentColor stroke) so each one inherits its button's text
- * color and sizes with font-size, no icon font or asset loading needed. */
+/** Flat/outline icon set shared across the whole app, including
+ * poap-renderer/ — plain inline SVG (currentColor stroke) so each one
+ * inherits its button's text color and sizes with font-size, no icon font
+ * or asset loading needed. Lives in src/lib (not src/app) for the same
+ * reason MONTH_ABBR/STATUS_LABELS do: it's pure, stateless, presentational
+ * data that poap-renderer is allowed to depend on without breaking its
+ * data-in/callback-out contract, unlike anything stateful in src/app. */
 
 const base = {
   width: 14,
@@ -38,6 +42,14 @@ export function IconPlus() {
   );
 }
 
+export function IconMinus() {
+  return (
+    <svg {...base}>
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
 export function IconUpload() {
   return (
     <svg {...base}>
@@ -50,6 +62,22 @@ export function IconChevronRight() {
   return (
     <svg {...base}>
       <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
+export function IconChevronDown() {
+  return (
+    <svg {...base}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function IconCheck() {
+  return (
+    <svg {...base}>
+      <path d="m5 13 4 4L19 7" />
     </svg>
   );
 }
