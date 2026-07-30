@@ -1,5 +1,14 @@
 import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
-import { STAGE_CATEGORIES, STAGE_CATEGORY_LABELS, type Locale, type StageCategory } from "./i18n";
+
+/** A user-editable stage in the project lifecycle (see StageCategoryDef
+ * usage in ProjectsProvider) — `id` is what a Phase.category actually
+ * stores, `label` is whatever the user has it named right now. Plain data,
+ * not a fixed enum, since Settings lets the list itself be renamed/added
+ * to/deleted from. */
+export interface StageCategoryDef {
+  id: string;
+  label: string;
+}
 
 /**
  * A Project is one level below Program: its own set of team lanes (exactly
@@ -51,9 +60,13 @@ function worstStatus(phases: Phase[]): PhaseStatus {
  * their own UAT phases, with nobody maintaining a second copy by hand.
  * Untagged phases don't contribute to anything here; a project with no
  * tagged phases at all simply gets no summary bars rather than a
- * placeholder one.
+ * placeholder one. `categories` is the live, user-editable stage list
+ * (Settings → Fases de proyecto) — it drives both which bars can appear
+ * at all and the order/label they render with; a phase tagged with an id
+ * no longer in that list (its stage got deleted) just stops contributing,
+ * same as any other orphaned reference in this app.
  */
-export function deriveProjectSummary(project: Project, locale: Locale): Phase[] {
+export function deriveProjectSummary(project: Project, categories: StageCategoryDef[]): Phase[] {
   const byCategory = new Map<string, Phase[]>();
   for (const lane of project.lanes) {
     for (const phase of lane.phases) {
@@ -64,18 +77,19 @@ export function deriveProjectSummary(project: Project, locale: Locale): Phase[] 
     }
   }
 
-  const labels = STAGE_CATEGORY_LABELS[locale];
-  return STAGE_CATEGORIES.filter((cat) => byCategory.has(cat)).map((cat) => {
-    const phases = byCategory.get(cat)!;
-    return {
-      id: `${project.id}-${cat}`,
-      title: labels[cat as StageCategory] ?? cat,
-      start: Math.min(...phases.map((p) => p.start)),
-      end: Math.max(...phases.map((p) => p.end)),
-      status: worstStatus(phases),
-      category: cat,
-    };
-  });
+  return categories
+    .filter((c) => byCategory.has(c.id))
+    .map((c) => {
+      const phases = byCategory.get(c.id)!;
+      return {
+        id: `${project.id}-${c.id}`,
+        title: c.label,
+        start: Math.min(...phases.map((p) => p.start)),
+        end: Math.max(...phases.map((p) => p.end)),
+        status: worstStatus(phases),
+        category: c.id,
+      };
+    });
 }
 
 /**
@@ -88,13 +102,13 @@ export function deriveProjectSummary(project: Project, locale: Locale): Phase[] 
  * possibly-just-edited list (e.g. from ProjectsProvider) without needing
  * a full Program object to wrap it in.
  */
-export function deriveProgramLanes(projects: Project[], locale: Locale): Lane[] {
+export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[]): Lane[] {
   return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((project) => ({
       id: project.id,
       name: project.name,
       sortOrder: project.sortOrder,
-      phases: deriveProjectSummary(project, locale),
+      phases: deriveProjectSummary(project, categories),
     }));
 }

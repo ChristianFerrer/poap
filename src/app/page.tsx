@@ -35,11 +35,12 @@ export default function ProgramPage() {
   const { locale, setLocale, t } = useLanguage();
   const router = useRouter();
   const settings = useAppSettings();
-  const { projects, addProject } = useProjects();
+  const { projects, addProject, deleteProject, stageCategories, addStageCategory, renameStageCategory, deleteStageCategory } =
+    useProjects();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addProjectOpen, setAddProjectOpen] = useState(false);
 
-  const lanes = useMemo(() => deriveProgramLanes(projects, locale), [projects, locale]);
+  const lanes = useMemo(() => deriveProgramLanes(projects, stageCategories), [projects, stageCategories]);
 
   const anyPanelOpen = settingsOpen || addProjectOpen;
 
@@ -94,7 +95,13 @@ export default function ProgramPage() {
   const sidebarActive: SidebarActive = settingsOpen ? "settings" : "home";
 
   const panelContent = addProjectOpen ? (
-    <AddProjectPanel ref={sidePanel.panelRef} startMonth={PROGRAM.startMonth} onClose={sidePanel.closePanel} onCreate={createProject} />
+    <AddProjectPanel
+      ref={sidePanel.panelRef}
+      startMonth={PROGRAM.startMonth}
+      stageCategories={stageCategories}
+      onClose={sidePanel.closePanel}
+      onCreate={createProject}
+    />
   ) : settingsOpen ? (
     <SettingsPanel
       ref={sidePanel.panelRef}
@@ -106,6 +113,12 @@ export default function ProgramPage() {
       onSidePanelModeChange={handleSidePanelModeChange}
       navPosition={settings.navPosition}
       onNavPositionChange={settings.setNavPosition}
+      stageCategories={stageCategories}
+      onAddStageCategory={addStageCategory}
+      onRenameStageCategory={renameStageCategory}
+      onDeleteStageCategory={deleteStageCategory}
+      projects={projects}
+      onDeleteProject={deleteProject}
       onClose={sidePanel.closePanel}
     />
   ) : null;

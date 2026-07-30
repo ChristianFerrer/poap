@@ -1,18 +1,21 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { useLanguage } from "./i18n/LanguageProvider";
-import { IconClose } from "@/lib/icons";
+import type { Project, StageCategoryDef } from "@/lib/portfolio";
+import { IconClose, IconPlus, IconTrash } from "@/lib/icons";
 import styles from "./SettingsPanel.module.css";
+import explorerStyles from "./ExplorerPanel.module.css";
 
 export type SidePanelMode = "overlay" | "fixed";
 export type NavPosition = "left" | "right";
 
 /**
- * App-level display preferences — everything here is purely about how the
- * calendar/panels present themselves, not about the plan's data, so it
- * lives as plain lifted state in page.tsx (see AppSettings there) rather
- * than mixed in with lanes/gates/activities.
+ * App-level display preferences plus the two pieces of "app-wide"
+ * management that don't belong to any one project — the stage lifecycle
+ * taxonomy and the project list itself — since both are configuration a
+ * user sets up once and expects everywhere, same as weekends/today or the
+ * side-panel mode below.
  */
 export const SettingsPanel = forwardRef<HTMLDivElement, {
   showWeekends: boolean;
@@ -23,6 +26,12 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
   onSidePanelModeChange: (value: SidePanelMode) => void;
   navPosition: NavPosition;
   onNavPositionChange: (value: NavPosition) => void;
+  stageCategories: StageCategoryDef[];
+  onAddStageCategory: (label: string) => void;
+  onRenameStageCategory: (id: string, label: string) => void;
+  onDeleteStageCategory: (id: string) => void;
+  projects: Project[];
+  onDeleteProject: (id: string) => void;
   onClose: () => void;
 }>(function SettingsPanel(
   {
@@ -34,11 +43,24 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
     onSidePanelModeChange,
     navPosition,
     onNavPositionChange,
+    stageCategories,
+    onAddStageCategory,
+    onRenameStageCategory,
+    onDeleteStageCategory,
+    projects,
+    onDeleteProject,
     onClose,
   },
   ref,
 ) {
   const { t } = useLanguage();
+  const [newStage, setNewStage] = useState("");
+
+  function submitNewStage() {
+    if (!newStage.trim()) return;
+    onAddStageCategory(newStage.trim());
+    setNewStage("");
+  }
 
   return (
     <section ref={ref} className={styles.panel}>
@@ -96,6 +118,63 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
             ]}
             ariaLabel={t.settings.navPositionLabel}
           />
+        </div>
+      </div>
+
+      <div className={styles.group}>
+        <p className={styles.sectionTitle}>{t.settings.stagesSection}</p>
+        <p className={styles.optionHint}>{t.settings.stagesHint}</p>
+        <div className={explorerStyles.listGroup}>
+          {stageCategories.map((c) => (
+            <div key={c.id} className={explorerStyles.addRow}>
+              <input
+                className={explorerStyles.tableTextInput}
+                value={c.label}
+                onChange={(e) => onRenameStageCategory(c.id, e.target.value)}
+                aria-label={t.settings.stageNameAria}
+              />
+              <button
+                type="button"
+                className={explorerStyles.deleteButton}
+                onClick={() => onDeleteStageCategory(c.id)}
+                aria-label={t.settings.deleteStageAria(c.label)}
+              >
+                <IconTrash />
+              </button>
+            </div>
+          ))}
+          {stageCategories.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noStages}</p>}
+        </div>
+        <div className={explorerStyles.addRow}>
+          <input
+            className={explorerStyles.textInput}
+            placeholder={t.settings.newStagePlaceholder}
+            value={newStage}
+            onChange={(e) => setNewStage(e.target.value)}
+          />
+          <button type="button" className={explorerStyles.addButton} disabled={!newStage.trim()} onClick={submitNewStage}>
+            <IconPlus /> {t.explorer.addButton}
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.group}>
+        <p className={styles.sectionTitle}>{t.settings.projectsSection}</p>
+        <div className={explorerStyles.listGroup}>
+          {projects.map((p) => (
+            <div key={p.id} className={explorerStyles.addRow}>
+              <span className={explorerStyles.tableNameCell}>{p.name}</span>
+              <button
+                type="button"
+                className={explorerStyles.deleteButton}
+                onClick={() => onDeleteProject(p.id)}
+                aria-label={t.settings.deleteProjectAria(p.name)}
+              >
+                <IconTrash />
+              </button>
+            </div>
+          ))}
+          {projects.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noProjects}</p>}
         </div>
       </div>
     </section>

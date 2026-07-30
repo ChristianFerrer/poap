@@ -2,14 +2,15 @@
 
 import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
-import { STAGE_CATEGORIES, STAGE_CATEGORY_LABELS, type StageCategory } from "@/lib/i18n";
+import type { StageCategoryDef } from "@/lib/portfolio";
 import { fromISODate } from "./dateAxis";
 import { IconClose, IconPlus } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./ExplorerPanel.module.css";
 
 interface StageRow {
-  category: StageCategory;
+  categoryId: string;
+  label: string;
   checked: boolean;
   start: string;
   end: string;
@@ -20,31 +21,33 @@ interface StageRow {
  * (same panel chrome, same table look) rather than a new stylesheet, since
  * visually this is just another management panel like Swimlines/Gates.
  *
- * The stage checklist is the standard project lifecycle (see
- * StageCategory in src/lib/i18n.ts) rather than a free-form "add phase"
- * loop — checking a stage and giving it dates is enough to seed the new
- * project's one default lane with a correctly-tagged phase, which is what
- * lets the Program portfolio's per-project summary bars (SIT/UAT/Go
- * Live/…) show up immediately instead of waiting for team-level detail.
- * Unchecked stages, or checked ones missing a date, are simply left out —
- * nothing forces you to plan every stage before the project can exist.
+ * The stage checklist is the live, user-editable project lifecycle
+ * (Settings → Fases de proyecto — see stageCategories in ProjectsProvider)
+ * rather than a free-form "add phase" loop — checking a stage and giving
+ * it dates is enough to seed the new project's one default lane with a
+ * correctly-tagged phase, which is what lets the Program portfolio's
+ * per-project summary bars (SIT/UAT/Go Live/…) show up immediately
+ * instead of waiting for team-level detail. Unchecked stages, or checked
+ * ones missing a date, are simply left out — nothing forces you to plan
+ * every stage before the project can exist.
  */
 export const AddProjectPanel = forwardRef<
   HTMLDivElement,
   {
     startMonth: string;
+    stageCategories: StageCategoryDef[];
     onClose: () => void;
     onCreate: (input: { name: string; lanes: Lane[] }) => void;
   }
->(function AddProjectPanel({ startMonth, onClose, onCreate }, ref) {
-  const { t, locale } = useLanguage();
+>(function AddProjectPanel({ startMonth, stageCategories, onClose, onCreate }, ref) {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
-  const [rows, setRows] = useState<StageRow[]>(
-    STAGE_CATEGORIES.map((category) => ({ category, checked: false, start: "", end: "" })),
+  const [rows, setRows] = useState<StageRow[]>(() =>
+    stageCategories.map((c) => ({ categoryId: c.id, label: c.label, checked: false, start: "", end: "" })),
   );
 
-  function updateRow(category: StageCategory, patch: Partial<StageRow>) {
-    setRows((prev) => prev.map((r) => (r.category === category ? { ...r, ...patch } : r)));
+  function updateRow(categoryId: string, patch: Partial<StageRow>) {
+    setRows((prev) => prev.map((r) => (r.categoryId === categoryId ? { ...r, ...patch } : r)));
   }
 
   const canSubmit = name.trim().length > 0;
@@ -55,11 +58,11 @@ export const AddProjectPanel = forwardRef<
       .filter((r) => r.checked && r.start && r.end)
       .map((r) => ({
         id: crypto.randomUUID(),
-        title: STAGE_CATEGORY_LABELS[locale][r.category],
+        title: r.label,
         start: fromISODate(r.start, startMonth),
         end: fromISODate(r.end, startMonth),
         status: "not_started" as PhaseStatus,
-        category: r.category,
+        category: r.categoryId,
       }));
     const lanes: Lane[] = phases.length
       ? [{ id: crypto.randomUUID(), name: t.addProject.defaultLaneName, sortOrder: 0, phases }]
@@ -100,23 +103,23 @@ export const AddProjectPanel = forwardRef<
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.category}>
+                <tr key={row.categoryId}>
                   <td>
                     <input
                       type="checkbox"
                       checked={row.checked}
-                      onChange={(e) => updateRow(row.category, { checked: e.target.checked })}
-                      aria-label={STAGE_CATEGORY_LABELS[locale][row.category]}
+                      onChange={(e) => updateRow(row.categoryId, { checked: e.target.checked })}
+                      aria-label={row.label}
                     />
                   </td>
-                  <td className={styles.tableNameCell}>{STAGE_CATEGORY_LABELS[locale][row.category]}</td>
+                  <td className={styles.tableNameCell}>{row.label}</td>
                   <td>
                     <input
                       type="date"
                       className={styles.dateInput}
                       value={row.start}
                       disabled={!row.checked}
-                      onChange={(e) => updateRow(row.category, { start: e.target.value })}
+                      onChange={(e) => updateRow(row.categoryId, { start: e.target.value })}
                       aria-label={t.explorer.startDateAria}
                     />
                   </td>
@@ -126,7 +129,7 @@ export const AddProjectPanel = forwardRef<
                       className={styles.dateInput}
                       value={row.end}
                       disabled={!row.checked}
-                      onChange={(e) => updateRow(row.category, { end: e.target.value })}
+                      onChange={(e) => updateRow(row.categoryId, { end: e.target.value })}
                       aria-label={t.explorer.endDateAria}
                     />
                   </td>

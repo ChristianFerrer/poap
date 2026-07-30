@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
@@ -52,8 +53,20 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
 
 function ProjectView({ project }: { project: Project }) {
   const { locale, setLocale, t } = useLanguage();
+  const router = useRouter();
   const settings = useAppSettings();
-  const { setProjectLanes, setProjectGates, activitiesByPhase, setActivitiesByPhase } = useProjects();
+  const {
+    projects,
+    deleteProject,
+    setProjectLanes,
+    setProjectGates,
+    activitiesByPhase,
+    setActivitiesByPhase,
+    stageCategories,
+    addStageCategory,
+    renameStageCategory,
+    deleteStageCategory,
+  } = useProjects();
 
   const lanes = project.lanes;
   const gates = project.gates;
@@ -251,6 +264,16 @@ function ProjectView({ project }: { project: Project }) {
     setActiveGateIds((prev) => prev.filter((gid) => gid !== id));
   }
 
+  // Deleting the project currently being viewed can't just update state
+  // and stay put — this page's own `project` lookup would immediately
+  // start failing every render — so it navigates back to the Program page
+  // in the same action. Deleting any other project from here (Settings
+  // lists every project, not just this one) just updates state in place.
+  function handleDeleteProject(id: string) {
+    deleteProject(id);
+    if (id === project.id) router.push("/");
+  }
+
   const sidebarActive: SidebarActive = settingsOpen
     ? "settings"
     : gatesPanelOpen
@@ -265,6 +288,7 @@ function ProjectView({ project }: { project: Project }) {
       lanes={lanes}
       startMonth={PROGRAM.startMonth}
       view={explorer}
+      stageCategories={stageCategories}
       getActivities={getActivities}
       onNavigate={setExplorer}
       onClose={sidePanel.closePanel}
@@ -307,6 +331,12 @@ function ProjectView({ project }: { project: Project }) {
       onSidePanelModeChange={handleSidePanelModeChange}
       navPosition={settings.navPosition}
       onNavPositionChange={settings.setNavPosition}
+      stageCategories={stageCategories}
+      onAddStageCategory={addStageCategory}
+      onRenameStageCategory={renameStageCategory}
+      onDeleteStageCategory={deleteStageCategory}
+      projects={projects}
+      onDeleteProject={handleDeleteProject}
       onClose={sidePanel.closePanel}
     />
   ) : null;

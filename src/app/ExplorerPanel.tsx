@@ -2,7 +2,8 @@
 
 import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
-import { MONTH_ABBR, STAGE_CATEGORIES, STAGE_CATEGORY_LABELS, STATUS_LABELS, pluralForm, type StageCategory } from "@/lib/i18n";
+import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
+import type { StageCategoryDef } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { formatDate, fromISODate, toISODate } from "./dateAxis";
 import { IconChevronRight, IconClose, IconPlus, IconSearch, IconSort, IconTrash } from "@/lib/icons";
@@ -142,6 +143,7 @@ export const ExplorerPanel = forwardRef<
     lanes: Lane[];
     startMonth: string;
     view: ExplorerView;
+    stageCategories: StageCategoryDef[];
     getActivities: (phase: Phase) => ActivitySeed[];
     onNavigate: (view: ExplorerView) => void;
     onClose: () => void;
@@ -162,6 +164,7 @@ export const ExplorerPanel = forwardRef<
     lanes,
     startMonth,
     view,
+    stageCategories,
     getActivities,
     onNavigate,
     onClose,
@@ -183,7 +186,7 @@ export const ExplorerPanel = forwardRef<
     start: "",
     end: "",
     status: "not_started" as PhaseStatus,
-    category: "" as StageCategory | "",
+    category: "",
   });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
@@ -424,13 +427,13 @@ export const ExplorerPanel = forwardRef<
                   <select
                     className={styles.statusSelect}
                     value={newPhase.category}
-                    onChange={(e) => setNewPhase((p) => ({ ...p, category: e.target.value as StageCategory | "" }))}
+                    onChange={(e) => setNewPhase((p) => ({ ...p, category: e.target.value }))}
                     aria-label={t.explorer.categoryAria}
                   >
                     <option value="">{t.explorer.categoryNone}</option>
-                    {STAGE_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {STAGE_CATEGORY_LABELS[locale][c]}
+                    {stageCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
                       </option>
                     ))}
                   </select>
@@ -517,15 +520,13 @@ export const ExplorerPanel = forwardRef<
                             <select
                               className={styles.statusSelect}
                               value={phase.category ?? ""}
-                              onChange={(e) =>
-                                onUpdatePhase(lane.id, phase.id, { category: (e.target.value || undefined) as StageCategory | undefined })
-                              }
+                              onChange={(e) => onUpdatePhase(lane.id, phase.id, { category: e.target.value || undefined })}
                               aria-label={t.explorer.categoryAria}
                             >
                               <option value="">{t.explorer.categoryNone}</option>
-                              {STAGE_CATEGORIES.map((c) => (
-                                <option key={c} value={c}>
-                                  {STAGE_CATEGORY_LABELS[locale][c]}
+                              {stageCategories.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.label}
                                 </option>
                               ))}
                             </select>
