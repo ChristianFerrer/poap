@@ -289,43 +289,29 @@
   color: var(--text-accent);
 }
 
-/* Level: phases (editable table) */
-.tableWrap {
-  overflow-x: auto;
+/* Level: phases — same bordered-card list as .laneRow/.activityRow
+   (structural parity across all three drill-down levels), just with
+   editable fields inline instead of a single "navigate" button, since a
+   phase's title/dates/status are edited directly here rather than behind
+   a drill-down. */
+.phaseRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-}
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.table th {
-  text-align: left;
-  font-size: var(--text-3xs);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
+  background: var(--card-bg);
   padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-1);
-  white-space: nowrap;
-}
-.table td {
-  padding: 5px 8px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-.table tbody tr:last-child td {
-  border-bottom: none;
 }
 .tableTextInput {
-  width: 100%;
-  min-width: 140px;
+  flex: 1 1 auto;
+  min-width: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   padding: 6px 8px;
   font-size: var(--text-xs);
+  font-weight: 600;
   font-family: inherit;
   background: transparent;
   color: var(--ink);
@@ -338,12 +324,6 @@
   border-color: var(--text-accent);
   background: var(--surface-1);
   outline: none;
-}
-.emptyCell {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  font-style: italic;
-  padding: 12px 10px;
 }
 .viewButton {
   flex: 0 0 auto;
@@ -610,13 +590,11 @@
     width: auto;
     flex: 1 1 120px;
   }
-  .activityRow {
+  .activityRow,
+  .phaseRow {
     flex-wrap: wrap;
   }
-  /* .tableWrap already scrolls horizontally on its own, so the table's
-     columns keep their natural widths on mobile instead of squeezing
-     inputs down to unusable sizes. */
-  .table {
-    min-width: 560px;
+  .phaseRow .tableTextInput {
+    flex: 1 1 100%;
   }
 }

@@ -412,110 +412,76 @@ export const ExplorerPanel = forwardRef<
                 </div>
               </div>
 
-              <FilterBar
-                search={phaseSearch}
-                onSearch={setPhaseSearch}
-                searchLabel={t.explorer.searchPhasePlaceholder}
-                sortBy={phaseSort}
-                onSortBy={setPhaseSort}
-              />
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>{t.explorer.tableTitle}</th>
-                      <th>{t.explorer.tableStart}</th>
-                      <th>{t.explorer.tableEnd}</th>
-                      <th>{t.explorer.tableStatus}</th>
-                      <th aria-hidden="true" />
-                      <th aria-hidden="true" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visiblePhases.map((phase) => (
-                      <tr key={phase.id}>
-                        <td>
-                          <input
-                            className={styles.tableTextInput}
-                            value={phase.title}
-                            onChange={(e) => onUpdatePhase(lane.id, phase.id, { title: e.target.value })}
-                            aria-label={t.explorer.phaseTitleAria}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="date"
-                            className={styles.dateInput}
-                            value={toISODate(phase.start, startMonth)}
-                            onChange={(e) => {
-                              if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
-                            }}
-                            aria-label={t.explorer.startDateAria}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="date"
-                            className={styles.dateInput}
-                            value={toISODate(phase.end, startMonth)}
-                            onChange={(e) => {
-                              if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
-                            }}
-                            aria-label={t.explorer.endDateAria}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            className={styles.statusSelect}
-                            value={phase.status}
-                            onChange={(e) => onUpdatePhase(lane.id, phase.id, { status: e.target.value as PhaseStatus })}
-                            aria-label={t.explorer.phaseStatusAria}
-                          >
-                            {STATUS_OPTIONS.map((s) => (
-                              <option key={s} value={s}>
-                                {STATUS_LABELS[locale][s]}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className={styles.viewButton}
-                            onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
-                            aria-label={t.explorer.viewActivitiesAria(phase.title)}
-                          >
-                            <IconChevronRight />
-                          </button>
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className={styles.deleteButton}
-                            onClick={() => onDeletePhase(lane.id, phase.id)}
-                            aria-label={t.explorer.deletePhaseAria(phase.title)}
-                          >
-                            <IconTrash />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {visiblePhases.length === 0 && lane.phases.length > 0 && (
-                      <tr>
-                        <td colSpan={6} className={styles.emptyCell}>
-                          {t.explorer.noPhaseMatch}
-                        </td>
-                      </tr>
-                    )}
-                    {lane.phases.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className={styles.emptyCell}>
-                          {t.explorer.noPhases}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className={styles.listGroup}>
+                <FilterBar
+                  search={phaseSearch}
+                  onSearch={setPhaseSearch}
+                  searchLabel={t.explorer.searchPhasePlaceholder}
+                  sortBy={phaseSort}
+                  onSortBy={setPhaseSort}
+                />
+                <div className={styles.list}>
+                  {visiblePhases.map((phase) => (
+                    <div key={phase.id} className={styles.phaseRow}>
+                      <input
+                        className={styles.tableTextInput}
+                        value={phase.title}
+                        onChange={(e) => onUpdatePhase(lane.id, phase.id, { title: e.target.value })}
+                        aria-label={t.explorer.phaseTitleAria}
+                      />
+                      <input
+                        type="date"
+                        className={styles.dateInput}
+                        value={toISODate(phase.start, startMonth)}
+                        onChange={(e) => {
+                          if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
+                        }}
+                        aria-label={t.explorer.startDateAria}
+                      />
+                      <input
+                        type="date"
+                        className={styles.dateInput}
+                        value={toISODate(phase.end, startMonth)}
+                        onChange={(e) => {
+                          if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
+                        }}
+                        aria-label={t.explorer.endDateAria}
+                      />
+                      <select
+                        className={styles.statusSelect}
+                        value={phase.status}
+                        onChange={(e) => onUpdatePhase(lane.id, phase.id, { status: e.target.value as PhaseStatus })}
+                        aria-label={t.explorer.phaseStatusAria}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_LABELS[locale][s]}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className={styles.viewButton}
+                        onClick={() => onNavigate({ level: "activities", phaseId: phase.id })}
+                        aria-label={t.explorer.viewActivitiesAria(phase.title)}
+                      >
+                        <IconChevronRight />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteButton}
+                        onClick={() => onDeletePhase(lane.id, phase.id)}
+                        aria-label={t.explorer.deletePhaseAria(phase.title)}
+                      >
+                        <IconTrash />
+                      </button>
+                    </div>
+                  ))}
+                  {visiblePhases.length === 0 && lane.phases.length > 0 && (
+                    <p className={styles.empty}>{t.explorer.noPhaseMatch}</p>
+                  )}
+                  {lane.phases.length === 0 && <p className={styles.empty}>{t.explorer.noPhases}</p>}
+                </div>
               </div>
             </>
           );

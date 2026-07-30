@@ -60,6 +60,27 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
       <p className={styles.eyebrow}>{t.gates.eyebrow}</p>
       <h2 className={styles.title}>{t.gates.title}</h2>
 
+      <div className={styles.addGroup}>
+        <p className={styles.sectionTitle}>{t.gates.addSection}</p>
+        <div className={styles.addRow}>
+          <input
+            className={styles.labelInput}
+            placeholder={t.gates.namePlaceholder}
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+          />
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+          />
+          <button type="button" className={styles.addButton} disabled={!newLabel.trim() || !newDate} onClick={submitNew}>
+            <IconPlus /> {t.gates.addButton}
+          </button>
+        </div>
+      </div>
+
       <div className={styles.list}>
         {sorted.map((gate) => {
           const active = activeGateIds.has(gate.id);
@@ -102,27 +123,6 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
           );
         })}
         {sorted.length === 0 && <p className={styles.empty}>{t.gates.noGates}</p>}
-      </div>
-
-      <div className={styles.addGroup}>
-        <p className={styles.sectionTitle}>{t.gates.addSection}</p>
-        <div className={styles.addRow}>
-          <input
-            className={styles.labelInput}
-            placeholder={t.gates.namePlaceholder}
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-          />
-          <input
-            type="date"
-            className={styles.dateInput}
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
-          />
-          <button type="button" className={styles.addButton} disabled={!newLabel.trim() || !newDate} onClick={submitNew}>
-            <IconPlus /> {t.gates.addButton}
-          </button>
-        </div>
       </div>
     </section>
   );
