@@ -195,22 +195,23 @@
   border-left: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
   border-right: 1px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
 }
-/* Horizontal anchor for a sticky badge below — spans the plan's full
-   height (so its sticky child always has room to clamp against) but has
-   no width of its own; only used to carry the axis-position `left`. */
-.badgeAnchor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 0;
+/* A single sticky strip, not a per-badge sticky element nested inside an
+   absolute anchor (that combination let a badge render underneath/behind
+   whatever gate or bar happened to share its spot). One sticky container,
+   plain absolutely-positioned badges inside it — clamps to the top of
+   .timelineScroll's visible area, just below the ruler, as you scroll
+   through lanes, and a z-index above every bar/gate/ruler cell guarantees
+   it's never covered by them. */
+.badgeRow {
+  position: sticky;
+  z-index: 4;
+  height: 0;
+  pointer-events: none;
 }
 
-/* Sticky, not absolute: clamps to the top of .timelineScroll's visible
-   area (just below the ruler) as you scroll down through lanes, instead
-   of scrolling away with the row it happened to start next to — always
-   visible, never sitting on top of a bar. */
 .columnBadge {
-  position: sticky;
+  position: absolute;
+  top: 6px;
   transform: translateX(4px);
   background: var(--text-accent);
   color: var(--card-bg);
@@ -234,7 +235,8 @@
   box-shadow: 0 0 6px 0 color-mix(in srgb, var(--today-line) 70%, transparent);
 }
 .todayBadge {
-  position: sticky;
+  position: absolute;
+  top: 6px;
   transform: translateX(4px);
   background: var(--today-line);
   color: var(--accent-live-ink);
