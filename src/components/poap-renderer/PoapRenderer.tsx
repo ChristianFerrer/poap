@@ -448,9 +448,14 @@ export function PoapRenderer({
     () => subCells(startMonth, months, zoom.subRowGranularity),
     [startMonth, months, zoom.subRowGranularity],
   );
+  // Only meaningful at the Día zoom: at any coarser zoom a single day is a
+  // sliver of a pixel, so the "columns" would render as visual noise
+  // rather than a readable weekend marker — same reasoning as the
+  // day-initial label above the sub row, which is Día-only for the same
+  // reason.
   const wRanges = useMemo(
-    () => (showWeekends ? weekendRanges(startMonth, months) : []),
-    [startMonth, months, showWeekends],
+    () => (showWeekends && zoom.subRowGranularity === "day" ? weekendRanges(startMonth, months) : []),
+    [startMonth, months, showWeekends, zoom.subRowGranularity],
   );
   const dayInitials = DAY_INITIALS[locale];
 
@@ -761,7 +766,7 @@ export function PoapRenderer({
                         className={[
                           styles.subCell,
                           zoom.subRowGranularity === "day" ? styles.subCellDay : "",
-                          showWeekends && isWeekend ? styles.subCellWeekend : "",
+                          showWeekends && zoom.subRowGranularity === "day" && isWeekend ? styles.subCellWeekend : "",
                         ].join(" ").trim()}
                         style={{ left: pct(cell.start, scale), width: pctSpan(cell.start, cell.end, scale) }}
                       >
