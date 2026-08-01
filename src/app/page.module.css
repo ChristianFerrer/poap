@@ -46,14 +46,18 @@
   gap: 8px;
 }
 
+/* Solid fill, same "primary action" treatment as .addButton in
+   ExplorerPanel.module.css (add phase/lane/gate/activity) — these header
+   buttons are just as much the main call to action on their page, so they
+   read the same way instead of looking like a lesser, outlined option. */
 .importButton {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  color: var(--ink);
+  background: var(--text-accent);
+  border: none;
+  color: var(--card-bg);
   border-radius: var(--radius-sm);
   padding: 8px 14px;
   font-size: var(--text-xs);
@@ -62,8 +66,7 @@
   white-space: nowrap;
 }
 .importButton:hover {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
+  filter: brightness(0.92);
 }
 
 .languageSwitch {
