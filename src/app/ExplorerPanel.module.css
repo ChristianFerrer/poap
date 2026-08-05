@@ -334,6 +334,9 @@
   color: var(--color-lime);
   border-color: var(--color-lime);
 }
+/* Destructive by default (not just on hover) — a delete/trash action
+   should read as "this removes something" at a glance, same idea as
+   --color-rose everywhere else it's used (error, cancelled, destructive). */
 .deleteButton {
   flex: 0 0 auto;
   width: 24px;
@@ -342,14 +345,15 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-xl);
-  border: 1px solid var(--color-line);
-  background: var(--color-surface2);
-  color: var(--color-fog);
+  border: 1px solid color-mix(in srgb, var(--color-rose) 35%, var(--color-line));
+  background: var(--color-rose-soft);
+  color: var(--color-rose);
   cursor: pointer;
 }
 .deleteButton:hover {
-  color: var(--color-amber);
-  border-color: var(--color-amber);
+  background: var(--color-rose);
+  color: var(--color-surface);
+  border-color: var(--color-rose);
 }
 
 /* Level: activity detail */

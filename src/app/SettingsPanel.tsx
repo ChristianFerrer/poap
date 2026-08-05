@@ -161,11 +161,22 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
       <div className={styles.group}>
         <p className={styles.sectionTitle}>{t.settings.stagesSection}</p>
         <p className={styles.optionHint}>{t.settings.stagesHint}</p>
+        <div className={explorerStyles.addRow}>
+          <input
+            className={explorerStyles.textInput}
+            placeholder={t.settings.newStagePlaceholder}
+            value={newStage}
+            onChange={(e) => setNewStage(e.target.value)}
+          />
+          <button type="button" className={explorerStyles.addButton} disabled={!newStage.trim()} onClick={submitNewStage}>
+            <IconPlus /> {t.explorer.addButton}
+          </button>
+        </div>
         <div className={explorerStyles.listGroup}>
           {stageCategories.map((c) => (
             <div key={c.id} className={explorerStyles.addRow}>
               <input
-                className={explorerStyles.tableTextInput}
+                className={explorerStyles.textInput}
                 value={c.label}
                 onChange={(e) => onRenameStageCategory(c.id, e.target.value)}
                 aria-label={t.settings.stageNameAria}
@@ -181,17 +192,6 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
             </div>
           ))}
           {stageCategories.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noStages}</p>}
-        </div>
-        <div className={explorerStyles.addRow}>
-          <input
-            className={explorerStyles.textInput}
-            placeholder={t.settings.newStagePlaceholder}
-            value={newStage}
-            onChange={(e) => setNewStage(e.target.value)}
-          />
-          <button type="button" className={explorerStyles.addButton} disabled={!newStage.trim()} onClick={submitNewStage}>
-            <IconPlus /> {t.explorer.addButton}
-          </button>
         </div>
       </div>
 
