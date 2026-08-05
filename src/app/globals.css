@@ -111,6 +111,14 @@
   --color-amber-soft: #fceed9;
   --color-iris-soft: #e1ebfb;
 
+  /* The dark-mode neon lime (#c6ff00) was tuned to pop against near-black
+     — unchanged, it reads as an overexposed glow on a white page instead
+     of a crisp reference line. A gold/yellow keeps the same "highlighter,
+     not a status or the primary accent" role (none of the six accents
+     above are yellow in either theme) at a brightness that actually works
+     on --color-carbon's near-white. */
+  --today-line: #eab308;
+
   --shadow-soft: 0 1px 2px rgba(20, 22, 26, 0.06), 0 12px 32px -16px rgba(20, 22, 26, 0.12);
   --shadow-lime: 0 10px 32px -14px rgba(32, 191, 107, 0.35);
 }
