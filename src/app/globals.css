@@ -98,29 +98,37 @@
   --color-fog: #565c68;
   --color-mist: #838a96;
 
-  --color-lime: #20bf6b;
-  --color-lime-deep: #189656;
-  --color-iris: #3867d6;
-  --color-amber: #fa8231;
-  --color-mint: #22a6b3;
-  --color-mint-soft: #dff7f5;
-  --color-rose: #eb3b5a;
-  --color-rose-soft: #fde3e8;
-  --color-cyan: #2d98da;
+  /* Six semantic accents, all drawn from Flat UI Colors' "Casandora"
+     palette (flatuicolors.com/palette/ca) instead of hand-picked values —
+     same roles as before, colors sourced from that one named set only.
+     lime→Wild Caribbean Green, lime-deep→Dark Mountain Meadow (a darker
+     green from the same set, for the hover state), iris→Bleu de France,
+     amber→Double Dragon Skin, mint→Aqua Velvet, rose→Amour,
+     cyan→Cyanite. */
+  --color-lime: #1dd1a1;
+  --color-lime-deep: #10ac84;
+  --color-iris: #2e86de;
+  --color-amber: #ff9f43;
+  --color-mint: #01a3a4;
+  --color-rose: #ee5253;
+  --color-cyan: #0abde3;
 
-  --color-amber-soft: #fceed9;
-  --color-iris-soft: #e1ebfb;
+  /* Soft (tinted) badge backgrounds — Casandora has no pale tint of each
+     hue, so these are computed from the accent above (same color-mix
+     technique already used elsewhere in this app, e.g. PoapRenderer's
+     column tints) rather than introducing a second, non-palette hex. */
+  --color-mint-soft: color-mix(in srgb, var(--color-mint) 15%, var(--color-surface));
+  --color-rose-soft: color-mix(in srgb, var(--color-rose) 15%, var(--color-surface));
+  --color-amber-soft: color-mix(in srgb, var(--color-amber) 15%, var(--color-surface));
+  --color-iris-soft: color-mix(in srgb, var(--color-iris) 15%, var(--color-surface));
 
-  /* The dark-mode neon lime (#c6ff00) was tuned to pop against near-black
-     — unchanged, it reads as an overexposed glow on a white page instead
-     of a crisp reference line. A gold/yellow keeps the same "highlighter,
-     not a status or the primary accent" role (none of the six accents
-     above are yellow in either theme) at a brightness that actually works
-     on --color-carbon's near-white. */
-  --today-line: #eab308;
+  /* "Hoy" marker — Casandora Yellow, the palette's one yellow, so it
+     stays distinct from all six accents above (none of which are
+     yellow) while still only drawing from this same named set. */
+  --today-line: #feca57;
 
   --shadow-soft: 0 1px 2px rgba(20, 22, 26, 0.06), 0 12px 32px -16px rgba(20, 22, 26, 0.12);
-  --shadow-lime: 0 10px 32px -14px rgba(32, 191, 107, 0.35);
+  --shadow-lime: 0 10px 32px -14px rgba(29, 209, 161, 0.35);
 }
 
 * {
