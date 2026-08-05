@@ -1,99 +1,118 @@
 /*
- * Design tokens — see the UX/UI audit for the inconsistencies this system
- * replaces (11 different border-radius values, 9 ad hoc font-sizes, a
- * primary color hand-tuned separately in 5 files, ...). Every visual value
- * used anywhere in the app should trace back to one of these.
+ * Design tokens — ported from the GERD CRM design system spec (see the
+ * uploaded `designsystem.md`). This app uses CSS Modules, not Tailwind, so
+ * only the *tokens and rules* are ported (names, values, the light-theme
+ * contrast behavior, the type/radius/spacing scale) — not Tailwind's
+ * utility-class syntax, and not the mobile-only components (bottom nav,
+ * FAB, bottom sheet) that don't exist in this desktop Gantt/plan tool.
  *
- * Color roles are kept deliberately narrow: --text-accent is the ONE
- * primary/interactive color (links, primary buttons, focus rings,
- * "in progress" status — all genuinely the same idea: "this is live/
- * actionable right now"). --gate-active and --today-line are intentionally
- * separate hues from the primary accent and from each other — a gate
- * cut-line, the current-day marker, and "in progress" are three different
- * facts about the plan and must never be visually confusable. The actual
- * hex values below are the app's original palette (restored after a
- * later redesign pass changed them) — only the palette; the radius/type
- * scale from that redesign stayed.
+ * Mechanism: dark is the default under :root, exactly like the spec.
+ * :root[data-theme="light"] redefines the same token names — no component
+ * ever branches on theme itself (see useAppSettings/layout.tsx for how
+ * data-theme actually gets set, and the no-flash script in layout.tsx).
+ *
+ * Status-color mapping (this app's own decision, not in the source spec —
+ * it has no notion of "phase status"): done→mint ("confirmado"), in
+ * progress→iris ("foco temporal"), at risk→amber ("pendiente de acción"),
+ * not started→neutral fog (no accent — matches "los estados neutros no
+ * llevan badge"). Stage-gate activation uses cyan (the one accent
+ * otherwise unused here) precisely so it can never be confused with any
+ * phase status. The "Hoy" marker line stays its own bespoke color, same
+ * as before this pass — it must never be mistaken for a status or a
+ * primary-action color, so it deliberately isn't one of the six accents.
  */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  --page-bg: #f5f5f3;
-  --card-bg: #ffffff;
-  --ink: #16171a;
-  --text-secondary: #6b6b66;
+  --color-ink: #0a0b0d;
+  --color-carbon: #0e0f12;
+  --color-surface: #16181d;
+  --color-surface2: #1d2027;
+  --color-line: #2a2e36;
+  --color-line2: #3a3f49;
+  --color-snow: #f4f5f2;
+  --color-fog: #a2a8b2;
+  --color-mist: #6c727c;
 
-  --border: #e5e5e2;
-  --border-strong: #b9b9b3;
+  --color-lime: #c6f24e; /* primary action / brand / focus */
+  --color-lime-deep: #a9da2f;
+  --color-iris: #8b8bff; /* "in progress" */
+  --color-amber: #f5b945; /* "at risk" */
+  --color-mint: #34d399; /* "done" */
+  --color-mint-soft: #112a23;
+  --color-rose: #fb7185; /* destructive / error */
+  --color-rose-soft: #2a1419;
+  --color-cyan: #67e8f9; /* stage-gate activation */
 
-  --surface-0: #f7f7f5; /* period bands: reads as background, not content */
-  --surface-1: #f2f2f0; /* not_started fill */
+  /* Soft (tinted) backgrounds for amber/iris — the source spec only
+     defines -soft for mint/rose, so these follow the same "dark tint of
+     the accent" formula rather than quoting the spec directly. Reused
+     from this app's own former --bg-warning/--bg-accent values, which
+     were already tuned against these exact accent hues. */
+  --color-amber-soft: #3a2a0e;
+  --color-iris-soft: #17273f;
 
-  --bg-success: #e3f4e1;
-  --text-success: #1e7b34;
-
-  --bg-accent: #e1ebfb;
-  --text-accent: #1d4e96;
-
-  --bg-warning: #fceed9;
-  --text-warning: #92530a;
-
-  /* Stage-gate activation — distinct from status/accent so an activated
-     gate never reads as "in progress" or "on track". */
-  --gate-active: #7c3aed;
-
-  /* Today marker — deliberately not a status/accent color: it should read
-     as a fixed reference line, not as "in progress" or a selection. Neon
-     lime is saturated enough to stay legible on both themes as-is. */
+  /* Stage-gate cut-line and the "Hoy" marker — intentionally separate
+     from the six semantic accents above and from each other, so neither
+     can ever read as a phase status or a primary action. */
   --today-line: #c6ff00;
   --accent-live-ink: #10210a; /* readable text/icon color set against --today-line fills */
 
-  /* Radius scale — technical/sharp language: small, consistent steps
-     rather than soft pill shapes. */
-  --radius-xs: 4px; /* chips, badges, icon-only buttons */
-  --radius-sm: 6px; /* inputs, buttons, small controls */
-  --radius-md: 8px; /* cards, panels, larger surfaces */
-  --radius-lg: 12px; /* the side panel only */
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  --shadow-lime: 0 10px 40px -12px rgba(198, 242, 78, 0.4);
 
-  /* Type scale — one family (system UI sans, kept for legibility in a
-     dense data tool), a small set of sizes reused everywhere instead of
-     one-off values like "11.5px"/"12.5px". */
-  --text-3xs: 10px;
-  --text-2xs: 11px;
-  --text-xs: 12px;
-  --text-sm: 13px;
-  --text-md: 15px;
-  --text-lg: 20px;
-  --text-xl: 26px;
+  /* Radius scale — spec names (rounded-lg/xl/2xl/3xl), not this app's old
+     xs/sm/md/lg, so a glance at a value here maps straight onto the spec
+     table (§5.1) instead of needing a lookup. */
+  --radius-lg: 8px; /* icon buttons, chips, small cells */
+  --radius-xl: 12px; /* buttons, inputs, cards */
+  --radius-2xl: 16px; /* panels, modals, section containers */
+  --radius-3xl: 24px; /* the side panel */
+  --radius-full: 999px;
+
+  /* Type scale — sizes updated to the spec's rows (§2.2); names kept as
+     this app's original xs/sm/md/lg/xl so no call site needs touching.
+     --text-sm moving 13→14 and --text-md 15→16 specifically closes the
+     spec's "no mezclar 13px ni 15px" rule. */
+  --text-3xs: 10px; /* etiqueta / rótulo de sección */
+  --text-2xs: 11px; /* meta S */
+  --text-xs: 12px; /* meta */
+  --text-sm: 14px; /* cuerpo */
+  --text-md: 16px; /* subtítulo */
+  --text-lg: 20px; /* título 2 */
+  --text-xl: 30px; /* display — título de página, escritorio */
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+:root[data-theme="light"] {
+  color-scheme: light;
 
-    --page-bg: #101012;
-    --card-bg: #17181b;
-    --ink: #eceeea;
-    --text-secondary: #a8a8a2;
+  --color-carbon: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface2: #f2f3f5;
+  --color-line: #e3e5ea;
+  --color-line2: #cdd1d9;
+  --color-snow: #14161a;
+  --color-fog: #565c68;
+  --color-mist: #838a96;
 
-    --border: #313134;
-    --border-strong: #55555a;
+  --color-lime: #20bf6b;
+  --color-lime-deep: #189656;
+  --color-iris: #3867d6;
+  --color-amber: #fa8231;
+  --color-mint: #22a6b3;
+  --color-mint-soft: #dff7f5;
+  --color-rose: #eb3b5a;
+  --color-rose-soft: #fde3e8;
+  --color-cyan: #2d98da;
 
-    --surface-0: #1b1b1e;
-    --surface-1: #232327;
+  --color-amber-soft: #fceed9;
+  --color-iris-soft: #e1ebfb;
 
-    --bg-success: #16351e;
-    --text-success: #6fd98a;
-
-    --bg-accent: #17273f;
-    --text-accent: #8fb6ee;
-
-    --bg-warning: #3a2a0e;
-    --text-warning: #f0b75c;
-
-    --gate-active: #a78bfa;
-    --accent-live-ink: #10210a;
-  }
+  --shadow-soft: 0 1px 2px rgba(20, 22, 26, 0.06), 0 12px 32px -16px rgba(20, 22, 26, 0.12);
+  --shadow-lime: 0 10px 32px -14px rgba(32, 191, 107, 0.35);
 }
 
 * {
@@ -104,21 +123,37 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--page-bg);
-  color: var(--ink);
+  background: var(--color-carbon);
+  color: var(--color-snow);
 }
 
 body {
-  font-family:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Page/section titles — the one place this app uses the display role
+   (§2.2/§2.3: font-display only for page titles and large section
+   titles). */
+.fontDisplay {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 /* One focus language for the whole app — every interactive element gets
    the same visible ring in the primary accent color. Nothing in this
    codebase should ever set `outline: none` without this taking its place. */
 :focus-visible {
-  outline: 2px solid var(--text-accent);
+  outline: 2px solid var(--color-lime);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

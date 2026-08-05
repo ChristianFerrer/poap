@@ -9,15 +9,15 @@
   align-items: center;
   gap: 6px;
   padding: 16px 8px;
-  background: var(--card-bg);
+  background: var(--color-surface);
 }
 .sidebarLeft {
   left: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--color-line);
 }
 .sidebarRight {
   right: 0;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--color-line);
 }
 
 .navButton {
@@ -28,23 +28,23 @@
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xl);
   background: none;
-  color: var(--text-secondary);
+  color: var(--color-fog);
   cursor: pointer;
 }
 .navButton svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 .navButton:hover {
-  background: var(--surface-1);
-  color: var(--ink);
+  background: var(--color-surface2);
+  color: var(--color-snow);
 }
 .navButtonActive {
-  background: var(--bg-accent);
-  color: var(--text-accent);
-  border-color: color-mix(in srgb, var(--text-accent) 35%, transparent);
+  background: var(--color-iris-soft);
+  color: var(--color-iris);
+  border-color: color-mix(in srgb, var(--color-iris) 35%, transparent);
 }
 
 /* Separates the fixed-panel visibility toggle from the content-selector
@@ -53,7 +53,7 @@
   flex: 0 0 auto;
   width: 28px;
   height: 1px;
-  background: var(--border);
+  background: var(--color-line);
   margin: 4px 0;
 }
 

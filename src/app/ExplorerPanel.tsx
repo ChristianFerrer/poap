@@ -67,10 +67,10 @@ function FilterBar({
 }
 
 const STATUS_VAR: Record<PhaseStatus, string> = {
-  done: "text-success",
-  in_progress: "text-accent",
-  at_risk: "text-warning",
-  not_started: "text-secondary",
+  done: "color-mint",
+  in_progress: "color-iris",
+  at_risk: "color-amber",
+  not_started: "color-fog",
 };
 const STATUS_OPTIONS: PhaseStatus[] = ["not_started", "in_progress", "at_risk", "done"];
 
@@ -86,7 +86,7 @@ function StatusPill({ status }: { status: PhaseStatus }) {
     <span
       className={styles.pill}
       style={{
-        background: `color-mix(in srgb, var(--${STATUS_VAR[status]}) 18%, var(--card-bg))`,
+        background: `color-mix(in srgb, var(--${STATUS_VAR[status]}) 18%, var(--color-surface))`,
         color: `var(--${STATUS_VAR[status]})`,
       }}
     >

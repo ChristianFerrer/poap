@@ -3,6 +3,7 @@
 import { forwardRef, useState } from "react";
 import { useLanguage } from "./i18n/LanguageProvider";
 import type { Project, StageCategoryDef } from "@/lib/portfolio";
+import type { Theme } from "./useAppSettings";
 import { IconClose, IconPlus, IconTrash } from "@/lib/icons";
 import styles from "./SettingsPanel.module.css";
 import explorerStyles from "./ExplorerPanel.module.css";
@@ -18,6 +19,8 @@ export type NavPosition = "left" | "right";
  * side-panel mode below.
  */
 export const SettingsPanel = forwardRef<HTMLDivElement, {
+  theme: Theme;
+  onThemeChange: (value: Theme) => void;
   showWeekends: boolean;
   onShowWeekendsChange: (value: boolean) => void;
   showToday: boolean;
@@ -35,6 +38,8 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
   onClose: () => void;
 }>(function SettingsPanel(
   {
+    theme,
+    onThemeChange,
     showWeekends,
     onShowWeekendsChange,
     showToday,
@@ -67,6 +72,22 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
       <button className={styles.close} onClick={onClose} aria-label={t.settings.close}><IconClose /></button>
       <p className={styles.eyebrow}>{t.settings.eyebrow}</p>
       <h2 className={styles.title}>{t.settings.title}</h2>
+
+      <div className={styles.group}>
+        <p className={styles.sectionTitle}>{t.settings.themeSection}</p>
+        <div className={styles.optionRow}>
+          <span className={styles.optionLabel}>{t.settings.themeLabel}</span>
+          <OptionGroup
+            value={theme}
+            onChange={onThemeChange}
+            options={[
+              { value: "dark", label: t.settings.themeDark },
+              { value: "light", label: t.settings.themeLight },
+            ]}
+            ariaLabel={t.settings.themeLabel}
+          />
+        </div>
+      </div>
 
       <div className={styles.group}>
         <p className={styles.sectionTitle}>{t.settings.weekendsSection}</p>

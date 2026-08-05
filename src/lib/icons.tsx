@@ -1,142 +1,55 @@
-/** Flat/outline icon set shared across the whole app, including
- * poap-renderer/ — plain inline SVG (currentColor stroke) so each one
- * inherits its button's text color and sizes with font-size, no icon font
- * or asset loading needed. Lives in src/lib (not src/app) for the same
- * reason MONTH_ABBR/STATUS_LABELS do: it's pure, stateless, presentational
- * data that poap-renderer is allowed to depend on without breaking its
- * data-in/callback-out contract, unlike anything stateful in src/app. */
+/** Icon set shared across the whole app, including poap-renderer/ — thin
+ * wrappers around lucide-react (per the design-system spec, §5.3) rather
+ * than hand-drawn SVG, but keeping the exact same exported component
+ * names as before so no call site anywhere had to change. Sized by
+ * hierarchy per the spec: 14px inline in buttons/rows, 20px for the
+ * sidebar's own navigation icons. Lives in src/lib (not src/app) for the
+ * same reason MONTH_ABBR/STATUS_LABELS do: it's pure, stateless,
+ * presentational data that poap-renderer is allowed to depend on without
+ * breaking its data-in/callback-out contract, unlike anything stateful in
+ * src/app. */
 
-const base = {
-  width: 14,
-  height: 14,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true,
-};
+import {
+  ArrowUpDown,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Diamond,
+  Home,
+  Minus,
+  PanelRight,
+  Plus,
+  Rows3,
+  Search,
+  Settings as SettingsIcon,
+  Trash2,
+  Upload,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
-export function IconClose() {
-  return (
-    <svg {...base}>
-      <path d="M18 6 6 18M6 6l12 12" />
-    </svg>
-  );
+const BUTTON_SIZE = 14; // inline in buttons, rows, form controls
+const NAV_SIZE = 20; // the sidebar's own destination icons
+
+function icon(Lucide: LucideIcon, size: number) {
+  return function Icon() {
+    return <Lucide size={size} strokeWidth={2} aria-hidden="true" />;
+  };
 }
 
-export function IconTrash() {
-  return (
-    <svg {...base}>
-      <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
-    </svg>
-  );
-}
+export const IconClose = icon(X, BUTTON_SIZE);
+export const IconTrash = icon(Trash2, BUTTON_SIZE);
+export const IconPlus = icon(Plus, BUTTON_SIZE);
+export const IconMinus = icon(Minus, BUTTON_SIZE);
+export const IconUpload = icon(Upload, BUTTON_SIZE);
+export const IconChevronRight = icon(ChevronRight, BUTTON_SIZE);
+export const IconChevronDown = icon(ChevronDown, BUTTON_SIZE);
+export const IconCheck = icon(Check, BUTTON_SIZE);
+export const IconSearch = icon(Search, BUTTON_SIZE);
+export const IconSort = icon(ArrowUpDown, BUTTON_SIZE);
 
-export function IconPlus() {
-  return (
-    <svg {...base}>
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-export function IconMinus() {
-  return (
-    <svg {...base}>
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
-
-export function IconUpload() {
-  return (
-    <svg {...base}>
-      <path d="M12 16V4M7 9l5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
-    </svg>
-  );
-}
-
-export function IconChevronRight() {
-  return (
-    <svg {...base}>
-      <path d="m9 6 6 6-6 6" />
-    </svg>
-  );
-}
-
-export function IconChevronDown() {
-  return (
-    <svg {...base}>
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-export function IconCheck() {
-  return (
-    <svg {...base}>
-      <path d="m5 13 4 4L19 7" />
-    </svg>
-  );
-}
-
-export function IconSearch() {
-  return (
-    <svg {...base}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="m21 21-4.35-4.35" />
-    </svg>
-  );
-}
-
-export function IconSort() {
-  return (
-    <svg {...base}>
-      <path d="M7 6v14M7 20l-3-3M7 20l3-3M17 18V4M17 4l-3 3M17 4l3 3" />
-    </svg>
-  );
-}
-
-export function IconHome() {
-  return (
-    <svg {...base}>
-      <path d="M4 11 12 4l8 7M6 9.5V20h12V9.5" />
-    </svg>
-  );
-}
-
-export function IconGateDiamond() {
-  return (
-    <svg {...base}>
-      <path d="M12 4 20 12 12 20 4 12Z" />
-    </svg>
-  );
-}
-
-export function IconLanes() {
-  return (
-    <svg {...base}>
-      <path d="M4 7h16M4 12h10M4 17h13" />
-    </svg>
-  );
-}
-
-export function IconPanel() {
-  return (
-    <svg {...base}>
-      <rect x="3.5" y="4.5" width="17" height="15" rx="1.5" />
-      <path d="M14.5 4.5v15" />
-    </svg>
-  );
-}
-
-export function IconSettings() {
-  return (
-    <svg {...base}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 3v2.2M12 18.8V21M4.9 4.9l1.55 1.55M17.55 17.55 19.1 19.1M3 12h2.2M18.8 12H21M4.9 19.1l1.55-1.55M17.55 6.45 19.1 4.9" />
-    </svg>
-  );
-}
+export const IconHome = icon(Home, NAV_SIZE);
+export const IconGateDiamond = icon(Diamond, NAV_SIZE);
+export const IconLanes = icon(Rows3, NAV_SIZE);
+export const IconPanel = icon(PanelRight, NAV_SIZE);
+export const IconSettings = icon(SettingsIcon, NAV_SIZE);

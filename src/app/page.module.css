@@ -55,15 +55,18 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--text-accent);
+  background: var(--color-lime);
   border: none;
-  color: var(--card-bg);
-  border-radius: var(--radius-sm);
+  color: var(--color-surface);
+  border-radius: var(--radius-xl);
   padding: 8px 14px;
   font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  /* The brand halo is reserved for the primary CTA (see globals.css) —
+     this header button is the main call to action on its page. */
+  box-shadow: var(--shadow-lime);
 }
 .importButton:hover {
   filter: brightness(0.92);
@@ -72,49 +75,51 @@
 .languageSwitch {
   flex: 0 0 auto;
   display: flex;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--color-surface2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
   padding: 2px;
   gap: 2px;
 }
 .languageButton {
   border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--color-fog);
   font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   padding: 6px 10px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-family: inherit;
 }
 .languageButton:hover {
-  color: var(--ink);
+  color: var(--color-snow);
 }
 .languageButtonActive {
-  background: var(--card-bg);
-  color: var(--text-accent);
+  background: var(--color-surface);
+  color: var(--color-iris);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .eyebrow {
   font-size: var(--text-2xs);
-  color: var(--text-secondary);
+  color: var(--color-fog);
   margin: 0 0 4px;
 }
 
 .title {
+  font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin: 0 0 4px;
   text-wrap: balance;
 }
 
 .meta {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--color-fog);
   margin: 0 0 18px;
 }
 
@@ -144,8 +149,8 @@
   bottom: 0;
   z-index: 20;
   display: flex;
-  background: var(--card-bg);
-  border-left: 1px solid var(--border);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-line);
   box-shadow: -12px 0 28px -12px rgba(0, 0, 0, 0.25);
 }
 
@@ -157,7 +162,7 @@
 }
 .resizeHandle:hover,
 .resizeHandle:active {
-  background: var(--text-accent);
+  background: var(--color-lime);
 }
 
 .sidePanelContent {
@@ -176,8 +181,8 @@
   flex: 0 0 auto;
   min-height: 0;
   display: flex;
-  background: var(--card-bg);
-  border-left: 1px solid var(--border);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-line);
 }
 
 .emptyPanel {
@@ -188,7 +193,7 @@
   justify-content: center;
   padding: 32px 24px;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--color-fog);
   font-size: var(--text-sm);
 }
 
@@ -228,7 +233,7 @@
     flex: 0 0 auto;
     max-height: 45vh;
     border-left: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--color-line);
   }
   .layoutStacked .resizeHandle {
     display: none;

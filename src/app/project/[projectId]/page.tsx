@@ -323,6 +323,8 @@ function ProjectView({ project }: { project: Project }) {
   ) : settingsOpen ? (
     <SettingsPanel
       ref={sidePanel.panelRef}
+      theme={settings.theme}
+      onThemeChange={settings.setTheme}
       showWeekends={settings.showWeekends}
       onShowWeekendsChange={settings.setShowWeekends}
       showToday={settings.showToday}

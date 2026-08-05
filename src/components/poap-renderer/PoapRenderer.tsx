@@ -1040,9 +1040,9 @@ function Legend({ statusLabels }: { statusLabels: Record<PhaseStatus, string> })
 
 function legendColorVar(status: PhaseStatus): string {
   switch (status) {
-    case "done": return "text-success";
-    case "in_progress": return "text-accent";
-    case "at_risk": return "text-warning";
-    case "not_started": return "text-secondary";
+    case "done": return "color-mint";
+    case "in_progress": return "color-iris";
+    case "at_risk": return "color-amber";
+    case "not_started": return "color-fog";
   }
 }
