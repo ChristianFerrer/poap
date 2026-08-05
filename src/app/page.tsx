@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
+import type { Lane } from "@/components/poap-renderer/types";
 import { PROGRAM } from "./mock-data";
 import { deriveProgramLanes } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { AddProjectPanel } from "./AddProjectPanel";
+import { ImportPanel } from "./ImportPanel";
 import { SettingsPanel, type SidePanelMode } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
-import { LanguageSwitch } from "./LanguageSwitch";
 import { useAppSettings } from "./useAppSettings";
 import { useSidePanel } from "./useSidePanel";
 import { useLanguage } from "./i18n/LanguageProvider";
@@ -32,21 +33,24 @@ import styles from "./page.module.css";
  * created here is still there once you navigate into it.
  */
 export default function ProgramPage() {
-  const { locale, setLocale, t } = useLanguage();
+  const { locale, t } = useLanguage();
   const router = useRouter();
   const settings = useAppSettings();
   const { projects, addProject, deleteProject, stageCategories, addStageCategory, renameStageCategory, deleteStageCategory } =
     useProjects();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addProjectOpen, setAddProjectOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importProjectName, setImportProjectName] = useState("");
 
   const lanes = useMemo(() => deriveProgramLanes(projects, stageCategories), [projects, stageCategories]);
 
-  const anyPanelOpen = settingsOpen || addProjectOpen;
+  const anyPanelOpen = settingsOpen || addProjectOpen || importOpen;
 
   function closeAllPanels() {
     setSettingsOpen(false);
     setAddProjectOpen(false);
+    setImportOpen(false);
   }
 
   const sidePanel = useSidePanel({
@@ -56,15 +60,23 @@ export default function ProgramPage() {
   });
 
   function openSettingsPanel() {
+    closeAllPanels();
     setSettingsOpen(true);
-    setAddProjectOpen(false);
     sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
   function openAddProjectPanel() {
+    closeAllPanels();
     setAddProjectOpen(true);
-    setSettingsOpen(false);
+    sidePanel.revealFixedPanel();
+    sidePanel.scrollToPanel();
+  }
+
+  function openImportPanel() {
+    closeAllPanels();
+    setImportProjectName("");
+    setImportOpen(true);
     sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
@@ -92,6 +104,12 @@ export default function ProgramPage() {
     router.push(`/project/${id}`);
   }
 
+  function createProjectFromImport(lanes: Lane[]) {
+    const id = addProject({ name: importProjectName.trim(), lanes, gates: [] });
+    closeAllPanels();
+    router.push(`/project/${id}`);
+  }
+
   const sidebarActive: SidebarActive = settingsOpen ? "settings" : "home";
 
   const panelContent = addProjectOpen ? (
@@ -101,6 +119,15 @@ export default function ProgramPage() {
       stageCategories={stageCategories}
       onClose={sidePanel.closePanel}
       onCreate={createProject}
+    />
+  ) : importOpen ? (
+    <ImportPanel
+      ref={sidePanel.panelRef}
+      startMonth={PROGRAM.startMonth}
+      months={PROGRAM.months}
+      nameField={{ value: importProjectName, onChange: setImportProjectName, placeholder: t.addProject.namePlaceholder }}
+      onClose={sidePanel.closePanel}
+      onImport={createProjectFromImport}
     />
   ) : settingsOpen ? (
     <SettingsPanel
@@ -147,7 +174,9 @@ export default function ProgramPage() {
             </p>
           </div>
           <div className={styles.headerActions}>
-            <LanguageSwitch locale={locale} onChange={setLocale} ariaLabel={t.header.languageAria} />
+            <button type="button" className={styles.importButton} onClick={openImportPanel}>
+              {t.header.importButton}
+            </button>
             <button type="button" className={styles.importButton} onClick={openAddProjectPanel}>
               <IconPlus /> {t.header.addProjectButton}
             </button>

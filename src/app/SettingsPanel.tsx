@@ -58,7 +58,7 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
   },
   ref,
 ) {
-  const { t } = useLanguage();
+  const { t, locale, setLocale } = useLanguage();
   const [newStage, setNewStage] = useState("");
 
   function submitNewStage() {
@@ -72,6 +72,22 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
       <button className={styles.close} onClick={onClose} aria-label={t.settings.close}><IconClose /></button>
       <p className={styles.eyebrow}>{t.settings.eyebrow}</p>
       <h2 className={styles.title}>{t.settings.title}</h2>
+
+      <div className={styles.group}>
+        <p className={styles.sectionTitle}>{t.settings.languageSection}</p>
+        <div className={styles.optionRow}>
+          <span className={styles.optionLabel}>{t.settings.languageLabel}</span>
+          <OptionGroup
+            value={locale}
+            onChange={setLocale}
+            options={[
+              { value: "es", label: "ES" },
+              { value: "en", label: "EN" },
+            ]}
+            ariaLabel={t.header.languageAria}
+          />
+        </div>
+      </div>
 
       <div className={styles.group}>
         <p className={styles.sectionTitle}>{t.settings.themeSection}</p>

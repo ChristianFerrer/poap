@@ -13,7 +13,6 @@ import { GatesPanel } from "../../GatesPanel";
 import { ImportPanel } from "../../ImportPanel";
 import { SettingsPanel, type SidePanelMode } from "../../SettingsPanel";
 import { Sidebar, type SidebarActive } from "../../Sidebar";
-import { LanguageSwitch } from "../../LanguageSwitch";
 import { useAppSettings } from "../../useAppSettings";
 import { useSidePanel } from "../../useSidePanel";
 import { useLanguage } from "../../i18n/LanguageProvider";
@@ -52,7 +51,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
 }
 
 function ProjectView({ project }: { project: Project }) {
-  const { locale, setLocale, t } = useLanguage();
+  const { locale, t } = useLanguage();
   const router = useRouter();
   const settings = useAppSettings();
   const {
@@ -369,7 +368,6 @@ function ProjectView({ project }: { project: Project }) {
             </p>
           </div>
           <div className={styles.headerActions}>
-            <LanguageSwitch locale={locale} onChange={setLocale} ariaLabel={t.header.languageAria} />
             <button type="button" className={styles.importButton} onClick={openImportPanel}>
               {t.header.importButton}
             </button>
