@@ -1,0 +1,77 @@
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface2);
+  box-shadow: var(--shadow-soft);
+  animation: rise 0.18s ease-out;
+  max-width: calc(100vw - 32px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.message {
+  font-size: var(--text-sm, 13px);
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.undoButton {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--color-lime);
+  font-weight: 700;
+  font-size: var(--text-sm, 13px);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-lg);
+}
+.undoButton:hover,
+.undoButton:focus-visible {
+  background: color-mix(in srgb, var(--color-lime) 15%, transparent);
+}
+
+.dismiss {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-fog);
+  cursor: pointer;
+}
+.dismiss:hover,
+.dismiss:focus-visible {
+  color: var(--color-rose);
+  border-color: var(--color-rose);
+}

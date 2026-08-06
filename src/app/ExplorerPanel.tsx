@@ -87,7 +87,7 @@ function StatusPill({ status }: { status: PhaseStatus }) {
       className={styles.pill}
       style={{
         background: `color-mix(in srgb, var(--${STATUS_VAR[status]}) 18%, var(--color-surface))`,
-        color: `var(--${STATUS_VAR[status]})`,
+        color: `var(--${STATUS_VAR[status]}-ink)`,
       }}
     >
       <span className={styles.pillDot} style={{ background: `var(--${STATUS_VAR[status]})` }} />
@@ -158,6 +158,8 @@ export const ExplorerPanel = forwardRef<
     onDeleteLane: (laneId: string) => void;
     onDeletePhase: (laneId: string, phaseId: string) => void;
     onDeleteActivity: (phase: Phase, activityId: string) => void;
+    commentsByActivity: Record<string, ActivityComment[]>;
+    onAddComment: (activityId: string, text: string) => void;
   }
 >(function ExplorerPanel(
   {
@@ -175,6 +177,8 @@ export const ExplorerPanel = forwardRef<
     onDeleteLane,
     onDeletePhase,
     onDeleteActivity,
+    commentsByActivity,
+    onAddComment,
   },
   ref,
 ) {
@@ -189,7 +193,6 @@ export const ExplorerPanel = forwardRef<
     category: "",
   });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
-  const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
   const [draft, setDraft] = useState("");
 
   const [laneSearch, setLaneSearch] = useState("");
@@ -210,10 +213,7 @@ export const ExplorerPanel = forwardRef<
   function submitComment(activityId: string) {
     const text = draft.trim();
     if (!text) return;
-    setCommentsByActivity((prev) => ({
-      ...prev,
-      [activityId]: [...(prev[activityId] ?? []), { author: t.explorer.commentAuthorYou, date: t.explorer.commentDateJustNow, text }],
-    }));
+    onAddComment(activityId, text);
     setDraft("");
   }
 
@@ -307,7 +307,11 @@ export const ExplorerPanel = forwardRef<
                     </thead>
                     <tbody>
                       {visibleLanes.map((lane) => (
-                        <tr key={lane.id}>
+                        <tr
+                          key={lane.id}
+                          className={styles.clickableRow}
+                          onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
+                        >
                           <td className={styles.tableNameCell}>{lane.name}</td>
                           <td className={styles.tableMetaCell}>
                             {lane.phases.length}{" "}
@@ -327,7 +331,10 @@ export const ExplorerPanel = forwardRef<
                             <button
                               type="button"
                               className={styles.deleteButton}
-                              onClick={() => onDeleteLane(lane.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteLane(lane.id);
+                              }}
                               aria-label={t.explorer.deleteLaneAria(lane.name)}
                             >
                               <IconTrash />
@@ -680,7 +687,11 @@ export const ExplorerPanel = forwardRef<
                         return (
                           <>
                             {visibleActivities.map((a) => (
-                              <tr key={a.id}>
+                              <tr
+                                key={a.id}
+                                className={styles.clickableRow}
+                                onClick={() => onNavigate({ level: "activity", phaseId: phase.id, activityId: a.id })}
+                              >
                                 <td className={styles.tableNameCell}>{a.title}</td>
                                 <td className={styles.tableMetaCell}>{a.owner}</td>
                                 <td className={styles.tableMetaCell}>{formatDate(a.start, startMonth, monthAbbr)}</td>
@@ -709,7 +720,10 @@ export const ExplorerPanel = forwardRef<
                                   <button
                                     type="button"
                                     className={styles.deleteButton}
-                                    onClick={() => onDeleteActivity(phase, a.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteActivity(phase, a.id);
+                                    }}
                                     aria-label={t.explorer.deleteActivityAria(a.title)}
                                   >
                                     <IconTrash />

@@ -37,7 +37,7 @@
   cursor: pointer;
 }
 .close:hover {
-  color: var(--color-amber);
+  color: var(--color-amber-ink);
   border-color: var(--color-amber);
 }
 
@@ -127,10 +127,12 @@
   gap: 8px;
 }
 
+/* 24px square — WCAG 2.5.8's floor for a touch/click target, up from the
+   original 20px circle. */
 .visToggle {
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1.5px solid var(--color-line2);
   background: transparent;
@@ -149,7 +151,6 @@
   background: var(--color-cyan);
   border-color: var(--color-cyan);
 }
-
 .labelInput {
   flex: 1 1 auto;
   width: 100%;
@@ -198,7 +199,7 @@
 }
 .delete:hover {
   border-color: var(--color-line);
-  color: var(--color-amber);
+  color: var(--color-amber-ink);
   background: var(--color-surface2);
 }
 

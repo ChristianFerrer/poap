@@ -24,6 +24,10 @@ export interface Project {
   sortOrder: number;
   lanes: Lane[];
   gates: Gate[];
+  /** Short freeform status note ("why is this at risk") shown on the
+   * Program page's executive summary — not required, and not shown at
+   * all for projects that don't have one. */
+  note?: string;
 }
 
 /** A Program owns the shared timeline every one of its projects renders
@@ -50,6 +54,19 @@ function worstStatus(phases: Phase[]): PhaseStatus {
   let status = phases[0]!.status;
   for (const p of phases) if (STATUS_RANK[p.status] > STATUS_RANK[status]) status = p.status;
   return status;
+}
+
+/**
+ * A project's own single "how's it doing" status — the worst status among
+ * every phase in every one of its team lanes, tagged or not (unlike
+ * deriveProjectSummary, which only looks at phases tagged with a stage
+ * category). This is what the Program page's executive summary strip
+ * groups projects by; a project with no phases at all reads as
+ * "not_started" rather than crashing on an empty worstStatus lookup.
+ */
+export function projectOverallStatus(project: Project): PhaseStatus {
+  const phases = project.lanes.flatMap((l) => l.phases);
+  return phases.length === 0 ? "not_started" : worstStatus(phases);
 }
 
 /**

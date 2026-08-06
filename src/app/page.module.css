@@ -46,6 +46,23 @@
   gap: 8px;
 }
 
+/* Above ~900px the overlay panel is only a right-anchored slice of the
+   screen (see the 900px sidePanel rule below), so it can overlap the
+   header's own right-aligned actions without covering them entirely —
+   .sidePanel's explicit z-index:20 otherwise wins over these (unpositioned,
+   so they stack below any positioned z-index sibling regardless of DOM
+   order), leaving them visible but unclickable underneath it. Below 900px
+   the panel deliberately takes over the full screen instead (a real
+   full-screen takeover, not a partial overlap) and the header is meant to
+   be inaccessible while it's open, so this fix only applies above that
+   breakpoint. */
+@media (min-width: 901px) {
+  .headerActions {
+    position: relative;
+    z-index: 21;
+  }
+}
+
 /* Solid fill, same "primary action" treatment as .addButton in
    ExplorerPanel.module.css (add phase/lane/gate/activity) — these header
    buttons are just as much the main call to action on their page, so they
@@ -105,6 +122,38 @@
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
+}
+
+/* First-run guided empty state — replaces the (otherwise blank) calendar
+   when the program has no projects yet, so a brand-new user always has
+   somewhere obvious to click instead of an empty grid. */
+.emptyProgram {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 32px;
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-2xl);
+}
+.emptyProgramTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  margin: 0;
+}
+.emptyProgramBody {
+  font-size: var(--text-sm);
+  color: var(--color-fog);
+  max-width: 420px;
+  margin: 0 0 10px;
+}
+.emptyProgramActions {
+  display: flex;
+  gap: 10px;
 }
 
 /* Floating overlay, anchored to the viewport's right edge — position:fixed

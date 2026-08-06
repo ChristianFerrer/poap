@@ -1,0 +1,89 @@
+.strip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.totalCount {
+  font-size: var(--text-xs);
+  color: var(--color-fog);
+  margin-right: 4px;
+}
+
+.countPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+}
+.countDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.riskList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xl);
+  background: var(--color-amber-soft);
+  border: 1px solid color-mix(in srgb, var(--color-amber) 30%, var(--color-line));
+}
+
+.riskHeading {
+  margin: 0;
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-amber-ink);
+}
+
+.riskRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.riskName {
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-snow);
+  min-width: 120px;
+}
+
+.riskNoteInput {
+  flex: 1 1 240px;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  padding: 6px 10px;
+  font-size: var(--text-xs);
+  color: var(--color-snow);
+  font-family: inherit;
+}
+.riskNoteInput::placeholder {
+  color: var(--color-mist);
+}
+.riskNoteInput:focus-visible {
+  outline: 2px solid var(--color-lime);
+  outline-offset: 1px;
+}

@@ -52,6 +52,19 @@
   --color-amber-soft: #3a2a0e;
   --color-iris-soft: #17273f;
 
+  /* "-ink" = the same accent, but the variant safe to use as *text* sitting
+     on that accent's own -soft tint (status pills, the delete button's rest
+     state, etc). Dark theme's accents already clear 4.5:1 against their
+     soft backgrounds as-is, so these are just aliases here — the light
+     theme override below is where -ink actually diverges (see that block's
+     comment for why it has to). */
+  --color-mint-ink: var(--color-mint);
+  --color-iris-ink: var(--color-iris);
+  --color-amber-ink: var(--color-amber);
+  --color-rose-ink: var(--color-rose);
+  --color-cyan-ink: var(--color-cyan);
+  --color-fog-ink: var(--color-fog);
+
   /* Stage-gate cut-line and the "Hoy" marker — intentionally separate
      from the six semantic accents above and from each other, so neither
      can ever read as a phase status or a primary action. */
@@ -121,6 +134,21 @@
   --color-rose-soft: color-mix(in srgb, var(--color-rose) 15%, var(--color-surface));
   --color-amber-soft: color-mix(in srgb, var(--color-amber) 15%, var(--color-surface));
   --color-iris-soft: color-mix(in srgb, var(--color-iris) 15%, var(--color-surface));
+
+  /* Casandora's hues are light, saturated pastels — measured against their
+     own 15%-tint -soft backgrounds above, every one of them lands well
+     under the 4.5:1 AA floor for text (amber is the worst case, ~1.8:1).
+     -ink darkens each accent toward black (still color-mix off the same
+     palette hue, nothing hand-picked) until it clears AA with room to
+     spare — verified against all five backgrounds, worst case ~5.4:1.
+     Anywhere an accent is used as a *fill* (dots, solid buttons, borders)
+     keeps using the base --color-X; -ink is only for text/icons that sit
+     on that accent's own soft tint. */
+  --color-mint-ink: color-mix(in srgb, var(--color-mint) 45%, black);
+  --color-iris-ink: color-mix(in srgb, var(--color-iris) 45%, black);
+  --color-amber-ink: color-mix(in srgb, var(--color-amber) 45%, black);
+  --color-rose-ink: color-mix(in srgb, var(--color-rose) 45%, black);
+  --color-cyan-ink: color-mix(in srgb, var(--color-cyan) 45%, black);
 
   /* "Hoy" marker — Casandora Yellow, the palette's one yellow, so it
      stays distinct from all six accents above (none of which are

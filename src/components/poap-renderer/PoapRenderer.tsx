@@ -793,6 +793,11 @@ export function PoapRenderer({
                     onClick={() => onGateClick?.(gate.id)}
                     onMouseMove={(e) => showGateTooltip(e, gate)}
                     onMouseLeave={() => setGateTooltip(null)}
+                    onFocus={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      showGateTooltip({ clientX: rect.left, clientY: rect.bottom }, gate);
+                    }}
+                    onBlur={() => setGateTooltip(null)}
                     aria-pressed={active}
                   >
                     <span className={styles.gateDiamond} aria-hidden="true" />
@@ -933,6 +938,14 @@ function Bar({
         })
       }
       onMouseLeave={onLeave}
+      onFocus={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        onHover(
+          { clientX: rect.left, clientY: rect.bottom },
+          { title: phase.title, start: phase.start, end: phase.end, owners: phase.owners ?? [], status: phase.status },
+        );
+      }}
+      onBlur={onLeave}
     >
       {showText && <span className={styles.barLabel}>{phase.title}</span>}
     </button>

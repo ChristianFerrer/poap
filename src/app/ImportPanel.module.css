@@ -37,7 +37,7 @@
   cursor: pointer;
 }
 .close:hover {
-  color: var(--color-amber);
+  color: var(--color-amber-ink);
   border-color: var(--color-amber);
 }
 
@@ -55,7 +55,7 @@
 
 .success {
   font-size: var(--text-sm);
-  color: var(--color-mint);
+  color: var(--color-mint-ink);
   background: color-mix(in srgb, var(--color-mint) 12%, var(--color-surface));
   border-radius: var(--radius-2xl);
   padding: 12px 14px;
@@ -101,7 +101,7 @@
 }
 .error {
   font-size: var(--text-xs);
-  color: var(--color-amber);
+  color: var(--color-amber-ink);
   background: color-mix(in srgb, var(--color-amber) 12%, var(--color-surface));
   border-radius: var(--radius-2xl);
   padding: 10px 12px;
@@ -158,7 +158,7 @@
   padding: 10px 14px;
   border-radius: var(--radius-2xl);
   background: color-mix(in srgb, var(--color-amber) 10%, var(--color-surface));
-  color: var(--color-amber);
+  color: var(--color-amber-ink);
   font-size: var(--text-xs);
   list-style: disc;
   padding-left: 28px;
@@ -173,7 +173,7 @@
   margin: 0 0 16px;
 }
 .rangeWarning {
-  color: var(--color-amber);
+  color: var(--color-amber-ink);
 }
 
 .sectionTitle {

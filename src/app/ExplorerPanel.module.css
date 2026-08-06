@@ -37,7 +37,7 @@
   cursor: pointer;
 }
 .close:hover {
-  color: var(--color-amber);
+  color: var(--color-amber-ink);
   border-color: var(--color-amber);
 }
 
@@ -265,6 +265,15 @@
 .table tbody tr:hover td {
   background: var(--color-surface2);
 }
+/* Lanes/activities rows navigate on a click anywhere in the row, not just
+   the chevron button — the button (and its aria-label) still exist for
+   discoverability and keyboard use, this just makes the much bigger
+   mouse/touch target actually clickable too. Not used on the phases table:
+   its cells are inline-editable inputs, and a row-level click there would
+   fight clicking into one to edit it. */
+.clickableRow {
+  cursor: pointer;
+}
 .emptyCell {
   font-size: var(--text-xs);
   color: var(--color-fog);
@@ -347,7 +356,7 @@
   border-radius: var(--radius-xl);
   border: 1px solid color-mix(in srgb, var(--color-rose) 35%, var(--color-line));
   background: var(--color-rose-soft);
-  color: var(--color-rose);
+  color: var(--color-rose-ink);
   cursor: pointer;
 }
 .deleteButton:hover {

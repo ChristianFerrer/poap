@@ -61,10 +61,13 @@ function ProjectView({ project }: { project: Project }) {
     setProjectGates,
     activitiesByPhase,
     setActivitiesByPhase,
+    commentsByActivity,
+    addComment,
     stageCategories,
     addStageCategory,
     renameStageCategory,
     deleteStageCategory,
+    announceUndo,
   } = useProjects();
 
   const lanes = project.lanes;
@@ -171,19 +174,31 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function deleteLane(laneId: string) {
-    const lane = lanes.find((l) => l.id === laneId);
-    setProjectLanes(project.id, (prev) => prev.filter((l) => l.id !== laneId));
-    if (lane) {
-      const deletedPhaseIds = new Set(lane.phases.map((p) => p.id));
-      setActivitiesByPhase((prev) =>
-        Object.fromEntries(Object.entries(prev).filter(([phaseId]) => !deletedPhaseIds.has(phaseId))),
-      );
+    const index = lanes.findIndex((l) => l.id === laneId);
+    if (index === -1) return;
+    const lane = lanes[index]!;
+    const deletedPhaseIds = new Set(lane.phases.map((p) => p.id));
+    const removedActivities: Record<string, ActivitySeed[]> = {};
+    for (const phaseId of deletedPhaseIds) {
+      if (phaseId in activitiesByPhase) removedActivities[phaseId] = activitiesByPhase[phaseId]!;
     }
+    setProjectLanes(project.id, (prev) => prev.filter((l) => l.id !== laneId));
+    setActivitiesByPhase((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([phaseId]) => !deletedPhaseIds.has(phaseId))),
+    );
     setExplorer((prev) => {
       if (!prev || prev.level === "lanes") return prev;
       if (prev.level === "phases") return prev.laneId === laneId ? { level: "lanes" } : prev;
-      const wasUnderDeletedLane = lane?.phases.some((p) => p.id === prev.phaseId) ?? false;
+      const wasUnderDeletedLane = lane.phases.some((p) => p.id === prev.phaseId);
       return wasUnderDeletedLane ? { level: "lanes" } : prev;
+    });
+    announceUndo(t.undo.laneDeleted(lane.name), () => {
+      setProjectLanes(project.id, (prev) => {
+        const next = [...prev];
+        next.splice(index, 0, lane);
+        return next;
+      });
+      setActivitiesByPhase((prev) => ({ ...prev, ...removedActivities }));
     });
   }
 
@@ -192,8 +207,13 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function deletePhase(laneId: string, phaseId: string) {
+    const lane = lanes.find((l) => l.id === laneId);
+    const phaseIndex = lane?.phases.findIndex((p) => p.id === phaseId) ?? -1;
+    if (!lane || phaseIndex === -1) return;
+    const phase = lane.phases[phaseIndex]!;
+    const removedActivities = activitiesByPhase[phaseId];
     setProjectLanes(project.id, (prev) =>
-      prev.map((lane) => (lane.id === laneId ? { ...lane, phases: lane.phases.filter((p) => p.id !== phaseId) } : lane)),
+      prev.map((l) => (l.id === laneId ? { ...l, phases: l.phases.filter((p) => p.id !== phaseId) } : l)),
     );
     setActivitiesByPhase((prev) => {
       if (!(phaseId in prev)) return prev;
@@ -205,6 +225,17 @@ function ProjectView({ project }: { project: Project }) {
       if (!prev || prev.level === "lanes" || prev.level === "phases") return prev;
       return prev.phaseId === phaseId ? { level: "phases", laneId } : prev;
     });
+    announceUndo(t.undo.phaseDeleted(phase.title), () => {
+      setProjectLanes(project.id, (prev) =>
+        prev.map((l) => {
+          if (l.id !== laneId) return l;
+          const nextPhases = [...l.phases];
+          nextPhases.splice(phaseIndex, 0, phase);
+          return { ...l, phases: nextPhases };
+        }),
+      );
+      if (removedActivities) setActivitiesByPhase((prev) => ({ ...prev, [phaseId]: removedActivities }));
+    });
   }
 
   function addActivity(phase: Phase, activity: ActivitySeed) {
@@ -215,13 +246,25 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function deleteActivity(phase: Phase, activityId: string) {
+    const activities = getActivities(phase);
+    const index = activities.findIndex((a) => a.id === activityId);
+    if (index === -1) return;
+    const removed = activities[index]!;
     setActivitiesByPhase((prev) => ({
       ...prev,
-      [phase.id]: (prev[phase.id] ?? activitiesFor(phase)).filter((a) => a.id !== activityId),
+      [phase.id]: activities.filter((a) => a.id !== activityId),
     }));
     setExplorer((prev) =>
       prev && prev.level === "activity" && prev.activityId === activityId ? { level: "activities", phaseId: phase.id } : prev,
     );
+    announceUndo(t.undo.activityDeleted(removed.title), () => {
+      setActivitiesByPhase((prev) => {
+        const current = prev[phase.id] ?? activitiesFor(phase);
+        const next = [...current];
+        next.splice(index, 0, removed);
+        return { ...prev, [phase.id]: next };
+      });
+    });
   }
 
   function toggleGateActive(gateId: string) {
@@ -259,8 +302,18 @@ function ProjectView({ project }: { project: Project }) {
   }
 
   function deleteGate(id: string) {
+    const index = gates.findIndex((g) => g.id === id);
+    if (index === -1) return;
+    const removed = gates[index]!;
     setProjectGates(project.id, (prev) => prev.filter((g) => g.id !== id));
     setActiveGateIds((prev) => prev.filter((gid) => gid !== id));
+    announceUndo(t.undo.gateDeleted(removed.label), () => {
+      setProjectGates(project.id, (prev) => {
+        const next = [...prev];
+        next.splice(index, 0, removed);
+        return next;
+      });
+    });
   }
 
   // Deleting the project currently being viewed can't just update state
@@ -298,6 +351,8 @@ function ProjectView({ project }: { project: Project }) {
       onDeleteLane={deleteLane}
       onDeletePhase={deletePhase}
       onDeleteActivity={deleteActivity}
+      commentsByActivity={commentsByActivity}
+      onAddComment={addComment}
     />
   ) : gatesPanelOpen ? (
     <GatesPanel

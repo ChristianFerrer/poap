@@ -8,6 +8,7 @@ import { PROGRAM } from "./mock-data";
 import { deriveProgramLanes } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { AddProjectPanel } from "./AddProjectPanel";
+import { ExecutiveSummary } from "./ExecutiveSummary";
 import { ImportPanel } from "./ImportPanel";
 import { SettingsPanel, type SidePanelMode } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
@@ -36,8 +37,16 @@ export default function ProgramPage() {
   const { locale, t } = useLanguage();
   const router = useRouter();
   const settings = useAppSettings();
-  const { projects, addProject, deleteProject, stageCategories, addStageCategory, renameStageCategory, deleteStageCategory } =
-    useProjects();
+  const {
+    projects,
+    addProject,
+    deleteProject,
+    setProjectNote,
+    stageCategories,
+    addStageCategory,
+    renameStageCategory,
+    deleteStageCategory,
+  } = useProjects();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -183,17 +192,34 @@ export default function ProgramPage() {
           </div>
         </div>
 
+        <ExecutiveSummary projects={projects} onSetNote={setProjectNote} />
+
         <div className={`${styles.layout} ${settings.sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
           <div className={styles.calendarCol}>
-            <PoapRenderer
-              months={PROGRAM.months}
-              startMonth={PROGRAM.startMonth}
-              lanes={lanes}
-              onLaneClick={openProject}
-              locale={locale}
-              showWeekends={settings.showWeekends}
-              showToday={settings.showToday}
-            />
+            {projects.length === 0 ? (
+              <div className={styles.emptyProgram}>
+                <p className={styles.emptyProgramTitle}>{t.header.emptyProgramTitle}</p>
+                <p className={styles.emptyProgramBody}>{t.header.emptyProgramBody}</p>
+                <div className={styles.emptyProgramActions}>
+                  <button type="button" className={styles.importButton} onClick={openAddProjectPanel}>
+                    <IconPlus /> {t.header.addProjectButton}
+                  </button>
+                  <button type="button" className={styles.importButton} onClick={openImportPanel}>
+                    {t.header.importButton}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <PoapRenderer
+                months={PROGRAM.months}
+                startMonth={PROGRAM.startMonth}
+                lanes={lanes}
+                onLaneClick={openProject}
+                locale={locale}
+                showWeekends={settings.showWeekends}
+                showToday={settings.showToday}
+              />
+            )}
           </div>
 
           {/* "Fixed" side-panel mode: a normal flex sibling of the calendar,

@@ -43,7 +43,7 @@
 }
 .navButtonActive {
   background: var(--color-iris-soft);
-  color: var(--color-iris);
+  color: var(--color-iris-ink);
   border-color: color-mix(in srgb, var(--color-iris) 35%, transparent);
 }
 

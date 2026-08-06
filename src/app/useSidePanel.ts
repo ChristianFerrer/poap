@@ -86,7 +86,13 @@ export function useSidePanel({
     if (sidePanelMode !== "overlay") return;
     if (!isOpen) return;
     function onPointerDown(e: MouseEvent) {
-      if (sidePanelWrapperRef.current && !sidePanelWrapperRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      // The undo toast (see UndoToast.tsx) renders outside the panel
+      // wrapper on purpose — it has to stay visible after a delete closes
+      // whatever panel triggered it — so a click on "Deshacer"/"Undo"
+      // itself must not read as "outside the panel" and close it too.
+      if ((target as HTMLElement).closest?.("[data-undo-toast]")) return;
+      if (sidePanelWrapperRef.current && !sidePanelWrapperRef.current.contains(target)) {
         onCloseAll();
       }
     }
