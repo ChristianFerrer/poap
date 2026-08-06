@@ -22,23 +22,10 @@
 }
 
 .close {
+  composes: iconBtn iconBtnLg iconBtnNeutral from "./buttons.module.css";
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-line);
-  background: var(--color-surface2);
-  color: var(--color-fog);
-  cursor: pointer;
-}
-.close:hover {
-  color: var(--color-amber-ink);
-  border-color: var(--color-amber);
 }
 
 .eyebrow {
@@ -127,30 +114,10 @@
 }
 
 .primaryButton {
-  background: var(--color-lime);
-  color: var(--color-surface);
-  border: none;
-  border-radius: var(--radius-xl);
-  padding: 8px 16px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.primaryButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  composes: btnPrimary from "./buttons.module.css";
 }
 .secondaryButton {
-  background: var(--color-surface2);
-  color: var(--color-fog);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-xl);
-  padding: 8px 16px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+  composes: btnSecondary from "./buttons.module.css";
 }
 
 .warnings {

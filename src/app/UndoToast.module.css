@@ -42,33 +42,13 @@
 }
 
 .undoButton {
+  composes: btnTertiary from "./buttons.module.css";
   flex-shrink: 0;
-  border: none;
-  background: none;
-  color: var(--color-lime);
-  font-weight: 700;
-  font-size: var(--text-sm, 13px);
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: var(--radius-lg);
-}
-.undoButton:hover,
-.undoButton:focus-visible {
-  background: color-mix(in srgb, var(--color-lime) 15%, transparent);
 }
 
 .dismiss {
+  composes: iconBtn iconBtnSm iconBtnNeutral from "./buttons.module.css";
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-line);
-  background: var(--color-surface);
-  color: var(--color-fog);
-  cursor: pointer;
 }
 .dismiss:hover,
 .dismiss:focus-visible {

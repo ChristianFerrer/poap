@@ -1,0 +1,43 @@
+.track {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-line2);
+  background: var(--color-surface);
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-fog);
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.trackOn {
+  background: var(--color-iris);
+  border-color: var(--color-iris);
+}
+.trackOn .thumb {
+  background: var(--color-surface);
+  transform: translateX(16px);
+}
+
+/* Compact variant — inline in a dense table row (e.g. a gate's visibility
+   toggle), where the full 36px track would crowd the other columns. */
+.trackSm {
+  width: 26px;
+  height: 15px;
+}
+.trackSm .thumb {
+  width: 11px;
+  height: 11px;
+}
+.trackSm.trackOn .thumb {
+  transform: translateX(11px);
+}

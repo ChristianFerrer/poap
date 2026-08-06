@@ -45,17 +45,21 @@ export function Sidebar({
   onTogglePanel: () => void;
 }) {
   const { t } = useLanguage();
-  const items: { key: SidebarActive; icon: ReactNode; label: string; onClick: () => void }[] = [
-    { key: "home", icon: <IconHome />, label: t.sidebar.homeAria, onClick: onHome },
-    ...(onSwimlines ? [{ key: "swimlines" as const, icon: <IconLanes />, label: t.sidebar.swimlinesAria, onClick: onSwimlines }] : []),
-    ...(onGates ? [{ key: "gates" as const, icon: <IconGateDiamond />, label: t.sidebar.gatesAria, onClick: onGates }] : []),
-    { key: "settings", icon: <IconSettings />, label: t.sidebar.settingsAria, onClick: onSettings },
+  const items: { key: SidebarActive; icon: ReactNode; ariaLabel: string; label: string; onClick: () => void }[] = [
+    { key: "home", icon: <IconHome />, ariaLabel: t.sidebar.homeAria, label: t.sidebar.homeLabel, onClick: onHome },
+    ...(onSwimlines
+      ? [{ key: "swimlines" as const, icon: <IconLanes />, ariaLabel: t.sidebar.swimlinesAria, label: t.sidebar.swimlinesLabel, onClick: onSwimlines }]
+      : []),
+    ...(onGates
+      ? [{ key: "gates" as const, icon: <IconGateDiamond />, ariaLabel: t.sidebar.gatesAria, label: t.sidebar.gatesLabel, onClick: onGates }]
+      : []),
+    { key: "settings", icon: <IconSettings />, ariaLabel: t.sidebar.settingsAria, label: t.sidebar.settingsLabel, onClick: onSettings },
   ];
 
   return (
     <nav
       className={`${styles.sidebar} ${position === "right" ? styles.sidebarRight : styles.sidebarLeft}`}
-      aria-label={t.sidebar.swimlinesAria}
+      aria-label={t.sidebar.navAria}
     >
       {items.map((item) => (
         <button
@@ -64,10 +68,10 @@ export function Sidebar({
           className={`${styles.navButton} ${active === item.key ? styles.navButtonActive : ""}`}
           onClick={item.onClick}
           aria-pressed={active === item.key}
-          aria-label={item.label}
-          title={item.label}
+          aria-label={item.ariaLabel}
         >
           {item.icon}
+          <span className={styles.navLabel}>{item.label}</span>
         </button>
       ))}
 
@@ -85,9 +89,9 @@ export function Sidebar({
             onClick={onTogglePanel}
             aria-pressed={panelVisible}
             aria-label={panelVisible ? t.sidebar.hidePanelAria : t.sidebar.showPanelAria}
-            title={panelVisible ? t.sidebar.hidePanelAria : t.sidebar.showPanelAria}
           >
             <IconPanel />
+            <span className={styles.navLabel}>{t.sidebar.panelLabel}</span>
           </button>
         </>
       )}

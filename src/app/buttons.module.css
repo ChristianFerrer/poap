@@ -1,0 +1,144 @@
+/*
+ * Canonical button hierarchy — every button-like control in the app should
+ * compose one of these instead of re-declaring its own colors/padding.
+ * Before this file, "primary" alone had 2 slightly different treatments
+ * (with/without shadow, 14px/16px padding) and "destructive" had 2 (rose
+ * fill vs. ghost-with-amber-hover) purely from being defined independently
+ * per panel. Four roles, two shapes (text button / icon button):
+ *
+ *   Primary     — the one main action on a screen (add/import/create).
+ *   Secondary   — a real but non-primary action (view, alternate action).
+ *   Ghost       — low-emphasis chrome (close, dismiss, zoom stepper).
+ *   Destructive — removes something. Always rose, never any other hover
+ *                 color — "delete" must look the same everywhere it appears.
+ */
+
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-lime);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 8px 16px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow-lime);
+  transition: filter 0.12s ease;
+}
+.btnPrimary:hover {
+  filter: brightness(0.92);
+}
+.btnPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface2);
+  color: var(--color-fog);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  padding: 8px 16px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.btnSecondary:hover {
+  color: var(--color-snow);
+  border-color: var(--color-line2);
+}
+.btnSecondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Small text/inline action — e.g. the toast's "Undo" link. Not a full
+   pill, just emphasized text with a hover fill. */
+.btnTertiary {
+  background: none;
+  border: none;
+  color: var(--color-lime);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-lg);
+  transition: background-color 0.12s ease;
+}
+.btnTertiary:hover,
+.btnTertiary:focus-visible {
+  background: color-mix(in srgb, var(--color-lime) 15%, transparent);
+}
+
+/* Icon-only buttons — one shared square shape, two sizes, three color
+   roles. Compose one size + one role: e.g.
+   `.close { composes: iconBtn iconBtnLg iconBtnNeutral from "./buttons.module.css"; }` */
+.iconBtn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 24px meets WCAG 2.5.8's floor — used inside dense rows/toolbars. */
+.iconBtnSm {
+  width: 24px;
+  height: 24px;
+}
+/* 28px — a touch more prominent, reserved for a panel's one primary close
+   action rather than a repeated per-row control. */
+.iconBtnLg {
+  width: 28px;
+  height: 28px;
+}
+
+.iconBtnNeutral {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface2);
+  color: var(--color-fog);
+}
+.iconBtnNeutral:hover {
+  color: var(--color-lime);
+  border-color: var(--color-lime);
+}
+
+.iconBtnGhost {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-fog);
+}
+.iconBtnGhost:hover {
+  background: var(--color-surface2);
+  color: var(--color-snow);
+}
+
+.iconBtnDestructive {
+  border: 1px solid color-mix(in srgb, var(--color-rose) 35%, var(--color-line));
+  background: var(--color-rose-soft);
+  color: var(--color-rose-ink);
+}
+.iconBtnDestructive:hover {
+  background: var(--color-rose);
+  border-color: var(--color-rose);
+  color: var(--color-surface);
+}

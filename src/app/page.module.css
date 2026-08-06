@@ -24,10 +24,10 @@
    whichever edge it's docked to — added on top of .main's own base
    padding, not replacing it, since only one side's padding changes here. */
 .mainNavLeft {
-  padding-left: 96px;
+  padding-left: 116px;
 }
 .mainNavRight {
-  padding-right: 96px;
+  padding-right: 116px;
 }
 
 .headerRow {
@@ -63,30 +63,12 @@
   }
 }
 
-/* Solid fill, same "primary action" treatment as .addButton in
-   ExplorerPanel.module.css (add phase/lane/gate/activity) — these header
-   buttons are just as much the main call to action on their page, so they
-   read the same way instead of looking like a lesser, outlined option. */
+/* Canonical primary-button treatment (see buttons.module.css) — these
+   header buttons are the main call to action on their page, so they read
+   the same way every other primary action in the app does. */
 .importButton {
+  composes: btnPrimary from "./buttons.module.css";
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-lime);
-  border: none;
-  color: var(--color-surface);
-  border-radius: var(--radius-xl);
-  padding: 8px 14px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  /* The brand halo is reserved for the primary CTA (see globals.css) —
-     this header button is the main call to action on its page. */
-  box-shadow: var(--shadow-lime);
-}
-.importButton:hover {
-  filter: brightness(0.92);
 }
 
 .eyebrow {

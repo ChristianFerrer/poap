@@ -3,8 +3,9 @@
 import { forwardRef, useState } from "react";
 import type { Gate } from "@/components/poap-renderer/types";
 import { fromAxis, toAxis } from "@/components/poap-renderer/toAxis";
-import { IconCheck, IconClose, IconPlus, IconTrash } from "@/lib/icons";
+import { IconClose, IconPlus, IconTrash } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
+import { SwitchToggle } from "./SwitchToggle";
 import styles from "./GatesPanel.module.css";
 
 function toISODate(position: number, startMonth: string): string {
@@ -97,16 +98,12 @@ export const GatesPanel = forwardRef<HTMLDivElement, {
               return (
                 <tr key={gate.id}>
                   <td>
-                    <button
-                      type="button"
-                      className={`${styles.visToggle} ${active ? styles.visToggleActive : ""}`}
-                      onClick={() => onToggle(gate.id)}
-                      aria-pressed={active}
-                      aria-label={active ? t.gates.hideLineAria : t.gates.showLineAria}
-                      title={active ? t.gates.visibleTitle : t.gates.hiddenTitle}
-                    >
-                      {active && <IconCheck />}
-                    </button>
+                    <SwitchToggle
+                      checked={active}
+                      onChange={() => onToggle(gate.id)}
+                      ariaLabel={active ? t.gates.hideLineAria : t.gates.showLineAria}
+                      size="sm"
+                    />
                   </td>
                   <td>
                     <input

@@ -22,23 +22,10 @@
 }
 
 .close {
+  composes: iconBtn iconBtnLg iconBtnNeutral from "./buttons.module.css";
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-line);
-  background: var(--color-surface2);
-  color: var(--color-fog);
-  cursor: pointer;
-}
-.close:hover {
-  color: var(--color-amber-ink);
-  border-color: var(--color-amber);
 }
 
 .eyebrow {
@@ -127,30 +114,6 @@
   gap: 8px;
 }
 
-/* 24px square — WCAG 2.5.8's floor for a touch/click target, up from the
-   original 20px circle. */
-.visToggle {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1.5px solid var(--color-line2);
-  background: transparent;
-  color: var(--color-surface);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: border-color 0.1s ease, background-color 0.1s ease;
-}
-.visToggle:hover {
-  border-color: var(--color-cyan);
-}
-.visToggleActive {
-  background: var(--color-cyan);
-  border-color: var(--color-cyan);
-}
 .labelInput {
   flex: 1 1 auto;
   width: 100%;
@@ -184,43 +147,16 @@
   outline: none;
 }
 
+/* Same iconBtnDestructive treatment ExplorerPanel's .deleteButton uses —
+   this was previously a ghost button that turned amber on hover, the only
+   "delete" in the app that didn't read as destructive. */
 .delete {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-xl);
-  border: 1px solid transparent;
-  background: none;
-  color: var(--color-fog);
-  cursor: pointer;
-}
-.delete:hover {
-  border-color: var(--color-line);
-  color: var(--color-amber-ink);
-  background: var(--color-surface2);
+  composes: iconBtn iconBtnSm iconBtnDestructive from "./buttons.module.css";
 }
 
 .addButton {
+  composes: btnPrimary from "./buttons.module.css";
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-lime);
-  color: var(--color-surface);
-  border: none;
-  border-radius: var(--radius-xl);
-  padding: 8px 16px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.addButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 @media (max-width: 520px) {

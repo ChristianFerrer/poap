@@ -3,7 +3,7 @@
   top: 0;
   bottom: 0;
   z-index: 15;
-  width: 56px;
+  width: 76px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -20,13 +20,20 @@
   border-left: 1px solid var(--color-line);
 }
 
+/* Icon + short caption stacked, not icon-only — a plain aria-label was
+   enough for screen readers but left sighted users guessing what each
+   glyph meant until they hovered for the title tooltip. Collapses back to
+   icon-only under the narrow-viewport breakpoint below, where there isn't
+   room for a caption without crowding the touch targets. */
 .navButton {
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 52px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 3px;
   border: 1px solid transparent;
   border-radius: var(--radius-xl);
   background: none;
@@ -36,6 +43,13 @@
 .navButton svg {
   width: 20px;
   height: 20px;
+  flex: 0 0 auto;
+}
+.navLabel {
+  font-size: var(--text-3xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 .navButton:hover {
   background: var(--color-surface2);
@@ -51,7 +65,7 @@
    buttons above it — different kind of control, not another destination. */
 .divider {
   flex: 0 0 auto;
-  width: 28px;
+  width: 36px;
   height: 1px;
   background: var(--color-line);
   margin: 4px 0;
@@ -66,5 +80,23 @@
   .navButton {
     width: 36px;
     height: 36px;
+    flex-direction: row;
+  }
+  .navLabel {
+    /* Icon-only on narrow viewports — the aria-label still carries the
+       name for screen readers, there just isn't room for a caption
+       without shrinking the touch target below the 24px floor. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .divider {
+    width: 28px;
   }
 }

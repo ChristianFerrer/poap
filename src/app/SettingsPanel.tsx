@@ -5,6 +5,7 @@ import { useLanguage } from "./i18n/LanguageProvider";
 import type { Project, StageCategoryDef } from "@/lib/portfolio";
 import type { Theme } from "./useAppSettings";
 import { IconClose, IconPlus, IconTrash } from "@/lib/icons";
+import { SwitchToggle } from "./SwitchToggle";
 import styles from "./SettingsPanel.module.css";
 import explorerStyles from "./ExplorerPanel.module.css";
 
@@ -60,6 +61,7 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
 ) {
   const { t, locale, setLocale } = useLanguage();
   const [newStage, setNewStage] = useState("");
+  const [tab, setTab] = useState<SettingsTab>("appearance");
 
   function submitNewStage() {
     if (!newStage.trim()) return;
@@ -73,150 +75,177 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
       <p className={styles.eyebrow}>{t.settings.eyebrow}</p>
       <h2 className={styles.title}>{t.settings.title}</h2>
 
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.languageSection}</p>
-        <div className={styles.optionRow}>
-          <span className={styles.optionLabel}>{t.settings.languageLabel}</span>
-          <OptionGroup
-            value={locale}
-            onChange={setLocale}
-            options={[
-              { value: "es", label: "ES" },
-              { value: "en", label: "EN" },
-            ]}
-            ariaLabel={t.header.languageAria}
-          />
-        </div>
-      </div>
-
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.themeSection}</p>
-        <div className={styles.optionRow}>
-          <span className={styles.optionLabel}>{t.settings.themeLabel}</span>
-          <OptionGroup
-            value={theme}
-            onChange={onThemeChange}
-            options={[
-              { value: "dark", label: t.settings.themeDark },
-              { value: "light", label: t.settings.themeLight },
-            ]}
-            ariaLabel={t.settings.themeLabel}
-          />
-        </div>
-      </div>
-
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.weekendsSection}</p>
-        <Switch
-          checked={showWeekends}
-          onChange={onShowWeekendsChange}
-          label={t.settings.weekendsToggleLabel}
-          hint={t.settings.weekendsToggleHint}
+      <div className={styles.tabsRow}>
+        <OptionGroup
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "appearance", label: t.settings.tabAppearance },
+            { value: "calendar", label: t.settings.tabCalendar },
+            { value: "data", label: t.settings.tabData },
+          ]}
+          ariaLabel={t.settings.tabsAria}
         />
       </div>
 
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.todaySection}</p>
-        <Switch
-          checked={showToday}
-          onChange={onShowTodayChange}
-          label={t.settings.todayToggleLabel}
-          hint={t.settings.todayToggleHint}
-        />
-      </div>
+      {tab === "appearance" && (
+        <>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.languageSection}</p>
+            <div className={styles.optionRow}>
+              <span className={styles.optionLabel}>{t.settings.languageLabel}</span>
+              <OptionGroup
+                value={locale}
+                onChange={setLocale}
+                options={[
+                  { value: "es", label: "ES" },
+                  { value: "en", label: "EN" },
+                ]}
+                ariaLabel={t.header.languageAria}
+              />
+            </div>
+          </div>
 
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.panelModeSection}</p>
-        <div className={styles.optionRow}>
-          <span className={styles.optionLabel}>{t.settings.panelModeLabel}</span>
-          <OptionGroup
-            value={sidePanelMode}
-            onChange={onSidePanelModeChange}
-            options={[
-              { value: "overlay", label: t.settings.panelModeOverlay },
-              { value: "fixed", label: t.settings.panelModeFixed },
-            ]}
-            ariaLabel={t.settings.panelModeLabel}
-          />
-        </div>
-        <p className={styles.optionHint}>{t.settings.panelModeHint}</p>
-      </div>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.themeSection}</p>
+            <div className={styles.optionRow}>
+              <span className={styles.optionLabel}>{t.settings.themeLabel}</span>
+              <OptionGroup
+                value={theme}
+                onChange={onThemeChange}
+                options={[
+                  { value: "dark", label: t.settings.themeDark },
+                  { value: "light", label: t.settings.themeLight },
+                ]}
+                ariaLabel={t.settings.themeLabel}
+              />
+            </div>
+          </div>
 
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.navSection}</p>
-        <div className={styles.optionRow}>
-          <span className={styles.optionLabel}>{t.settings.navPositionLabel}</span>
-          <OptionGroup
-            value={navPosition}
-            onChange={onNavPositionChange}
-            options={[
-              { value: "left", label: t.settings.navLeft },
-              { value: "right", label: t.settings.navRight },
-            ]}
-            ariaLabel={t.settings.navPositionLabel}
-          />
-        </div>
-      </div>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.panelModeSection}</p>
+            <div className={styles.optionRow}>
+              <span className={styles.optionLabel}>{t.settings.panelModeLabel}</span>
+              <OptionGroup
+                value={sidePanelMode}
+                onChange={onSidePanelModeChange}
+                options={[
+                  { value: "overlay", label: t.settings.panelModeOverlay },
+                  { value: "fixed", label: t.settings.panelModeFixed },
+                ]}
+                ariaLabel={t.settings.panelModeLabel}
+              />
+            </div>
+            <p className={styles.optionHint}>{t.settings.panelModeHint}</p>
+          </div>
 
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.stagesSection}</p>
-        <p className={styles.optionHint}>{t.settings.stagesHint}</p>
-        <div className={explorerStyles.addRow}>
-          <input
-            className={explorerStyles.textInput}
-            placeholder={t.settings.newStagePlaceholder}
-            value={newStage}
-            onChange={(e) => setNewStage(e.target.value)}
-          />
-          <button type="button" className={explorerStyles.addButton} disabled={!newStage.trim()} onClick={submitNewStage}>
-            <IconPlus /> {t.explorer.addButton}
-          </button>
-        </div>
-        <div className={explorerStyles.listGroup}>
-          {stageCategories.map((c) => (
-            <div key={c.id} className={explorerStyles.addRow}>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.navSection}</p>
+            <div className={styles.optionRow}>
+              <span className={styles.optionLabel}>{t.settings.navPositionLabel}</span>
+              <OptionGroup
+                value={navPosition}
+                onChange={onNavPositionChange}
+                options={[
+                  { value: "left", label: t.settings.navLeft },
+                  { value: "right", label: t.settings.navRight },
+                ]}
+                ariaLabel={t.settings.navPositionLabel}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {tab === "calendar" && (
+        <>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.weekendsSection}</p>
+            <Switch
+              checked={showWeekends}
+              onChange={onShowWeekendsChange}
+              label={t.settings.weekendsToggleLabel}
+              hint={t.settings.weekendsToggleHint}
+            />
+          </div>
+
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.todaySection}</p>
+            <Switch
+              checked={showToday}
+              onChange={onShowTodayChange}
+              label={t.settings.todayToggleLabel}
+              hint={t.settings.todayToggleHint}
+            />
+          </div>
+        </>
+      )}
+
+      {tab === "data" && (
+        <>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.stagesSection}</p>
+            <p className={styles.optionHint}>{t.settings.stagesHint}</p>
+            <div className={explorerStyles.addRow}>
               <input
                 className={explorerStyles.textInput}
-                value={c.label}
-                onChange={(e) => onRenameStageCategory(c.id, e.target.value)}
-                aria-label={t.settings.stageNameAria}
+                placeholder={t.settings.newStagePlaceholder}
+                value={newStage}
+                onChange={(e) => setNewStage(e.target.value)}
               />
-              <button
-                type="button"
-                className={explorerStyles.deleteButton}
-                onClick={() => onDeleteStageCategory(c.id)}
-                aria-label={t.settings.deleteStageAria(c.label)}
-              >
-                <IconTrash />
+              <button type="button" className={explorerStyles.addButton} disabled={!newStage.trim()} onClick={submitNewStage}>
+                <IconPlus /> {t.explorer.addButton}
               </button>
             </div>
-          ))}
-          {stageCategories.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noStages}</p>}
-        </div>
-      </div>
+            <div className={explorerStyles.listGroup}>
+              {stageCategories.map((c) => (
+                <div key={c.id} className={explorerStyles.addRow}>
+                  <input
+                    className={explorerStyles.textInput}
+                    value={c.label}
+                    onChange={(e) => onRenameStageCategory(c.id, e.target.value)}
+                    aria-label={t.settings.stageNameAria}
+                  />
+                  <button
+                    type="button"
+                    className={explorerStyles.deleteButton}
+                    onClick={() => onDeleteStageCategory(c.id)}
+                    aria-label={t.settings.deleteStageAria(c.label)}
+                  >
+                    <IconTrash />
+                  </button>
+                </div>
+              ))}
+              {stageCategories.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noStages}</p>}
+            </div>
+          </div>
 
-      <div className={styles.group}>
-        <p className={styles.sectionTitle}>{t.settings.projectsSection}</p>
-        <div className={explorerStyles.listGroup}>
-          {projects.map((p) => (
-            <div key={p.id} className={explorerStyles.addRow}>
-              <span className={explorerStyles.tableNameCell}>{p.name}</span>
-              <button
-                type="button"
-                className={explorerStyles.deleteButton}
-                onClick={() => onDeleteProject(p.id)}
-                aria-label={t.settings.deleteProjectAria(p.name)}
-              >
-                <IconTrash />
-              </button>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.projectsSection}</p>
+            <div className={explorerStyles.listGroup}>
+              {projects.map((p) => (
+                <div key={p.id} className={explorerStyles.addRow}>
+                  <span className={explorerStyles.tableNameCell}>{p.name}</span>
+                  <button
+                    type="button"
+                    className={explorerStyles.deleteButton}
+                    onClick={() => onDeleteProject(p.id)}
+                    aria-label={t.settings.deleteProjectAria(p.name)}
+                  >
+                    <IconTrash />
+                  </button>
+                </div>
+              ))}
+              {projects.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noProjects}</p>}
             </div>
-          ))}
-          {projects.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noProjects}</p>}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </section>
   );
 });
+
+type SettingsTab = "appearance" | "calendar" | "data";
 
 function Switch({
   checked,
@@ -235,16 +264,7 @@ function Switch({
         <span className={styles.switchLabel}>{label}</span>
         <span className={styles.switchHint}>{hint}</span>
       </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        className={`${styles.switchTrack} ${checked ? styles.switchTrackOn : ""}`}
-        onClick={() => onChange(!checked)}
-      >
-        <span className={styles.switchThumb} />
-      </button>
+      <SwitchToggle checked={checked} onChange={onChange} ariaLabel={label} />
     </div>
   );
 }
