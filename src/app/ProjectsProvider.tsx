@@ -1,17 +1,24 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import type { Gate, Lane } from "@/components/poap-renderer/types";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
 import type { Project, StageCategoryDef } from "@/lib/portfolio";
-import { STAGE_CATEGORIES, STAGE_CATEGORY_LABELS } from "@/lib/i18n";
-import { ACTIVITIES_BY_PHASE, PROJECTS as SEED_PROJECTS, type ActivityComment, type ActivitySeed } from "./mock-data";
+import { activitiesFor, type ActivityComment, type ActivitySeed } from "./mock-data";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { UndoToast } from "./UndoToast";
-
-const SEED_STAGE_CATEGORIES: StageCategoryDef[] = STAGE_CATEGORIES.map((id) => ({
-  id,
-  label: STAGE_CATEGORY_LABELS.es[id],
-}));
+import {
+  deleteProjectRow,
+  deleteStageCategoryRow,
+  fetchAppData,
+  insertComment,
+  insertProject,
+  insertStageCategory,
+  syncPhaseActivities,
+  syncProjectGates,
+  syncProjectLanes,
+  updateProjectNote,
+  updateStageCategoryLabel,
+} from "@/lib/db";
 
 // How long an undo stays offered before a delete becomes final.
 const UNDO_WINDOW_MS = 6000;
@@ -22,6 +29,10 @@ export interface PendingUndo {
 }
 
 interface ProjectsContextValue {
+  /** True once the initial Supabase load has settled (success or
+   * failure) — callers show a loading state until then instead of
+   * flashing an empty program/project. */
+  loaded: boolean;
   projects: Project[];
   /** Creates a project and returns its new id (synchronously — computed
    * off the current `projects` closure, not read back out of the setState
@@ -36,16 +47,25 @@ interface ProjectsContextValue {
    * project. */
   setProjectNote: (projectId: string, note: string) => void;
   activitiesByPhase: Record<string, ActivitySeed[]>;
-  setActivitiesByPhase: Dispatch<SetStateAction<Record<string, ActivitySeed[]>>>;
+  /** Replaces one phase's activity list (add/delete/materialize a still-
+   * virtual default breakdown) — the single choke point every activity
+   * mutation goes through, so DB sync only has to live here once. `prev`
+   * is `undefined` for a phase that has never been touched (still using
+   * the client-computed default breakdown from activitiesFor). */
+  updatePhaseActivities: (phaseId: string, updater: (prev: ActivitySeed[] | undefined) => ActivitySeed[]) => void;
   commentsByActivity: Record<string, ActivityComment[]>;
-  setCommentsByActivity: Dispatch<SetStateAction<Record<string, ActivityComment[]>>>;
-  addComment: (activityId: string, text: string) => void;
+  /** Needs `phase`, not just the activity id, because a comment on a
+   * still-virtual default activity (see updatePhaseActivities) has to
+   * materialize that phase's activities first — a comment row's foreign
+   * key can't point at an activity that doesn't exist in the database
+   * yet. */
+  addComment: (phase: Phase, activityId: string, text: string) => void;
   /** The live, user-editable stage lifecycle (Settings → Fases de
    * proyecto) — what AddProjectPanel and ExplorerPanel's category picker
-   * offer, and what deriveProjectSummary aggregates by. Seeded from the
-   * original 9-stage list but freely renameable/extendable/deletable from
-   * here on; a Phase only ever stores a category *id*, so renaming one
-   * updates every phase's displayed stage for free. */
+   * offer, and what deriveProjectSummary aggregates by. Loaded from the
+   * database, freely renameable/extendable/deletable from here on; a
+   * Phase only ever stores a category *id*, so renaming one updates every
+   * phase's displayed stage for free. */
   stageCategories: StageCategoryDef[];
   addStageCategory: (label: string) => void;
   renameStageCategory: (id: string, label: string) => void;
@@ -91,22 +111,46 @@ function slugify(name: string): string {
  * module-level constant wouldn't survive across pages the way this does,
  * since each page is its own component tree that fully mounts/unmounts on
  * navigation, but the root layout (and anything it renders above the
- * routed page) does not. Still no real backend: everything here resets on
- * a hard reload, same trade-off the app already had — this only fixes the
- * narrower problem of a *client-side navigation or panel close* losing
- * state it didn't need to (activity comments used to live in
- * ExplorerPanel's own local state and vanished the moment its panel
- * closed, not just on reload — that was a real bug, not the documented
- * trade-off).
+ * routed page) does not.
+ *
+ * Backed by Supabase (see src/lib/db.ts) as a write-through cache: local
+ * React state is still the only thing the UI reads from — every mutation
+ * updates it exactly as before persistence existed — but each mutating
+ * function also fires a background (not awaited) write to the database,
+ * so the same data is there on the next reload. Loaded once on mount;
+ * see `loaded` for the one-time hydration flag callers gate rendering on.
  */
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { t } = useLanguage();
-  const [projects, setProjects] = useState<Project[]>(SEED_PROJECTS);
-  const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>(ACTIVITIES_BY_PHASE);
+  const [loaded, setLoaded] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>({});
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
-  const [stageCategories, setStageCategories] = useState<StageCategoryDef[]>(SEED_STAGE_CATEGORIES);
+  const [stageCategories, setStageCategories] = useState<StageCategoryDef[]>([]);
   const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAppData()
+      .then((data) => {
+        if (cancelled) return;
+        setProjects(data.projects);
+        setActivitiesByPhase(data.activitiesByPhase);
+        setCommentsByActivity(data.commentsByActivity);
+        setStageCategories(data.stageCategories);
+      })
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error("[ProjectsProvider] failed to load data from Supabase:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function announceUndo(message: string, undo: () => void) {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
@@ -139,7 +183,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       id = `${base}-${suffix}`;
       suffix += 1;
     }
-    setProjects((prev) => [...prev, { id, name: input.name, sortOrder: prev.length, lanes: input.lanes, gates: input.gates }]);
+    const project: Project = { id, name: input.name, sortOrder: projects.length, lanes: input.lanes, gates: input.gates };
+    setProjects((prev) => [...prev, project]);
+    void insertProject(project);
     return id;
   }
 
@@ -148,42 +194,72 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (index === -1) return;
     const removed = projects[index]!;
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    void deleteProjectRow(projectId);
     announceUndo(t.undo.projectDeleted(removed.name), () => {
       setProjects((prev) => {
         const next = [...prev];
         next.splice(index, 0, removed);
         return next;
       });
+      void insertProject(removed);
     });
   }
 
   function setProjectLanes(projectId: string, updater: (lanes: Lane[]) => Lane[]) {
-    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, lanes: updater(p.lanes) } : p)));
+    const prevLanes = projects.find((p) => p.id === projectId)?.lanes ?? [];
+    const nextLanes = updater(prevLanes);
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, lanes: nextLanes } : p)));
+    void syncProjectLanes(projectId, prevLanes, nextLanes);
   }
 
   function setProjectGates(projectId: string, updater: (gates: Gate[]) => Gate[]) {
-    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, gates: updater(p.gates) } : p)));
+    const prevGates = projects.find((p) => p.id === projectId)?.gates ?? [];
+    const nextGates = updater(prevGates);
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, gates: nextGates } : p)));
+    void syncProjectGates(projectId, prevGates, nextGates);
   }
 
   function setProjectNote(projectId: string, note: string) {
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, note } : p)));
+    void updateProjectNote(projectId, note);
   }
 
-  function addComment(activityId: string, text: string) {
-    setCommentsByActivity((prev) => ({
-      ...prev,
-      [activityId]: [...(prev[activityId] ?? []), { author: t.explorer.commentAuthorYou, date: t.explorer.commentDateJustNow, text }],
-    }));
+  function updatePhaseActivities(phaseId: string, updater: (prev: ActivitySeed[] | undefined) => ActivitySeed[]) {
+    const prev = activitiesByPhase[phaseId];
+    const next = updater(prev);
+    if (next === prev) return;
+    setActivitiesByPhase((p) => ({ ...p, [phaseId]: next }));
+    void syncPhaseActivities(phaseId, prev, next);
+  }
+
+  async function addComment(phase: Phase, activityId: string, text: string) {
+    // A comment's foreign key needs a real activities row to point at —
+    // if this phase is still using the client-computed default breakdown
+    // (no DB rows yet), materialize it first and wait for that write
+    // before inserting the comment.
+    const prevActivities = activitiesByPhase[phase.id];
+    if (!prevActivities) {
+      const materialized = activitiesFor(phase);
+      setActivitiesByPhase((p) => ({ ...p, [phase.id]: materialized }));
+      await syncPhaseActivities(phase.id, undefined, materialized);
+    }
+    const comment: ActivityComment = { author: t.explorer.commentAuthorYou, date: t.explorer.commentDateJustNow, text };
+    setCommentsByActivity((prev) => ({ ...prev, [activityId]: [...(prev[activityId] ?? []), comment] }));
+    await insertComment(activityId, comment);
   }
 
   function addStageCategory(label: string) {
     const trimmed = label.trim();
     if (!trimmed) return;
-    setStageCategories((prev) => [...prev, { id: crypto.randomUUID(), label: trimmed }]);
+    const category: StageCategoryDef = { id: crypto.randomUUID(), label: trimmed };
+    const sortOrder = stageCategories.length;
+    setStageCategories((prev) => [...prev, category]);
+    void insertStageCategory(category, sortOrder);
   }
 
   function renameStageCategory(id: string, label: string) {
     setStageCategories((prev) => prev.map((c) => (c.id === id ? { ...c, label } : c)));
+    void updateStageCategoryLabel(id, label);
   }
 
   function deleteStageCategory(id: string) {
@@ -191,18 +267,21 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (index === -1) return;
     const removed = stageCategories[index]!;
     setStageCategories((prev) => prev.filter((c) => c.id !== id));
+    void deleteStageCategoryRow(id);
     announceUndo(t.undo.stageDeleted(removed.label), () => {
       setStageCategories((prev) => {
         const next = [...prev];
         next.splice(index, 0, removed);
         return next;
       });
+      void insertStageCategory(removed, index);
     });
   }
 
   return (
     <ProjectsContext.Provider
       value={{
+        loaded,
         projects,
         addProject,
         deleteProject,
@@ -210,9 +289,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         setProjectGates,
         setProjectNote,
         activitiesByPhase,
-        setActivitiesByPhase,
+        updatePhaseActivities,
         commentsByActivity,
-        setCommentsByActivity,
         addComment,
         stageCategories,
         addStageCategory,

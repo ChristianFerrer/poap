@@ -23,6 +23,7 @@ const es = {
     backToProgram: "← Volver al programa",
     emptyProgramTitle: "Todavía no hay proyectos en este programa",
     emptyProgramBody: "Creá el primero a mano o importá un plan existente desde Excel — podés agregar más en cualquier momento.",
+    loading: "Cargando…",
   },
   addProject: {
     eyebrow: "Nuevo proyecto",
@@ -227,6 +228,7 @@ const en: Translations = {
     backToProgram: "← Back to program",
     emptyProgramTitle: "No projects in this program yet",
     emptyProgramBody: "Create the first one by hand or import an existing plan from Excel — you can add more anytime.",
+    loading: "Loading…",
   },
   addProject: {
     eyebrow: "New project",

@@ -31,9 +31,17 @@ import styles from "../../page.module.css";
  * though: everything resets on a hard reload.
  */
 export default function ProjectPage({ params }: { params: { projectId: string } }) {
-  const { projects } = useProjects();
+  const { projects, loaded } = useProjects();
   const project = projects.find((p) => p.id === params.projectId);
   const { t } = useLanguage();
+
+  if (!loaded) {
+    return (
+      <main className={styles.main}>
+        <p className={styles.meta}>{t.header.loading}</p>
+      </main>
+    );
+  }
 
   if (!project) {
     return (
@@ -60,7 +68,7 @@ function ProjectView({ project }: { project: Project }) {
     setProjectLanes,
     setProjectGates,
     activitiesByPhase,
-    setActivitiesByPhase,
+    updatePhaseActivities,
     commentsByActivity,
     addComment,
     stageCategories,
@@ -183,9 +191,9 @@ function ProjectView({ project }: { project: Project }) {
       if (phaseId in activitiesByPhase) removedActivities[phaseId] = activitiesByPhase[phaseId]!;
     }
     setProjectLanes(project.id, (prev) => prev.filter((l) => l.id !== laneId));
-    setActivitiesByPhase((prev) =>
-      Object.fromEntries(Object.entries(prev).filter(([phaseId]) => !deletedPhaseIds.has(phaseId))),
-    );
+    for (const phaseId of Object.keys(removedActivities)) {
+      updatePhaseActivities(phaseId, () => []);
+    }
     setExplorer((prev) => {
       if (!prev || prev.level === "lanes") return prev;
       if (prev.level === "phases") return prev.laneId === laneId ? { level: "lanes" } : prev;
@@ -198,7 +206,9 @@ function ProjectView({ project }: { project: Project }) {
         next.splice(index, 0, lane);
         return next;
       });
-      setActivitiesByPhase((prev) => ({ ...prev, ...removedActivities }));
+      for (const [phaseId, activities] of Object.entries(removedActivities)) {
+        updatePhaseActivities(phaseId, () => activities);
+      }
     });
   }
 
@@ -215,12 +225,7 @@ function ProjectView({ project }: { project: Project }) {
     setProjectLanes(project.id, (prev) =>
       prev.map((l) => (l.id === laneId ? { ...l, phases: l.phases.filter((p) => p.id !== phaseId) } : l)),
     );
-    setActivitiesByPhase((prev) => {
-      if (!(phaseId in prev)) return prev;
-      const next = { ...prev };
-      delete next[phaseId];
-      return next;
-    });
+    if (removedActivities) updatePhaseActivities(phaseId, () => []);
     setExplorer((prev) => {
       if (!prev || prev.level === "lanes" || prev.level === "phases") return prev;
       return prev.phaseId === phaseId ? { level: "phases", laneId } : prev;
@@ -234,15 +239,12 @@ function ProjectView({ project }: { project: Project }) {
           return { ...l, phases: nextPhases };
         }),
       );
-      if (removedActivities) setActivitiesByPhase((prev) => ({ ...prev, [phaseId]: removedActivities }));
+      if (removedActivities) updatePhaseActivities(phaseId, () => removedActivities);
     });
   }
 
   function addActivity(phase: Phase, activity: ActivitySeed) {
-    setActivitiesByPhase((prev) => ({
-      ...prev,
-      [phase.id]: [...(prev[phase.id] ?? activitiesFor(phase)), activity],
-    }));
+    updatePhaseActivities(phase.id, (prev) => [...(prev ?? activitiesFor(phase)), activity]);
   }
 
   function deleteActivity(phase: Phase, activityId: string) {
@@ -250,19 +252,16 @@ function ProjectView({ project }: { project: Project }) {
     const index = activities.findIndex((a) => a.id === activityId);
     if (index === -1) return;
     const removed = activities[index]!;
-    setActivitiesByPhase((prev) => ({
-      ...prev,
-      [phase.id]: activities.filter((a) => a.id !== activityId),
-    }));
+    updatePhaseActivities(phase.id, () => activities.filter((a) => a.id !== activityId));
     setExplorer((prev) =>
       prev && prev.level === "activity" && prev.activityId === activityId ? { level: "activities", phaseId: phase.id } : prev,
     );
     announceUndo(t.undo.activityDeleted(removed.title), () => {
-      setActivitiesByPhase((prev) => {
-        const current = prev[phase.id] ?? activitiesFor(phase);
+      updatePhaseActivities(phase.id, (prev) => {
+        const current = prev ?? activitiesFor(phase);
         const next = [...current];
         next.splice(index, 0, removed);
-        return { ...prev, [phase.id]: next };
+        return next;
       });
     });
   }

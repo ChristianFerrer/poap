@@ -38,6 +38,7 @@ export default function ProgramPage() {
   const router = useRouter();
   const settings = useAppSettings();
   const {
+    loaded,
     projects,
     addProject,
     deleteProject,
@@ -196,7 +197,9 @@ export default function ProgramPage() {
 
         <div className={`${styles.layout} ${settings.sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
           <div className={styles.calendarCol}>
-            {projects.length === 0 ? (
+            {!loaded ? (
+              <p className={styles.meta}>{t.header.loading}</p>
+            ) : projects.length === 0 ? (
               <div className={styles.emptyProgram}>
                 <p className={styles.emptyProgramTitle}>{t.header.emptyProgramTitle}</p>
                 <p className={styles.emptyProgramBody}>{t.header.emptyProgramBody}</p>

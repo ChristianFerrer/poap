@@ -2,6 +2,15 @@ import { toAxis } from "@/components/poap-renderer/toAxis";
 import type { Band, Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import type { Program, Project } from "@/lib/portfolio";
 
+// PROJECTS/ACTIVITIES_BY_PHASE below were the app's only data store before
+// persistence (see src/lib/db.ts) — ProjectsProvider now hydrates from
+// Supabase instead, seeded once from this exact data (same axis() numbers,
+// so nothing shifted by a single day in the move). They stay here, still
+// exported, as the record of what was seeded and as a reference for
+// reseeding a fresh database; nothing at runtime imports them anymore.
+// PROGRAM's own name/startMonth/months are the one exception — those stay
+// hardcoded config, since there's no UI yet to edit the program itself.
+
 // One shared timeline for the whole Program — every project renders
 // against this same axis, so a phase's start/end never needs re-basing
 // when moving between the portfolio view and a project's own detail view

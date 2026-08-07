@@ -159,7 +159,7 @@ export const ExplorerPanel = forwardRef<
     onDeletePhase: (laneId: string, phaseId: string) => void;
     onDeleteActivity: (phase: Phase, activityId: string) => void;
     commentsByActivity: Record<string, ActivityComment[]>;
-    onAddComment: (activityId: string, text: string) => void;
+    onAddComment: (phase: Phase, activityId: string, text: string) => void;
   }
 >(function ExplorerPanel(
   {
@@ -210,10 +210,10 @@ export const ExplorerPanel = forwardRef<
     return null;
   }
 
-  function submitComment(activityId: string) {
+  function submitComment(phase: Phase, activityId: string) {
     const text = draft.trim();
     if (!text) return;
-    onAddComment(activityId, text);
+    onAddComment(phase, activityId, text);
     setDraft("");
   }
 
@@ -808,7 +808,7 @@ export const ExplorerPanel = forwardRef<
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                 />
-                <button type="button" disabled={!draft.trim()} onClick={() => submitComment(activity.id)}>
+                <button type="button" disabled={!draft.trim()} onClick={() => submitComment(phase, activity.id)}>
                   {t.explorer.commentButton}
                 </button>
               </div>
