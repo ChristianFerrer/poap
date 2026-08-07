@@ -6,13 +6,16 @@ import type { Project, StageCategoryDef } from "@/lib/portfolio";
 import { activitiesFor, type ActivityComment, type ActivitySeed } from "./mock-data";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { UndoToast } from "./UndoToast";
+import { SyncErrorToast } from "./SyncErrorToast";
 import {
   deleteProjectRow,
   deleteStageCategoryRow,
+  errorMessage,
   fetchAppData,
   insertComment,
   insertProject,
   insertStageCategory,
+  setSyncErrorHandler,
   syncPhaseActivities,
   syncProjectGates,
   syncProjectLanes,
@@ -129,10 +132,39 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [stageCategories, setStageCategories] = useState<StageCategoryDef[]>([]);
   const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const syncErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showSyncError(message: string) {
+    if (syncErrorTimerRef.current) clearTimeout(syncErrorTimerRef.current);
+    setSyncError(message);
+    syncErrorTimerRef.current = setTimeout(() => setSyncError(null), 10000);
+  }
+
+  function dismissSyncError() {
+    if (syncErrorTimerRef.current) clearTimeout(syncErrorTimerRef.current);
+    setSyncError(null);
+  }
+
+  // One handler for every background write in src/lib/db.ts — registered
+  // once, cleared on unmount so a stale provider instance (StrictMode's
+  // double-mount in dev) never holds the live subscription.
+  useEffect(() => {
+    setSyncErrorHandler(showSyncError);
+    return () => setSyncErrorHandler(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    fetchAppData()
+    // A network failure normally rejects fast, but some retry/backoff
+    // behavior deep in the fetch stack can stall well past that — without
+    // a hard ceiling here, an unreachable database means "Cargando…"
+    // forever instead of a visible error the user can actually act on.
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timed out reaching the database")), 15000),
+    );
+    Promise.race([fetchAppData(), timeout])
       .then((data) => {
         if (cancelled) return;
         setProjects(data.projects);
@@ -143,6 +175,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       .catch((error) => {
         // eslint-disable-next-line no-console
         console.error("[ProjectsProvider] failed to load data from Supabase:", error);
+        if (!cancelled) showSyncError(errorMessage(error));
       })
       .finally(() => {
         if (!cancelled) setLoaded(true);
@@ -150,6 +183,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function announceUndo(message: string, undo: () => void) {
@@ -304,6 +338,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     >
       {children}
       <UndoToast />
+      <SyncErrorToast message={syncError} onDismiss={dismissSyncError} />
     </ProjectsContext.Provider>
   );
 }

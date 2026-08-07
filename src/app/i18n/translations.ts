@@ -208,6 +208,9 @@ const es = {
     riskNotePlaceholder: "¿Por qué está en riesgo? (visible para todos)",
     riskNoteAria: (name: string) => `Nota de riesgo para ${name}`,
   },
+  sync: {
+    saveFailed: (detail: string) => `No se pudo guardar el último cambio (sigue visible acá, pero no sobrevivirá a un recargo): ${detail}`,
+  },
 };
 
 type Translations = typeof es;
@@ -412,6 +415,9 @@ const en: Translations = {
     riskHeading: "At risk — why",
     riskNotePlaceholder: "Why is it at risk? (visible to everyone)",
     riskNoteAria: (name) => `Risk note for ${name}`,
+  },
+  sync: {
+    saveFailed: (detail) => `Couldn't save your last change (it's still visible here, but won't survive a reload): ${detail}`,
   },
 };
 

@@ -15,9 +15,40 @@ import type { ActivityComment, ActivitySeed } from "@/app/mock-data";
  * strictly better than the pre-persistence baseline of "always resets".
  */
 
+// A failed write is still logged to the console for full detail, but that's
+// invisible unless someone has devtools open — this also notifies a single
+// subscriber (see ProjectsProvider) so a small toast can surface it in the
+// UI itself. Module-level rather than routed through context/props since
+// every write-through function in this file needs to reach it identically,
+// regardless of call depth.
+let onSyncError: ((message: string) => void) | null = null;
+
+export function setSyncErrorHandler(handler: ((message: string) => void) | null) {
+  onSyncError = handler;
+}
+
+/** Supabase/Postgrest errors are plain `{message, details, hint, code}`
+ * objects, not real `Error` instances — `String(...)` on one of those
+ * (or on a rejected-Promise.all's opaque wrapper) just prints
+ * "[object Object]". Pull `.message` out explicitly wherever it exists,
+ * falling back to JSON so there's always *something* legible instead. */
+export function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message: unknown }).message;
+    if (typeof message === "string" && message) return message;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
 function logFailure(action: string, error: unknown) {
   // eslint-disable-next-line no-console
   console.error(`[db] ${action} failed:`, error);
+  onSyncError?.(errorMessage(error));
 }
 
 // ---------------------------------------------------------------------
@@ -159,13 +190,21 @@ export async function insertProject(project: Project) {
 }
 
 export async function deleteProjectRow(id: string) {
-  const { error } = await supabase.from("projects").delete().eq("id", id);
-  if (error) logFailure(`deleteProjectRow(${id})`, error);
+  try {
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`deleteProjectRow(${id})`, error);
+  }
 }
 
 export async function updateProjectNote(id: string, note: string) {
-  const { error } = await supabase.from("projects").update({ note }).eq("id", id);
-  if (error) logFailure(`updateProjectNote(${id})`, error);
+  try {
+    const { error } = await supabase.from("projects").update({ note }).eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`updateProjectNote(${id})`, error);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -263,18 +302,30 @@ export async function syncProjectGates(projectId: string, prevGates: Gate[], nex
 // ---------------------------------------------------------------------
 
 export async function insertStageCategory(category: StageCategoryDef, sortOrder: number) {
-  const { error } = await supabase.from("stage_categories").insert({ id: category.id, label: category.label, sort_order: sortOrder });
-  if (error) logFailure(`insertStageCategory(${category.id})`, error);
+  try {
+    const { error } = await supabase.from("stage_categories").insert({ id: category.id, label: category.label, sort_order: sortOrder });
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`insertStageCategory(${category.id})`, error);
+  }
 }
 
 export async function updateStageCategoryLabel(id: string, label: string) {
-  const { error } = await supabase.from("stage_categories").update({ label }).eq("id", id);
-  if (error) logFailure(`updateStageCategoryLabel(${id})`, error);
+  try {
+    const { error } = await supabase.from("stage_categories").update({ label }).eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`updateStageCategoryLabel(${id})`, error);
+  }
 }
 
 export async function deleteStageCategoryRow(id: string) {
-  const { error } = await supabase.from("stage_categories").delete().eq("id", id);
-  if (error) logFailure(`deleteStageCategoryRow(${id})`, error);
+  try {
+    const { error } = await supabase.from("stage_categories").delete().eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`deleteStageCategoryRow(${id})`, error);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -320,8 +371,12 @@ export async function syncPhaseActivities(phaseId: string, prevActivities: Activ
 // ---------------------------------------------------------------------
 
 export async function insertComment(activityId: string, comment: ActivityComment) {
-  const { error } = await supabase
-    .from("activity_comments")
-    .insert({ activity_id: activityId, author: comment.author, comment_date: comment.date, body: comment.text });
-  if (error) logFailure(`insertComment(${activityId})`, error);
+  try {
+    const { error } = await supabase
+      .from("activity_comments")
+      .insert({ activity_id: activityId, author: comment.author, comment_date: comment.date, body: comment.text });
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`insertComment(${activityId})`, error);
+  }
 }
