@@ -482,6 +482,13 @@ export function PoapRenderer({
       })),
     [orderedLanes, collapsed],
   );
+  // The project-plan lane (if any) always renders above Stage gates, and
+  // every other lane below it — pulled out of packedLanes' single sortOrder
+  // sequence rather than relying on sortOrder alone to keep it first, since
+  // a plan lane's sortOrder is really "first among team lanes", not "before
+  // the gates row" (a position sortOrder has no way to express on its own).
+  const planPackedLanes = useMemo(() => packedLanes.filter((pl) => pl.lane.isProjectPlan), [packedLanes]);
+  const teamPackedLanes = useMemo(() => packedLanes.filter((pl) => !pl.lane.isProjectPlan), [packedLanes]);
 
   const gateRowHeight = GATES_ROW_BASE_HEIGHT + (gateRowLevels - 1) * GATE_SHIFT_PX;
   const rulerHeight = YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT + (zoom.subRowGranularity !== "none" ? SUB_ROW_HEIGHT : 0);
@@ -562,6 +569,81 @@ export function PoapRenderer({
     if (target && target.scrollTop !== source.scrollTop) target.scrollTop = source.scrollTop;
   }
 
+  // Shared between the plan-lane and team-lane render passes below (see
+  // planPackedLanes/teamPackedLanes) so the two lane groups stay pixel- and
+  // behavior-identical apart from the plan lane's own accent class.
+  function renderLaneLabel({ lane, rows }: (typeof packedLanes)[number]) {
+    const isCollapsed = rows === null;
+    const height = laneRowHeight(isCollapsed ? 1 : rows.length);
+    return (
+      <div
+        key={lane.id}
+        className={[styles.labelCell, styles.laneLabel, lane.isProjectPlan ? styles.planLaneLabel : ""].join(" ").trim()}
+        style={{ height }}
+      >
+        <button
+          type="button"
+          className={styles.chevronButton}
+          onClick={() => toggleLane(lane.id)}
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? strings.expandLane : strings.collapseLane}
+        >
+          <span className={`${styles.chevron} ${isCollapsed ? styles.chevronCollapsed : ""}`} aria-hidden="true">
+            <IconChevronDown />
+          </span>
+        </button>
+        <button type="button" className={styles.laneNameButton} onClick={() => onLaneClick?.(lane.id)}>
+          <span className={styles.laneLabelText}>{lane.name}</span>
+        </button>
+        {onLaneGanttClick && (
+          <button
+            type="button"
+            className={styles.ganttButton}
+            onClick={() => onLaneGanttClick(lane.id)}
+            aria-label={strings.viewGanttAria}
+            title={strings.viewGanttAria}
+          >
+            <IconGantt />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  function renderLaneTrack({ lane, rows }: (typeof packedLanes)[number]) {
+    const trackClass = [styles.laneTrack, lane.isProjectPlan ? styles.planLaneTrack : ""].join(" ").trim();
+    if (rows === null) {
+      const agg = aggregateLane(lane);
+      return (
+        <div key={lane.id} className={trackClass} style={{ height: laneRowHeight(1) }}>
+          <div className={styles.laneRow}>
+            <AggregateBar agg={agg} laneName={lane.name} scale={scale} onHover={showTooltip} onLeave={() => setTooltip(null)} strings={strings} />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div key={lane.id} className={trackClass} style={{ height: laneRowHeight(rows.length) }}>
+        {rows.map((row, r) => (
+          <div key={r} className={styles.laneRow}>
+            {row.map((phase) => (
+              <Bar
+                key={phase.id}
+                phase={phase}
+                scale={scale}
+                trackWidth={effectiveWidth}
+                selected={phase.id === selectedPhaseId}
+                onClick={onPhaseClick}
+                onHover={showTooltip}
+                onLeave={() => setTooltip(null)}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className={styles.card}>
       <div className={styles.toolbar}>
@@ -614,6 +696,7 @@ export function PoapRenderer({
             className={`${styles.labelCell} ${styles.labelHeaderCell}`}
             style={{ height: rulerHeight + BADGE_STRIP_HEIGHT }}
           />
+          {planPackedLanes.map(renderLaneLabel)}
           <div
             className={`${styles.labelCell} ${styles.gatesLabelCell}`}
             style={{ height: gateRowHeight }}
@@ -634,39 +717,7 @@ export function PoapRenderer({
               </>
             )}
           </div>
-          {packedLanes.map(({ lane, rows }) => {
-            const isCollapsed = rows === null;
-            const height = laneRowHeight(isCollapsed ? 1 : rows.length);
-            return (
-              <div key={lane.id} className={`${styles.labelCell} ${styles.laneLabel}`} style={{ height }}>
-                <button
-                  type="button"
-                  className={styles.chevronButton}
-                  onClick={() => toggleLane(lane.id)}
-                  aria-expanded={!isCollapsed}
-                  aria-label={isCollapsed ? strings.expandLane : strings.collapseLane}
-                >
-                  <span className={`${styles.chevron} ${isCollapsed ? styles.chevronCollapsed : ""}`} aria-hidden="true">
-                    <IconChevronDown />
-                  </span>
-                </button>
-                <button type="button" className={styles.laneNameButton} onClick={() => onLaneClick?.(lane.id)}>
-                  <span className={styles.laneLabelText}>{lane.name}</span>
-                </button>
-                {onLaneGanttClick && (
-                  <button
-                    type="button"
-                    className={styles.ganttButton}
-                    onClick={() => onLaneGanttClick(lane.id)}
-                    aria-label={strings.viewGanttAria}
-                    title={strings.viewGanttAria}
-                  >
-                    <IconGantt />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {teamPackedLanes.map(renderLaneLabel)}
         </div>
 
         <div
@@ -793,6 +844,8 @@ export function PoapRenderer({
               )}
             </div>
 
+            {planPackedLanes.map(renderLaneTrack)}
+
             <div className={styles.gatesTrack} style={{ height: gateRowHeight }}>
               {sortedGates.map((gate) => {
                 const active = activeGateIds.has(gate.id);
@@ -819,46 +872,7 @@ export function PoapRenderer({
               })}
             </div>
 
-            {packedLanes.map(({ lane, rows }) => {
-              if (rows === null) {
-                const agg = aggregateLane(lane);
-                const height = laneRowHeight(1);
-                return (
-                  <div key={lane.id} className={styles.laneTrack} style={{ height }}>
-                    <div className={styles.laneRow}>
-                      <AggregateBar
-                        agg={agg}
-                        laneName={lane.name}
-                        scale={scale}
-                        onHover={showTooltip}
-                        onLeave={() => setTooltip(null)}
-                        strings={strings}
-                      />
-                    </div>
-                  </div>
-                );
-              }
-              return (
-                <div key={lane.id} className={styles.laneTrack} style={{ height: laneRowHeight(rows.length) }}>
-                  {rows.map((row, r) => (
-                    <div key={r} className={styles.laneRow}>
-                      {row.map((phase) => (
-                        <Bar
-                          key={phase.id}
-                          phase={phase}
-                          scale={scale}
-                          trackWidth={effectiveWidth}
-                          selected={phase.id === selectedPhaseId}
-                          onClick={onPhaseClick}
-                          onHover={showTooltip}
-                          onLeave={() => setTooltip(null)}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
+            {teamPackedLanes.map(renderLaneTrack)}
 
             {/* Top overlay — last in DOM so it paints above every bar, gate
                 and ruler cell (all of which are `position: relative` and

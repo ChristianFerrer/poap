@@ -10,7 +10,7 @@ import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
 import { AddProjectPanel } from "./AddProjectPanel";
 import { ExecutiveSummary } from "./ExecutiveSummary";
-import { ExplorerPanel } from "./ExplorerPanel";
+import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { ImportPanel } from "./ImportPanel";
 import { SettingsPanel, type SidePanelMode } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
@@ -40,6 +40,14 @@ function ProjectGanttPanel({
   onClose: () => void;
 }) {
   const { commentsByActivity, addComment } = useProjects();
+  // Opens straight to the project's high-level plan (Design/Build/SIT/
+  // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
+  // what the Gantt button next to a project name on the Program page is
+  // for. Falls back to the lanes list for a project that doesn't have a
+  // plan lane yet (shouldn't happen for anything created via AddProjectPanel,
+  // but older/imported data may not have one).
+  const planLane = project.lanes.find((l) => l.isProjectPlan);
+  const initialView: ExplorerView = planLane ? { level: "phases", laneId: planLane.id } : { level: "lanes" };
   const {
     explorer,
     setExplorer,
@@ -51,7 +59,7 @@ function ProjectGanttPanel({
     deletePhase,
     addActivity,
     deleteActivity,
-  } = useProjectSwimlines(project, { level: "lanes" });
+  } = useProjectSwimlines(project, initialView);
 
   return (
     <ExplorerPanel

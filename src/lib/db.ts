@@ -106,7 +106,13 @@ export async function fetchAppData(): Promise<AppData> {
 
   const lanesByProject = new Map<string, Lane[]>();
   for (const r of laneRows ?? []) {
-    const lane: Lane = { id: r.id, name: r.name, sortOrder: r.sort_order, phases: phasesByLane.get(r.id) ?? [] };
+    const lane: Lane = {
+      id: r.id,
+      name: r.name,
+      sortOrder: r.sort_order,
+      phases: phasesByLane.get(r.id) ?? [],
+      isProjectPlan: r.is_project_plan ?? false,
+    };
     const group = lanesByProject.get(r.project_id) ?? [];
     group.push(lane);
     lanesByProject.set(r.project_id, group);
@@ -166,9 +172,7 @@ export async function insertProject(project: Project) {
     if (projectError) throw projectError;
 
     if (project.lanes.length > 0) {
-      const { error: lanesError } = await supabase
-        .from("lanes")
-        .insert(project.lanes.map((l) => ({ id: l.id, project_id: project.id, name: l.name, sort_order: l.sortOrder })));
+      const { error: lanesError } = await supabase.from("lanes").insert(project.lanes.map((l) => laneToRow(l, project.id)));
       if (lanesError) throw lanesError;
 
       const phaseRows = project.lanes.flatMap((l) => l.phases.map((p) => phaseToRow(p, l.id)));
@@ -214,6 +218,10 @@ export async function updateProjectNote(id: string, note: string) {
 // phase, import) gets DB sync for free without its own bespoke query.
 // ---------------------------------------------------------------------
 
+function laneToRow(lane: Lane, projectId: string) {
+  return { id: lane.id, project_id: projectId, name: lane.name, sort_order: lane.sortOrder, is_project_plan: lane.isProjectPlan ?? false };
+}
+
 function phaseToRow(phase: Phase, laneId: string) {
   return {
     id: phase.id,
@@ -242,9 +250,7 @@ export async function syncProjectLanes(projectId: string, prevLanes: Lane[], nex
     const removedPhaseIds = [...prevPhaseIds].filter((id) => !nextPhaseIds.has(id) && !removedLaneIds.includes(laneIdForPhase(prevLanes, id)));
 
     if (nextLanes.length > 0) {
-      const { error } = await supabase
-        .from("lanes")
-        .upsert(nextLanes.map((l) => ({ id: l.id, project_id: projectId, name: l.name, sort_order: l.sortOrder })));
+      const { error } = await supabase.from("lanes").upsert(nextLanes.map((l) => laneToRow(l, projectId)));
       if (error) throw error;
     }
 

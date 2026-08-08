@@ -7,7 +7,7 @@ import type { StageCategoryDef } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { formatDate, fromISODate, toISODate } from "./dateAxis";
 import { DateRangeField } from "./DateRangeField";
-import { IconChevronRight, IconClose, IconPlus, IconSearch, IconSort, IconTrash } from "@/lib/icons";
+import { IconChevronRight, IconClose, IconGantt, IconPlus, IconSearch, IconSort, IconTrash } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./ExplorerPanel.module.css";
 
@@ -254,8 +254,10 @@ export const ExplorerPanel = forwardRef<
 
       {view.level === "lanes" &&
         (() => {
+          const planLane = lanes.find((l) => l.isProjectPlan);
+          const teamLanes = lanes.filter((l) => !l.isProjectPlan);
           const visibleLanes = sortItems(
-            filterByName(lanes, laneSearch, (l) => l.name),
+            filterByName(teamLanes, laneSearch, (l) => l.name),
             laneSort,
             (l) => l.name,
             (l) => (l.phases.length ? Math.min(...l.phases.map((p) => p.start)) : Infinity),
@@ -264,6 +266,28 @@ export const ExplorerPanel = forwardRef<
             <>
               <p className={styles.eyebrow}>{t.explorer.lanesEyebrow}</p>
               <h2 className={styles.title}>{t.explorer.lanesTitle}</h2>
+
+              {planLane && (
+                <div className={styles.planLaneCard}>
+                  <p className={styles.sectionTitle}>{t.explorer.projectPlanEyebrow}</p>
+                  <div className={styles.planLaneRow}>
+                    <span className={styles.planLaneName}>{planLane.name}</span>
+                    <span className={styles.tableMetaCell}>
+                      {planLane.phases.length}{" "}
+                      {pluralForm(planLane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.viewButton}
+                      onClick={() => onNavigate({ level: "phases", laneId: planLane.id })}
+                      aria-label={t.explorer.viewGanttAria(planLane.name)}
+                      title={t.explorer.viewGanttAria(planLane.name)}
+                    >
+                      <IconGantt />
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className={styles.addGroup}>
                 <p className={styles.sectionTitle}>{t.explorer.addLaneSection}</p>
@@ -289,6 +313,7 @@ export const ExplorerPanel = forwardRef<
               </div>
 
               <div className={styles.listGroup}>
+                <p className={styles.sectionTitle}>{t.explorer.teamLanesEyebrow}</p>
                 <FilterBar
                   search={laneSearch}
                   onSearch={setLaneSearch}
@@ -323,9 +348,10 @@ export const ExplorerPanel = forwardRef<
                               type="button"
                               className={styles.viewButton}
                               onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
-                              aria-label={t.explorer.viewPhasesAria(lane.name)}
+                              aria-label={t.explorer.viewGanttAria(lane.name)}
+                              title={t.explorer.viewGanttAria(lane.name)}
                             >
-                              <IconChevronRight />
+                              <IconGantt />
                             </button>
                           </td>
                           <td>
@@ -343,14 +369,14 @@ export const ExplorerPanel = forwardRef<
                           </td>
                         </tr>
                       ))}
-                      {visibleLanes.length === 0 && lanes.length > 0 && (
+                      {visibleLanes.length === 0 && teamLanes.length > 0 && (
                         <tr>
                           <td colSpan={4} className={styles.emptyCell}>
                             {t.explorer.noLaneMatch}
                           </td>
                         </tr>
                       )}
-                      {lanes.length === 0 && (
+                      {teamLanes.length === 0 && (
                         <tr>
                           <td colSpan={4} className={styles.emptyCell}>
                             {t.explorer.noLanes}

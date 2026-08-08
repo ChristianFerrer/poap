@@ -142,9 +142,41 @@
   margin-top: 0;
 }
 
+/* The one lane per project holding its high-level, cross-team plan (see
+   Lane.isProjectPlan) — pinned above the searchable/sortable team-lanes
+   table below rather than living as just another sortable row in it, with
+   the same lime accent PoapRenderer gives this lane in the main chart so
+   the two read as the same thing. No delete action: unlike a team lane,
+   this one isn't meant to be removable from here. */
+.planLaneCard {
+  padding: 12px;
+  margin: 4px 0 20px;
+  background: color-mix(in srgb, var(--color-lime) 8%, var(--color-surface2));
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--color-lime);
+  border-radius: var(--radius-2xl);
+}
+.planLaneCard .sectionTitle {
+  margin-top: 0;
+}
+.planLaneRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.planLaneName {
+  flex: 1 1 auto;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-snow);
+}
+
 .listGroup {
   display: flex;
   flex-direction: column;
+}
+.listGroup > .sectionTitle:first-child {
+  margin-top: 0;
 }
 
 /* Search + sort toolbar sitting directly above whatever list/table it

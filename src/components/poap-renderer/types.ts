@@ -23,6 +23,13 @@ export interface Lane {
   name: string;
   sortOrder: number;
   phases: Phase[];
+  /** Marks the one lane per project that holds its high-level, cross-team
+   * plan (Design/Build/SIT/UAT/…, tagged with the same stage categories
+   * team lanes use) rather than a specific team's own work. The renderer
+   * pins it above every other lane and above the Stage gates row, and
+   * gives it a distinct accent — see PoapRenderer's plan-lane handling —
+   * so it always reads as "the plan", not just another team. */
+  isProjectPlan?: boolean;
 }
 
 export interface Gate {

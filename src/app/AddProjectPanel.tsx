@@ -66,7 +66,7 @@ export const AddProjectPanel = forwardRef<
         category: r.categoryId,
       }));
     const lanes: Lane[] = phases.length
-      ? [{ id: crypto.randomUUID(), name: t.addProject.defaultLaneName, sortOrder: 0, phases }]
+      ? [{ id: crypto.randomUUID(), name: t.addProject.defaultLaneName, sortOrder: 0, phases, isProjectPlan: true }]
       : [];
     onCreate({ name: name.trim(), lanes });
   }

@@ -102,9 +102,29 @@ export function activitiesFor(phase: Phase): ActivitySeed[] {
 // ---------------------------------------------------------------------
 const PMF_LANES: Lane[] = [
   {
+    id: "pmf-plan",
+    name: "Plan del proyecto",
+    sortOrder: 0,
+    isProjectPlan: true,
+    // One aggregated phase per stage category actually tagged somewhere in
+    // this project's team lanes below — same span/worst-status rule as
+    // deriveProjectSummary (src/lib/portfolio.ts), computed by hand here
+    // once at backfill time rather than derived live, since this lane's
+    // phases need to be real, independently editable rows (see
+    // Lane.isProjectPlan) rather than a read-only summary bar.
+    phases: [
+      { id: "pmf-plan-sit", title: "SIT", start: 0, end: 3.8, status: "at_risk", category: "sit" },
+      { id: "pmf-plan-build", title: "Construcción", start: 0, end: 10.9666666666667, status: "at_risk", category: "build" },
+      { id: "pmf-plan-uat", title: "UAT", start: 0, end: 5.4, status: "at_risk", category: "uat" },
+      { id: "pmf-plan-go_live", title: "Go Live", start: 1.38709677419355, end: 6.32258064516129, status: "in_progress", category: "go_live" },
+      { id: "pmf-plan-hypercare", title: "Hypercare", start: 4.12903225806452, end: 8.89285714285714, status: "at_risk", category: "hypercare" },
+      { id: "pmf-plan-sustain", title: "Sostenimiento", start: 6.19354838709677, end: 11.9677419354839, status: "not_started", category: "sustain" },
+    ],
+  },
+  {
     id: "prod",
     name: "Producto / Proceso",
-    sortOrder: 0,
+    sortOrder: 1,
     phases: [
       { id: "smoke", title: "Smoke Test + SIT Prep", start: axis(2026, 6, 1), end: axis(2026, 6, 19), status: "done", owners: ["Equipo Producto"], category: "sit" },
       { id: "sit-exec", title: "SIT Ejecución", start: axis(2026, 6, 22), end: axis(2026, 7, 24), status: "at_risk", owners: ["Equipo Producto", "J. Alonso"], category: "sit" },
@@ -118,7 +138,7 @@ const PMF_LANES: Lane[] = [
   {
     id: "datos",
     name: "Datos",
-    sortOrder: 1,
+    sortOrder: 2,
     phases: [
       { id: "ac2-enable", title: "Habilitación Data Science (AC2)", start: axis(2026, 6, 1), end: axis(2026, 7, 10), status: "done", subLane: "AC2", owners: ["Equipo Datos"], category: "build" },
       { id: "ac2-sit", title: "AC2 SIT Prep + Ejecución", start: axis(2026, 8, 3), end: axis(2026, 9, 25), status: "at_risk", subLane: "AC2", owners: ["Equipo Datos"], category: "sit" },
@@ -132,7 +152,7 @@ const PMF_LANES: Lane[] = [
   {
     id: "ds",
     name: "Data Science",
-    sortOrder: 2,
+    sortOrder: 3,
     phases: [
       { id: "pfe-v2", title: "PFE Calibración v2", start: axis(2026, 6, 1), end: axis(2026, 7, 31), status: "done", owners: ["Equipo DS"], category: "build" },
       { id: "promo-v3a", title: "SIT Promo v3a", start: axis(2026, 7, 13), end: axis(2026, 8, 14), status: "in_progress", owners: ["Equipo DS"], category: "sit" },
@@ -145,7 +165,7 @@ const PMF_LANES: Lane[] = [
   {
     id: "cyl",
     name: "Cambio y Formación",
-    sortOrder: 3,
+    sortOrder: 4,
     phases: [
       { id: "form-t1", title: "Formación UAT UK/PL — Tanda 1", start: axis(2026, 6, 1), end: axis(2026, 6, 26), status: "done", owners: ["Equipo C&L"], category: "uat" },
       { id: "form-t2", title: "Formación UAT UK/PL — Tanda 2", start: axis(2026, 9, 14), end: axis(2026, 9, 25), status: "not_started", owners: ["Equipo C&L"], category: "uat" },
@@ -174,9 +194,21 @@ const PMF_GATES: Gate[] = [
 // ---------------------------------------------------------------------
 const VMI_LANES: Lane[] = [
   {
+    id: "vmi-plan",
+    name: "Plan del proyecto",
+    sortOrder: 0,
+    isProjectPlan: true,
+    phases: [
+      { id: "vmi-plan-discovery", title: "Discovery", start: 0, end: 1.06451612903226, status: "done", category: "discovery" },
+      { id: "vmi-plan-sit", title: "SIT", start: 1.16129032258065, end: 2.64516129032258, status: "in_progress", category: "sit" },
+      { id: "vmi-plan-uat", title: "UAT", start: 2.74193548387097, end: 4.48387096774194, status: "not_started", category: "uat" },
+      { id: "vmi-plan-go_live", title: "Go Live", start: 4.58064516129032, end: 5.16666666666667, status: "not_started", category: "go_live" },
+    ],
+  },
+  {
     id: "vmi-impl",
     name: "Equipo Implementación",
-    sortOrder: 0,
+    sortOrder: 1,
     phases: [
       { id: "vmi-script-prep", title: "Script Prep", start: axis(2026, 6, 1), end: axis(2026, 7, 3), status: "done", owners: ["Equipo Implementación"], category: "discovery" },
       { id: "vmi-sit", title: "SIT", start: axis(2026, 7, 6), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Implementación"], category: "sit" },
@@ -197,9 +229,19 @@ const VMI_GATES: Gate[] = [
 // ---------------------------------------------------------------------
 const IBERIA_LANES: Lane[] = [
   {
+    id: "iberia-plan",
+    name: "Plan del proyecto",
+    sortOrder: 0,
+    isProjectPlan: true,
+    phases: [
+      { id: "iberia-plan-build", title: "Construcción", start: 0.466666666666667, end: 7.96774193548387, status: "in_progress", category: "build" },
+      { id: "iberia-plan-integration_testing", title: "Pruebas de Integración", start: 8, end: 10.4666666666667, status: "not_started", category: "integration_testing" },
+    ],
+  },
+  {
     id: "iberia-europe",
     name: "Europe",
-    sortOrder: 0,
+    sortOrder: 1,
     phases: [
       { id: "iberia-build", title: "Build (Final Load)", start: axis(2026, 6, 15), end: axis(2027, 1, 31), status: "in_progress", owners: ["Equipo Europe"], category: "build" },
     ],
@@ -207,7 +249,7 @@ const IBERIA_LANES: Lane[] = [
   {
     id: "iberia-qa",
     name: "QA",
-    sortOrder: 1,
+    sortOrder: 2,
     phases: [
       { id: "iberia-test", title: "Test", start: axis(2027, 2, 1), end: axis(2027, 4, 15), status: "not_started", owners: ["Equipo QA"], category: "integration_testing" },
     ],
