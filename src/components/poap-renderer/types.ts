@@ -63,6 +63,11 @@ export interface PoapRendererProps {
    * a management view for that lane without the renderer knowing what
    * "managing a lane" means. */
   onLaneClick?: (laneId: string) => void;
+  /** A second, explicit per-lane action distinct from onLaneClick — e.g.
+   * the Program page uses this for a "view swimlines" shortcut on each
+   * project row, while onLaneClick itself still navigates into the
+   * project. Renders nothing when omitted. */
+  onLaneGanttClick?: (laneId: string) => void;
   /** Clicking the "Stage gates" row label itself (not a specific gate
    * diamond) — same idea as onLaneClick, opens whatever management view
    * the app has for gates in general rather than one gate in particular. */

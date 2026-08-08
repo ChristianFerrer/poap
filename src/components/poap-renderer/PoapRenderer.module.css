@@ -545,6 +545,13 @@
 .laneNameButton:hover {
   background: var(--color-surface2);
 }
+/* Explicit "manage this row's swimlines" shortcut, distinct from clicking
+   the name itself (onLaneClick, e.g. navigating into the project on the
+   Program page) — only rendered when the caller passes onLaneGanttClick. */
+.ganttButton {
+  composes: iconBtn iconBtnSm iconBtnGhost from "../../app/buttons.module.css";
+  flex: 0 0 auto;
+}
 .chevron {
   flex: 0 0 auto;
   display: inline-flex;

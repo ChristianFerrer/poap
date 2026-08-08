@@ -114,6 +114,7 @@ export const RENDERER_STRINGS: Record<
     involved: string;
     date: string;
     today: string;
+    viewGanttAria: string;
   }
 > = {
   es: {
@@ -134,6 +135,7 @@ export const RENDERER_STRINGS: Record<
     involved: "Involucrados",
     date: "Fecha",
     today: "Hoy",
+    viewGanttAria: "Ver swimlines",
   },
   en: {
     continuousZoom: "Continuous zoom",
@@ -153,6 +155,7 @@ export const RENDERER_STRINGS: Record<
     involved: "Involved",
     date: "Date",
     today: "Today",
+    viewGanttAria: "View swimlines",
   },
 };
 

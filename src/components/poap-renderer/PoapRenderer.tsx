@@ -15,7 +15,7 @@ import {
   pluralForm,
   type Locale,
 } from "@/lib/i18n";
-import { IconChevronDown, IconMinus, IconPlus } from "@/lib/icons";
+import { IconChevronDown, IconGantt, IconMinus, IconPlus } from "@/lib/icons";
 import {
   BADGE_STRIP_HEIGHT,
   BAR_HEIGHT,
@@ -367,6 +367,7 @@ export function PoapRenderer({
   activeGateIds: activeGateIdsProp = [],
   onGateClick,
   onLaneClick,
+  onLaneGanttClick,
   onGatesLabelClick,
   showWeekends = true,
   showToday = true,
@@ -652,6 +653,17 @@ export function PoapRenderer({
                 <button type="button" className={styles.laneNameButton} onClick={() => onLaneClick?.(lane.id)}>
                   <span className={styles.laneLabelText}>{lane.name}</span>
                 </button>
+                {onLaneGanttClick && (
+                  <button
+                    type="button"
+                    className={styles.ganttButton}
+                    onClick={() => onLaneGanttClick(lane.id)}
+                    aria-label={strings.viewGanttAria}
+                    title={strings.viewGanttAria}
+                  >
+                    <IconGantt />
+                  </button>
+                )}
               </div>
             );
           })}

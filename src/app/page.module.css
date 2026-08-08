@@ -171,6 +171,17 @@
   min-width: 0;
   overflow-y: auto;
 }
+/* The overlay panel sits at top:0, directly under the header's own
+   buttons (position:relative + a higher z-index than this panel, so they
+   stay clickable — see .headerActions above). Without this, a panel's own
+   eyebrow/title text renders at the same height and gets visually covered
+   by those buttons, worse the wider the header (Program page's two
+   buttons collide more than a project page's one). Only the resize
+   handle needs the full height for a natural drag target, so this pads
+   just the content, not .sidePanel itself. */
+.sidePanel .sidePanelContent {
+  padding-top: 64px;
+}
 
 /* "Fixed" panel mode — a normal flex sibling of .calendarCol inside
    .layout (see .layout above), docked in the page's own flow instead of

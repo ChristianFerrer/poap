@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
-import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
+import type { Gate, Lane } from "@/components/poap-renderer/types";
 import type { Project } from "@/lib/portfolio";
-import { BANDS, PROGRAM, activitiesFor, type ActivitySeed } from "../../mock-data";
+import { BANDS, PROGRAM } from "../../mock-data";
 import { useProjects } from "../../ProjectsProvider";
+import { useProjectSwimlines } from "../../useProjectSwimlines";
 import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
 import { GatesPanel } from "../../GatesPanel";
 import { ImportPanel } from "../../ImportPanel";
@@ -67,8 +68,6 @@ function ProjectView({ project }: { project: Project }) {
     deleteProject,
     setProjectLanes,
     setProjectGates,
-    activitiesByPhase,
-    updatePhaseActivities,
     commentsByActivity,
     addComment,
     stageCategories,
@@ -77,12 +76,23 @@ function ProjectView({ project }: { project: Project }) {
     deleteStageCategory,
     announceUndo,
   } = useProjects();
+  const {
+    explorer,
+    setExplorer,
+    getActivities,
+    addLane,
+    updatePhase,
+    addPhase,
+    deleteLane,
+    deletePhase,
+    addActivity,
+    deleteActivity,
+  } = useProjectSwimlines(project);
 
   const lanes = project.lanes;
   const gates = project.gates;
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
 
-  const [explorer, setExplorer] = useState<ExplorerView | null>(null);
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -161,109 +171,6 @@ function ProjectView({ project }: { project: Project }) {
 
   function handleLaneClick(laneId: string) {
     openExplorer({ level: "phases", laneId });
-  }
-
-  function addLane(name: string) {
-    setProjectLanes(project.id, (prev) => [...prev, { id: crypto.randomUUID(), name, sortOrder: prev.length, phases: [] }]);
-  }
-
-  function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category">>) {
-    setProjectLanes(project.id, (prev) =>
-      prev.map((lane) =>
-        lane.id !== laneId
-          ? lane
-          : { ...lane, phases: lane.phases.map((p) => (p.id === phaseId ? { ...p, ...patch } : p)) },
-      ),
-    );
-  }
-
-  function addPhase(laneId: string, phase: Phase) {
-    setProjectLanes(project.id, (prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, phases: [...lane.phases, phase] } : lane)));
-  }
-
-  function deleteLane(laneId: string) {
-    const index = lanes.findIndex((l) => l.id === laneId);
-    if (index === -1) return;
-    const lane = lanes[index]!;
-    const deletedPhaseIds = new Set(lane.phases.map((p) => p.id));
-    const removedActivities: Record<string, ActivitySeed[]> = {};
-    for (const phaseId of deletedPhaseIds) {
-      if (phaseId in activitiesByPhase) removedActivities[phaseId] = activitiesByPhase[phaseId]!;
-    }
-    setProjectLanes(project.id, (prev) => prev.filter((l) => l.id !== laneId));
-    for (const phaseId of Object.keys(removedActivities)) {
-      updatePhaseActivities(phaseId, () => []);
-    }
-    setExplorer((prev) => {
-      if (!prev || prev.level === "lanes") return prev;
-      if (prev.level === "phases") return prev.laneId === laneId ? { level: "lanes" } : prev;
-      const wasUnderDeletedLane = lane.phases.some((p) => p.id === prev.phaseId);
-      return wasUnderDeletedLane ? { level: "lanes" } : prev;
-    });
-    announceUndo(t.undo.laneDeleted(lane.name), () => {
-      setProjectLanes(project.id, (prev) => {
-        const next = [...prev];
-        next.splice(index, 0, lane);
-        return next;
-      });
-      for (const [phaseId, activities] of Object.entries(removedActivities)) {
-        updatePhaseActivities(phaseId, () => activities);
-      }
-    });
-  }
-
-  function getActivities(phase: Phase): ActivitySeed[] {
-    return activitiesByPhase[phase.id] ?? activitiesFor(phase);
-  }
-
-  function deletePhase(laneId: string, phaseId: string) {
-    const lane = lanes.find((l) => l.id === laneId);
-    const phaseIndex = lane?.phases.findIndex((p) => p.id === phaseId) ?? -1;
-    if (!lane || phaseIndex === -1) return;
-    const phase = lane.phases[phaseIndex]!;
-    const removedActivities = activitiesByPhase[phaseId];
-    setProjectLanes(project.id, (prev) =>
-      prev.map((l) => (l.id === laneId ? { ...l, phases: l.phases.filter((p) => p.id !== phaseId) } : l)),
-    );
-    if (removedActivities) updatePhaseActivities(phaseId, () => []);
-    setExplorer((prev) => {
-      if (!prev || prev.level === "lanes" || prev.level === "phases") return prev;
-      return prev.phaseId === phaseId ? { level: "phases", laneId } : prev;
-    });
-    announceUndo(t.undo.phaseDeleted(phase.title), () => {
-      setProjectLanes(project.id, (prev) =>
-        prev.map((l) => {
-          if (l.id !== laneId) return l;
-          const nextPhases = [...l.phases];
-          nextPhases.splice(phaseIndex, 0, phase);
-          return { ...l, phases: nextPhases };
-        }),
-      );
-      if (removedActivities) updatePhaseActivities(phaseId, () => removedActivities);
-    });
-  }
-
-  function addActivity(phase: Phase, activity: ActivitySeed) {
-    updatePhaseActivities(phase.id, (prev) => [...(prev ?? activitiesFor(phase)), activity]);
-  }
-
-  function deleteActivity(phase: Phase, activityId: string) {
-    const activities = getActivities(phase);
-    const index = activities.findIndex((a) => a.id === activityId);
-    if (index === -1) return;
-    const removed = activities[index]!;
-    updatePhaseActivities(phase.id, () => activities.filter((a) => a.id !== activityId));
-    setExplorer((prev) =>
-      prev && prev.level === "activity" && prev.activityId === activityId ? { level: "activities", phaseId: phase.id } : prev,
-    );
-    announceUndo(t.undo.activityDeleted(removed.title), () => {
-      updatePhaseActivities(phase.id, (prev) => {
-        const current = prev ?? activitiesFor(phase);
-        const next = [...current];
-        next.splice(index, 0, removed);
-        return next;
-      });
-    });
   }
 
   function toggleGateActive(gateId: string) {

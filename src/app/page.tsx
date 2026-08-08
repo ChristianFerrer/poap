@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Lane } from "@/components/poap-renderer/types";
 import { PROGRAM } from "./mock-data";
-import { deriveProgramLanes } from "@/lib/portfolio";
+import { deriveProgramLanes, type Project, type StageCategoryDef } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
+import { useProjectSwimlines } from "./useProjectSwimlines";
 import { AddProjectPanel } from "./AddProjectPanel";
 import { ExecutiveSummary } from "./ExecutiveSummary";
+import { ExplorerPanel } from "./ExplorerPanel";
 import { ImportPanel } from "./ImportPanel";
 import { SettingsPanel, type SidePanelMode } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
@@ -19,6 +21,60 @@ import { MONTH_ABBR } from "@/lib/i18n";
 import { formatMonthRange } from "./formatMonthRange";
 import { IconPlus } from "@/lib/icons";
 import styles from "./page.module.css";
+
+/** The Gantt-button shortcut's own panel — a project's Swimlines view,
+ * opened directly from the Program page without navigating into the
+ * project. A real component (not inline JSX) because it needs its own
+ * useProjectSwimlines() hook instance, and hooks can't be called
+ * conditionally from ProgramPage itself (this only mounts at all once a
+ * project's Gantt button has actually been clicked). */
+function ProjectGanttPanel({
+  project,
+  stageCategories,
+  panelRef,
+  onClose,
+}: {
+  project: Project;
+  stageCategories: StageCategoryDef[];
+  panelRef: Ref<HTMLDivElement>;
+  onClose: () => void;
+}) {
+  const { commentsByActivity, addComment } = useProjects();
+  const {
+    explorer,
+    setExplorer,
+    getActivities,
+    addLane,
+    updatePhase,
+    addPhase,
+    deleteLane,
+    deletePhase,
+    addActivity,
+    deleteActivity,
+  } = useProjectSwimlines(project, { level: "lanes" });
+
+  return (
+    <ExplorerPanel
+      ref={panelRef}
+      lanes={project.lanes}
+      startMonth={PROGRAM.startMonth}
+      view={explorer ?? { level: "lanes" }}
+      stageCategories={stageCategories}
+      getActivities={getActivities}
+      onNavigate={setExplorer}
+      onClose={onClose}
+      onAddLane={addLane}
+      onUpdatePhase={updatePhase}
+      onAddPhase={addPhase}
+      onAddActivity={addActivity}
+      onDeleteLane={deleteLane}
+      onDeletePhase={deletePhase}
+      onDeleteActivity={deleteActivity}
+      commentsByActivity={commentsByActivity}
+      onAddComment={addComment}
+    />
+  );
+}
 
 /**
  * Program (portfolio) view — the top of the Program → Project → Phase
@@ -52,15 +108,18 @@ export default function ProgramPage() {
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importProjectName, setImportProjectName] = useState("");
+  const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
 
   const lanes = useMemo(() => deriveProgramLanes(projects, stageCategories), [projects, stageCategories]);
+  const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
 
-  const anyPanelOpen = settingsOpen || addProjectOpen || importOpen;
+  const anyPanelOpen = settingsOpen || addProjectOpen || importOpen || Boolean(ganttProject);
 
   function closeAllPanels() {
     setSettingsOpen(false);
     setAddProjectOpen(false);
     setImportOpen(false);
+    setGanttProjectId(null);
   }
 
   const sidePanel = useSidePanel({
@@ -87,6 +146,15 @@ export default function ProgramPage() {
     closeAllPanels();
     setImportProjectName("");
     setImportOpen(true);
+    sidePanel.revealFixedPanel();
+    sidePanel.scrollToPanel();
+  }
+
+  // The Gantt-button shortcut on each project row — opens that project's
+  // Swimlines panel right here, without navigating to its own page.
+  function openGanttPanel(projectId: string) {
+    closeAllPanels();
+    setGanttProjectId(projectId);
     sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
@@ -122,7 +190,15 @@ export default function ProgramPage() {
 
   const sidebarActive: SidebarActive = settingsOpen ? "settings" : "home";
 
-  const panelContent = addProjectOpen ? (
+  const panelContent = ganttProject ? (
+    <ProjectGanttPanel
+      key={ganttProject.id}
+      project={ganttProject}
+      stageCategories={stageCategories}
+      panelRef={sidePanel.panelRef}
+      onClose={sidePanel.closePanel}
+    />
+  ) : addProjectOpen ? (
     <AddProjectPanel
       ref={sidePanel.panelRef}
       startMonth={PROGRAM.startMonth}
@@ -218,6 +294,7 @@ export default function ProgramPage() {
                 startMonth={PROGRAM.startMonth}
                 lanes={lanes}
                 onLaneClick={openProject}
+                onLaneGanttClick={openGanttPanel}
                 locale={locale}
                 showWeekends={settings.showWeekends}
                 showToday={settings.showToday}
