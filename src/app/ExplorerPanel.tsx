@@ -6,6 +6,7 @@ import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
 import type { StageCategoryDef } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { formatDate, fromISODate, toISODate } from "./dateAxis";
+import { DateRangeField } from "./DateRangeField";
 import { IconChevronRight, IconClose, IconPlus, IconSearch, IconSort, IconTrash } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./ExplorerPanel.module.css";
@@ -405,19 +406,11 @@ export const ExplorerPanel = forwardRef<
                     value={newPhase.title}
                     onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
                   />
-                  <input
-                    type="date"
-                    className={styles.dateInput}
-                    value={newPhase.start}
-                    onChange={(e) => setNewPhase((p) => ({ ...p, start: e.target.value }))}
-                    aria-label={t.explorer.startDateAria}
-                  />
-                  <input
-                    type="date"
-                    className={styles.dateInput}
-                    value={newPhase.end}
-                    onChange={(e) => setNewPhase((p) => ({ ...p, end: e.target.value }))}
-                    aria-label={t.explorer.endDateAria}
+                  <DateRangeField
+                    startValue={newPhase.start}
+                    endValue={newPhase.end}
+                    onChange={(start, end) => setNewPhase((p) => ({ ...p, start, end }))}
+                    ariaLabel={t.explorer.dateRangeAria}
                   />
                   <select
                     className={styles.statusSelect}
@@ -468,8 +461,7 @@ export const ExplorerPanel = forwardRef<
                     <thead>
                       <tr>
                         <th>{t.explorer.tableTitle}</th>
-                        <th>{t.explorer.tableStart}</th>
-                        <th>{t.explorer.tableEnd}</th>
+                        <th colSpan={2}>{t.explorer.tableDateRange}</th>
                         <th>{t.explorer.tableStatus}</th>
                         <th>{t.explorer.tableCategory}</th>
                         <th aria-hidden="true" />
@@ -487,26 +479,17 @@ export const ExplorerPanel = forwardRef<
                               aria-label={t.explorer.phaseTitleAria}
                             />
                           </td>
-                          <td>
-                            <input
-                              type="date"
-                              className={styles.dateInput}
-                              value={toISODate(phase.start, startMonth)}
-                              onChange={(e) => {
-                                if (e.target.value) onUpdatePhase(lane.id, phase.id, { start: fromISODate(e.target.value, startMonth) });
-                              }}
-                              aria-label={t.explorer.startDateAria}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="date"
-                              className={styles.dateInput}
-                              value={toISODate(phase.end, startMonth)}
-                              onChange={(e) => {
-                                if (e.target.value) onUpdatePhase(lane.id, phase.id, { end: fromISODate(e.target.value, startMonth) });
-                              }}
-                              aria-label={t.explorer.endDateAria}
+                          <td colSpan={2}>
+                            <DateRangeField
+                              startValue={toISODate(phase.start, startMonth)}
+                              endValue={toISODate(phase.end, startMonth)}
+                              onChange={(start, end) =>
+                                onUpdatePhase(lane.id, phase.id, {
+                                  start: fromISODate(start, startMonth),
+                                  end: fromISODate(end, startMonth),
+                                })
+                              }
+                              ariaLabel={t.explorer.dateRangeAria}
                             />
                           </td>
                           <td>
@@ -617,19 +600,11 @@ export const ExplorerPanel = forwardRef<
                     value={newActivity.owner}
                     onChange={(e) => setNewActivity((a) => ({ ...a, owner: e.target.value }))}
                   />
-                  <input
-                    type="date"
-                    className={styles.dateInput}
-                    value={newActivity.start}
-                    onChange={(e) => setNewActivity((a) => ({ ...a, start: e.target.value }))}
-                    aria-label={t.explorer.startDateAria}
-                  />
-                  <input
-                    type="date"
-                    className={styles.dateInput}
-                    value={newActivity.end}
-                    onChange={(e) => setNewActivity((a) => ({ ...a, end: e.target.value }))}
-                    aria-label={t.explorer.endDateAria}
+                  <DateRangeField
+                    startValue={newActivity.start}
+                    endValue={newActivity.end}
+                    onChange={(start, end) => setNewActivity((a) => ({ ...a, start, end }))}
+                    ariaLabel={t.explorer.dateRangeAria}
                   />
                   <select
                     className={styles.statusSelect}

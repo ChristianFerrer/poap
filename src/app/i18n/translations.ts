@@ -60,6 +60,7 @@ const es = {
     phaseTitlePlaceholder: "Título de la fase",
     startDateAria: "Fecha de inicio",
     endDateAria: "Fecha de fin",
+    dateRangeAria: "Fechas de inicio y fin",
     newPhaseStatusAria: "Estado de la nueva fase",
     phaseStatusAria: "Estado de la fase",
     categoryAria: "Etapa del proyecto",
@@ -69,6 +70,7 @@ const es = {
     tableTitle: "Título",
     tableStart: "Inicio",
     tableEnd: "Fin",
+    tableDateRange: "Fechas",
     tableStatus: "Estado",
     tableCategory: "Etapa",
     viewActivitiesAria: (title: string) => `Ver actividades de ${title}`,
@@ -211,6 +213,15 @@ const es = {
   sync: {
     saveFailed: (detail: string) => `No se pudo guardar el último cambio (sigue visible acá, pero no sobrevivirá a un recargo): ${detail}`,
   },
+  dateRange: {
+    placeholder: "Seleccionar fechas",
+    selectEnd: "Elegí la fecha de fin",
+    clear: "Borrar",
+    done: "Listo",
+    dialogAria: "Elegir fecha de inicio y fin",
+    prevMonth: "Mes anterior",
+    nextMonth: "Mes siguiente",
+  },
 };
 
 type Translations = typeof es;
@@ -268,6 +279,7 @@ const en: Translations = {
     phaseTitlePlaceholder: "Phase title",
     startDateAria: "Start date",
     endDateAria: "End date",
+    dateRangeAria: "Start and end dates",
     newPhaseStatusAria: "Status of the new phase",
     phaseStatusAria: "Phase status",
     categoryAria: "Project stage",
@@ -277,6 +289,7 @@ const en: Translations = {
     tableTitle: "Title",
     tableStart: "Start",
     tableEnd: "End",
+    tableDateRange: "Dates",
     tableStatus: "Status",
     tableCategory: "Stage",
     viewActivitiesAria: (title) => `View activities for ${title}`,
@@ -418,6 +431,15 @@ const en: Translations = {
   },
   sync: {
     saveFailed: (detail) => `Couldn't save your last change (it's still visible here, but won't survive a reload): ${detail}`,
+  },
+  dateRange: {
+    placeholder: "Select dates",
+    selectEnd: "Pick the end date",
+    clear: "Clear",
+    done: "Done",
+    dialogAria: "Choose a start and end date",
+    prevMonth: "Previous month",
+    nextMonth: "Next month",
   },
 };
 

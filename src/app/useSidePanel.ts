@@ -92,6 +92,13 @@ export function useSidePanel({
       // whatever panel triggered it — so a click on "Deshacer"/"Undo"
       // itself must not read as "outside the panel" and close it too.
       if ((target as HTMLElement).closest?.("[data-undo-toast]")) return;
+      // Same reasoning for DateRangeField's calendar popover (see
+      // DateRangeField.tsx) — it's portaled to document.body so it can
+      // escape the panel body's own overflow clipping, which puts every
+      // click inside it outside sidePanelWrapperRef's DOM subtree too.
+      // Without this it would read as "outside the panel" and close the
+      // whole panel on the very first day you click.
+      if ((target as HTMLElement).closest?.("[data-date-range-popover]")) return;
       if (sidePanelWrapperRef.current && !sidePanelWrapperRef.current.contains(target)) {
         onCloseAll();
       }

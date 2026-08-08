@@ -6,6 +6,7 @@ import type { StageCategoryDef } from "@/lib/portfolio";
 import { fromISODate } from "./dateAxis";
 import { IconClose, IconPlus } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
+import { DateRangeField } from "./DateRangeField";
 import styles from "./ExplorerPanel.module.css";
 
 interface StageRow {
@@ -97,8 +98,7 @@ export const AddProjectPanel = forwardRef<
               <tr>
                 <th aria-hidden="true" />
                 <th>{t.explorer.tableTitle}</th>
-                <th>{t.explorer.tableStart}</th>
-                <th>{t.explorer.tableEnd}</th>
+                <th>{t.explorer.tableDateRange}</th>
               </tr>
             </thead>
             <tbody>
@@ -114,23 +114,12 @@ export const AddProjectPanel = forwardRef<
                   </td>
                   <td className={styles.tableNameCell}>{row.label}</td>
                   <td>
-                    <input
-                      type="date"
-                      className={styles.dateInput}
-                      value={row.start}
+                    <DateRangeField
+                      startValue={row.start}
+                      endValue={row.end}
                       disabled={!row.checked}
-                      onChange={(e) => updateRow(row.categoryId, { start: e.target.value })}
-                      aria-label={t.explorer.startDateAria}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="date"
-                      className={styles.dateInput}
-                      value={row.end}
-                      disabled={!row.checked}
-                      onChange={(e) => updateRow(row.categoryId, { end: e.target.value })}
-                      aria-label={t.explorer.endDateAria}
+                      onChange={(start, end) => updateRow(row.categoryId, { start, end })}
+                      ariaLabel={t.explorer.dateRangeAria}
                     />
                   </td>
                 </tr>
