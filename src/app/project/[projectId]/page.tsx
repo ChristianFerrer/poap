@@ -73,7 +73,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
   if (!project) {
     return (
       <main className={styles.main}>
-        <p className={styles.eyebrow}>{t.header.eyebrow}</p>
+        <p className={`${styles.eyebrow} ${styles.eyebrowDecorative}`}>{t.header.eyebrow}</p>
         <h1 className={styles.title}>{params.projectId}</h1>
         <Link href="/" className={styles.meta}>
           {t.header.backToProgram}

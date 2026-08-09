@@ -87,3 +87,13 @@
   outline: 2px solid var(--color-lime);
   outline-offset: 1px;
 }
+
+@media (max-width: 640px) {
+  .strip {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .riskList {
+    padding: 8px 10px;
+  }
+}

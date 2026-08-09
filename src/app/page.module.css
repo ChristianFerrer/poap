@@ -206,8 +206,21 @@
   .mainNavLeft {
     padding-left: 0;
   }
+  /* Purely decorative eyebrow text (the Program page's "PoAP · Plan on a
+     Page", and the loading/not-found states' copy) — redundant with the
+     title right below it, and on a phone every line here is a line the
+     calendar itself doesn't get. Not applied to the functional "← Volver
+     al programa" back-link on the project page, which uses the same base
+     .eyebrow class but never gets this modifier — that one is real
+     navigation, not decoration. */
+  .eyebrowDecorative {
+    display: none;
+  }
   .title {
     font-size: var(--text-lg);
+  }
+  .meta {
+    margin-bottom: 10px;
   }
   /* Stop the full-screen panel (see the 900px rule below) from sitting
      underneath the bottom tab bar it would otherwise overlap now that the

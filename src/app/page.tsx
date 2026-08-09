@@ -268,7 +268,7 @@ export default function ProgramPage() {
       <main className={`${styles.main} ${styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
-            <p className={styles.eyebrow}>{t.header.eyebrow}</p>
+            <p className={`${styles.eyebrow} ${styles.eyebrowDecorative}`}>{t.header.eyebrow}</p>
             <h1 className={styles.title}>{t.header.programTitle(program.name)}</h1>
             <p className={styles.meta}>
               {projects.length} {t.header.projectsWord} · {program.months} {t.header.monthsWord} ·{" "}
