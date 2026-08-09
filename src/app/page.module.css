@@ -46,23 +46,6 @@
   gap: 8px;
 }
 
-/* Above ~900px the overlay panel is only a right-anchored slice of the
-   screen (see the 900px sidePanel rule below), so it can overlap the
-   header's own right-aligned actions without covering them entirely —
-   .sidePanel's explicit z-index:20 otherwise wins over these (unpositioned,
-   so they stack below any positioned z-index sibling regardless of DOM
-   order), leaving them visible but unclickable underneath it. Below 900px
-   the panel deliberately takes over the full screen instead (a real
-   full-screen takeover, not a partial overlap) and the header is meant to
-   be inaccessible while it's open, so this fix only applies above that
-   breakpoint. */
-@media (min-width: 901px) {
-  .headerActions {
-    position: relative;
-    z-index: 21;
-  }
-}
-
 /* Canonical primary-button treatment (see buttons.module.css) — these
    header buttons are the main call to action on their page, so they read
    the same way every other primary action in the app does. */
@@ -104,6 +87,45 @@
   font-size: var(--text-xs);
   color: var(--color-fog);
   margin: 0 0 18px;
+}
+
+/* Persistent breadcrumb for the recursive swimline canvas (Equipo -> Plan
+   -> Fase) — always the same shape as the trail deepens, one crumb per
+   drill level, each clickable to jump back to it. Sits below the header
+   row and above the calendar, never inside a side panel — the whole point
+   is that it's visible regardless of what panel (if any) is open. */
+.drillBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+}
+.drillCrumb {
+  background: none;
+  border: none;
+  padding: 3px 8px;
+  border-radius: var(--radius-lg);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-fog);
+  cursor: pointer;
+}
+.drillCrumb:hover {
+  background: var(--color-surface2);
+  color: var(--color-snow);
+}
+.drillCrumbCurrent {
+  color: var(--color-snow);
+  cursor: default;
+}
+.drillCrumbCurrent:hover {
+  background: none;
+}
+.drillSep {
+  color: var(--color-mist);
+  font-size: var(--text-sm);
 }
 
 /* The calendar takes the full remaining height below the header — the
@@ -185,18 +207,6 @@
   min-width: 0;
   overflow-y: auto;
 }
-/* The overlay panel sits at top:0, directly under the header's own
-   buttons (position:relative + a higher z-index than this panel, so they
-   stay clickable — see .headerActions above). Without this, a panel's own
-   eyebrow/title text renders at the same height and gets visually covered
-   by those buttons, worse the wider the header (Program page's two
-   buttons collide more than a project page's one). Only the resize
-   handle needs the full height for a natural drag target, so this pads
-   just the content, not .sidePanel itself. */
-.sidePanel .sidePanelContent {
-  padding-top: 64px;
-}
-
 /* "Fixed" panel mode — a normal flex sibling of .calendarCol inside
    .layout (see .layout above), docked in the page's own flow instead of
    floating over it. Same internal structure (.resizeHandle +

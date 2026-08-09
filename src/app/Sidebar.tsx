@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IconGateDiamond, IconHome, IconLanes, IconPanel, IconSettings, IconUploadNav } from "@/lib/icons";
+import { IconAlertTriangle, IconGateDiamond, IconHome, IconLanes, IconPanel, IconSettings, IconUploadNav } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
@@ -31,6 +31,8 @@ export function Sidebar({
   showPanelToggle,
   panelVisible,
   onTogglePanel,
+  issuesCount = 0,
+  onIssuesClick,
 }: {
   position: SidebarPosition;
   active: SidebarActive;
@@ -48,6 +50,13 @@ export function Sidebar({
   showPanelToggle: boolean;
   panelVisible: boolean;
   onTogglePanel: () => void;
+  /** Count of tracks missing a required parent (no plan-lane category, or
+   * no Plan) — rendered as a permanent badge in the rail itself rather
+   * than inside any one panel, so it can never be closed, buried, or
+   * covered by an open panel. Omit (or 0) to render nothing; the Program
+   * page has no lanes of its own yet, so it simply never passes this. */
+  issuesCount?: number;
+  onIssuesClick?: () => void;
 }) {
   const { t } = useLanguage();
   const items: { key: SidebarActive; icon: ReactNode; ariaLabel: string; label: string; onClick: () => void }[] = [
@@ -100,6 +109,21 @@ export function Sidebar({
             <span className={styles.navLabel}>{t.sidebar.panelLabel}</span>
           </button>
         </>
+      )}
+
+      <span className={styles.spacer} aria-hidden="true" />
+
+      {issuesCount > 0 && onIssuesClick && (
+        <button
+          type="button"
+          className={styles.issuesButton}
+          onClick={onIssuesClick}
+          aria-label={t.linkage.bannerTitle + " — " + t.linkage.count(issuesCount)}
+          title={t.linkage.bannerTitle}
+        >
+          <IconAlertTriangle />
+          <span className={styles.issuesCount}>{issuesCount}</span>
+        </button>
       )}
     </nav>
   );

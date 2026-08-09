@@ -10,6 +10,7 @@
  * src/app. */
 
 import {
+  AlertTriangle,
   ArrowUpDown,
   ChartGantt,
   Check,
@@ -56,3 +57,4 @@ export const IconLanes = icon(Rows3, NAV_SIZE);
 export const IconPanel = icon(PanelRight, NAV_SIZE);
 export const IconSettings = icon(SettingsIcon, NAV_SIZE);
 export const IconUploadNav = icon(Upload, NAV_SIZE);
+export const IconAlertTriangle = icon(AlertTriangle, NAV_SIZE);

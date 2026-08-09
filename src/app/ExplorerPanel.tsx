@@ -3,7 +3,7 @@
 import { forwardRef, useEffect, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
-import { findLinkageIssues, type StageCategoryDef } from "@/lib/portfolio";
+import { findLinkageIssues, UNASSIGNED_PLAN_ID, type Plan, type StageCategoryDef, type UnassignedPlanIssue } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { formatDate, fromISODate, toISODate } from "./dateAxis";
 import { DateRangeField } from "./DateRangeField";
@@ -176,7 +176,7 @@ export const ExplorerPanel = forwardRef<
     onUpdatePhase: (
       laneId: string,
       phaseId: string,
-      patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category">>,
+      patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category" | "planId">>,
     ) => void;
     onAddPhase: (laneId: string, phase: Phase) => void;
     onAddActivity: (phase: Phase, activity: ActivitySeed) => void;
@@ -185,6 +185,17 @@ export const ExplorerPanel = forwardRef<
     onDeleteActivity: (phase: Phase, activityId: string) => void;
     commentsByActivity: Record<string, ActivityComment[]>;
     onAddComment: (phase: Phase, activityId: string, text: string) => void;
+    /** Every team-lane phase with no real Plan — a different relationship
+     * than linkageIssues (Fase -> project-plan category), surfaced as its
+     * own banner section on the "lanes" view since fixing one takes the
+     * user somewhere this panel alone can't navigate to (see
+     * onFixPlanIssue). */
+    planIssues: UnassignedPlanIssue[];
+    onFixPlanIssue: (laneId: string) => void;
+    /** Real Plans available to reassign into — only non-empty while looking
+     * at the "Sin plan asignado" bucket's phases view (laneId ===
+     * UNASSIGNED_PLAN_ID), where it drives the table's extra Plan column. */
+    planOptions: Plan[];
   }
 >(function ExplorerPanel(
   {
@@ -207,6 +218,9 @@ export const ExplorerPanel = forwardRef<
     onDeleteActivity,
     commentsByActivity,
     onAddComment,
+    planIssues,
+    onFixPlanIssue,
+    planOptions,
   },
   ref,
 ) {
@@ -315,21 +329,30 @@ export const ExplorerPanel = forwardRef<
               <p className={styles.eyebrow}>{t.explorer.lanesEyebrow}</p>
               <h2 className={styles.title}>{t.explorer.lanesTitle}</h2>
 
-              {linkageIssues.length > 0 && planLane && (
+              {(linkageIssues.length > 0 || planIssues.length > 0) && (
                 <div className={styles.linkageBanner} role="alert">
                   <p className={styles.linkageBannerTitle}>
-                    {t.linkage.bannerTitle} · {t.linkage.count(linkageIssues.length)}
+                    {t.linkage.bannerTitle} · {t.linkage.count(linkageIssues.length + planIssues.length)}
                   </p>
                   <ul className={styles.linkageList}>
-                    {linkageIssues.map((issue) => (
-                      <li key={issue.phaseId} className={styles.linkageItem}>
-                        <span>{t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name)}</span>
-                        <button
-                          type="button"
-                          className={styles.linkageFixButton}
-                          onClick={() => onNavigate({ level: "phases", laneId: issue.laneId })}
-                        >
-                          {t.linkage.fixButton}
+                    {planLane &&
+                      linkageIssues.map((issue) => (
+                        <li key={`category-${issue.phaseId}`} className={styles.linkageItem}>
+                          <span>{t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name)}</span>
+                          <button
+                            type="button"
+                            className={styles.linkageFixButton}
+                            onClick={() => onNavigate({ level: "phases", laneId: issue.laneId })}
+                          >
+                            {t.linkage.fixButton}
+                          </button>
+                        </li>
+                      ))}
+                    {planIssues.map((issue) => (
+                      <li key={`plan-${issue.phaseId}`} className={styles.linkageItem}>
+                        <span>{t.linkage.planMessage(issue.laneName, issue.phaseTitle)}</span>
+                        <button type="button" className={styles.linkageFixButton} onClick={() => onFixPlanIssue(issue.laneId)}>
+                          {t.linkage.planFixButton}
                         </button>
                       </li>
                     ))}
@@ -493,6 +516,12 @@ export const ExplorerPanel = forwardRef<
           // itself.
           const planLane = lanes.find((l) => l.isProjectPlan) ?? null;
           const categoryRequired = !lane.isProjectPlan;
+          // The "Sin plan asignado" bucket is a fix-it surface for existing
+          // orphans, not another place to author new phases — creating one
+          // here couldn't have a Plan either, which the app never allows
+          // (see isLaneCreatable/handleAddPhase). Its own add-form is
+          // hidden entirely; each row gets a Plan picker instead.
+          const isUnassignedBucket = lane.id === UNASSIGNED_PLAN_ID;
           return (
             <>
               <Breadcrumb items={[rootCrumb, { label: lane.name }]} onNavigate={onNavigate} />
@@ -508,6 +537,9 @@ export const ExplorerPanel = forwardRef<
                 )}
               </p>
 
+              {isUnassignedBucket && <p className={styles.fieldHint}>{t.explorer.unassignedPhasesHint}</p>}
+
+              {!isUnassignedBucket && (
               <div className={styles.addGroup}>
                 <p className={styles.sectionTitle}>{t.explorer.addPhaseSection}</p>
                 <div className={styles.addRow}>
@@ -573,6 +605,7 @@ export const ExplorerPanel = forwardRef<
                   </button>
                 </div>
               </div>
+              )}
 
               <div className={styles.listGroup}>
                 <FilterBar
@@ -590,6 +623,7 @@ export const ExplorerPanel = forwardRef<
                         <th colSpan={2}>{t.explorer.tableDateRange}</th>
                         <th>{t.explorer.tableStatus}</th>
                         <th>{t.explorer.tableCategory}</th>
+                        {isUnassignedBucket && planOptions.length > 0 && <th>{t.explorer.tablePlan}</th>}
                         <th aria-hidden="true" />
                         <th aria-hidden="true" />
                       </tr>
@@ -653,6 +687,23 @@ export const ExplorerPanel = forwardRef<
                               ))}
                             </select>
                           </td>
+                          {isUnassignedBucket && planOptions.length > 0 && (
+                            <td>
+                              <select
+                                className={styles.statusSelect}
+                                value=""
+                                onChange={(e) => e.target.value && onUpdatePhase(lane.id, phase.id, { planId: e.target.value })}
+                                aria-label={t.explorer.planReassignAria}
+                              >
+                                <option value="">{t.explorer.planUnselected}</option>
+                                {planOptions.map((plan) => (
+                                  <option key={plan.id} value={plan.id}>
+                                    {plan.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          )}
                           <td>
                             <button
                               type="button"

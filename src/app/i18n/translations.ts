@@ -78,6 +78,10 @@ const es = {
     tableDateRange: "Fechas",
     tableStatus: "Estado",
     tableCategory: "Etapa",
+    tablePlan: "Plan",
+    planReassignAria: "Asignar plan",
+    planUnselected: "Elegí un plan…",
+    unassignedPhasesHint: "Estas fases no tienen un Plan asignado. Elegí uno para cada una en la columna Plan.",
     viewActivitiesAria: (title: string) => `Ver actividades de ${title}`,
     deletePhaseAria: (title: string) => `Eliminar fase ${title}`,
     noPhaseMatch: "Ninguna fase coincide con la búsqueda.",
@@ -230,7 +234,10 @@ const es = {
     bannerTitle: "Vínculos pendientes",
     message: (laneName: string, phaseTitle: string, planLaneName: string) =>
       `En el swimline "${laneName}", la fase "${phaseTitle}" no apunta a ningún track de "${planLaneName}". Para solucionarlo, asigná una etapa a esa fase (o creá en "${planLaneName}" un track que cubra sus fechas).`,
+    planMessage: (laneName: string, phaseTitle: string) =>
+      `En el swimline "${laneName}", la fase "${phaseTitle}" no tiene un Plan asignado. Para solucionarlo, entrá al equipo "${laneName}" y asignale un Plan.`,
     fixButton: "Ir a la fase",
+    planFixButton: "Ir al equipo",
     count: (n: number) => (n === 1 ? "1 pendiente" : `${n} pendientes`),
   },
   plansNav: {
@@ -331,6 +338,10 @@ const en: Translations = {
     tableDateRange: "Dates",
     tableStatus: "Status",
     tableCategory: "Stage",
+    tablePlan: "Plan",
+    planReassignAria: "Assign plan",
+    planUnselected: "Choose a plan…",
+    unassignedPhasesHint: "These phases have no Plan assigned. Pick one for each in the Plan column.",
     viewActivitiesAria: (title) => `View activities for ${title}`,
     deletePhaseAria: (title) => `Delete phase ${title}`,
     noPhaseMatch: "No phase matches your search.",
@@ -483,7 +494,10 @@ const en: Translations = {
     bannerTitle: "Pending links",
     message: (laneName, phaseTitle, planLaneName) =>
       `In swimline "${laneName}", phase "${phaseTitle}" doesn't point to any track in "${planLaneName}". To fix it, assign a stage to that phase (or create a track in "${planLaneName}" covering its dates).`,
+    planMessage: (laneName, phaseTitle) =>
+      `In swimline "${laneName}", phase "${phaseTitle}" has no Plan assigned. To fix it, go into "${laneName}" and assign it a Plan.`,
     fixButton: "Go to phase",
+    planFixButton: "Go to team",
     count: (n) => (n === 1 ? "1 pending" : `${n} pending`),
   },
   plansNav: {

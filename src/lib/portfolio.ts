@@ -27,6 +27,13 @@ export interface Plan {
   sortOrder: number;
 }
 
+/** Sentinel id for the synthetic "no Plan yet" bucket a team lane's
+ * unassigned phases get grouped under (see groupPhasesByPlan) — shared so
+ * every caller that needs to recognize or target that bucket (the project
+ * page's drill state, ExplorerPanel's phases view) uses the exact same
+ * value instead of each re-declaring its own copy. */
+export const UNASSIGNED_PLAN_ID = "__unassigned__";
+
 /**
  * A Project is one level below Program: its own set of team lanes (exactly
  * what the existing single-project app already modeled), plus its own
@@ -66,8 +73,9 @@ const STATUS_RANK: Record<PhaseStatus, number> = {
 
 /** "Worst" (least-done) status among a group — same "in-progress/at-risk
  * outranks done" idea as a collapsed lane's own aggregate bar in
- * PoapRenderer, just re-derived here since that one isn't exported. */
-function worstStatus(phases: Phase[]): PhaseStatus {
+ * PoapRenderer. Exported since the recursive swimline canvas needs it for
+ * every level's own aggregate bars, not just this file's. */
+export function worstStatus(phases: Phase[]): PhaseStatus {
   let status = phases[0]!.status;
   for (const p of phases) if (STATUS_RANK[p.status] > STATUS_RANK[status]) status = p.status;
   return status;
@@ -149,7 +157,7 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
 export function groupPhasesByPlan(lane: Lane, plans: Plan[], unassignedLabel: string): Lane[] {
   const byPlan = new Map<string, Phase[]>();
   for (const phase of lane.phases) {
-    const key = phase.planId && plans.some((p) => p.id === phase.planId) ? phase.planId : "__unassigned__";
+    const key = phase.planId && plans.some((p) => p.id === phase.planId) ? phase.planId : UNASSIGNED_PLAN_ID;
     const group = byPlan.get(key) ?? [];
     group.push(phase);
     byPlan.set(key, group);
@@ -157,11 +165,43 @@ export function groupPhasesByPlan(lane: Lane, plans: Plan[], unassignedLabel: st
   const planLanes: Lane[] = [...plans]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((plan) => ({ id: plan.id, name: plan.name, sortOrder: plan.sortOrder, phases: byPlan.get(plan.id) ?? [] }));
-  const unassigned = byPlan.get("__unassigned__") ?? [];
+  const unassigned = byPlan.get(UNASSIGNED_PLAN_ID) ?? [];
   if (unassigned.length > 0) {
-    planLanes.push({ id: "__unassigned__", name: unassignedLabel, sortOrder: plans.length, phases: unassigned });
+    planLanes.push({ id: UNASSIGNED_PLAN_ID, name: unassignedLabel, sortOrder: plans.length, phases: unassigned });
   }
   return planLanes;
+}
+
+/**
+ * One aggregate bar per Plan that actually has phases — an Equipo's own
+ * row in the recursive swimline canvas, one level up from groupPhasesByPlan
+ * (which expands a Plan into its real phases; this collapses the other
+ * direction, an Equipo into its Planes). Plan-less/unassigned phases don't
+ * contribute a bar here — they still exist (see groupPhasesByPlan's
+ * "__unassigned__" bucket) but an aggregate bar for "no plan" wouldn't mean
+ * anything at this altitude.
+ */
+export function derivePlanAggregateBars(lane: Lane, plans: Plan[]): Phase[] {
+  const byPlan = new Map<string, Phase[]>();
+  for (const phase of lane.phases) {
+    if (!phase.planId) continue;
+    const group = byPlan.get(phase.planId) ?? [];
+    group.push(phase);
+    byPlan.set(phase.planId, group);
+  }
+  return [...plans]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .filter((plan) => byPlan.has(plan.id))
+    .map((plan) => {
+      const phases = byPlan.get(plan.id)!;
+      return {
+        id: plan.id,
+        title: plan.name,
+        start: Math.min(...phases.map((p) => p.start)),
+        end: Math.max(...phases.map((p) => p.end)),
+        status: worstStatus(phases),
+      };
+    });
 }
 
 export interface LinkageIssue {
@@ -189,6 +229,32 @@ export function findLinkageIssues(lanes: Lane[]): LinkageIssue[] {
     if (lane.isProjectPlan) continue;
     for (const phase of lane.phases) {
       if (!phase.category || !planCategories.has(phase.category)) {
+        issues.push({ laneId: lane.id, laneName: lane.name, phaseId: phase.id, phaseTitle: phase.title });
+      }
+    }
+  }
+  return issues;
+}
+
+export interface UnassignedPlanIssue {
+  laneId: string;
+  laneName: string;
+  phaseId: string;
+  phaseTitle: string;
+}
+
+/** Every team-lane phase whose planId doesn't resolve to a real Plan of
+ * that lane — never assigned, or its Plan got deleted since. Separate from
+ * findLinkageIssues (a different relationship: Fase -> Plan, not
+ * Fase -> project-plan category) but the same "recompute live, never
+ * store/hide it" rule. */
+export function findUnassignedPlanIssues(lanes: Lane[], plansByLane: Record<string, Plan[]>): UnassignedPlanIssue[] {
+  const issues: UnassignedPlanIssue[] = [];
+  for (const lane of lanes) {
+    if (lane.isProjectPlan) continue;
+    const plans = plansByLane[lane.id] ?? [];
+    for (const phase of lane.phases) {
+      if (!phase.planId || !plans.some((p) => p.id === phase.planId)) {
         issues.push({ laneId: lane.id, laneName: lane.name, phaseId: phase.id, phaseTitle: phase.title });
       }
     }

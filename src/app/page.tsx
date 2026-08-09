@@ -4,7 +4,7 @@ import { useMemo, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Lane } from "@/components/poap-renderer/types";
-import { deriveProgramLanes, type Project, type StageCategoryDef } from "@/lib/portfolio";
+import { deriveProgramLanes, findUnassignedPlanIssues, type Project, type StageCategoryDef } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
 import { AddProjectPanel } from "./AddProjectPanel";
@@ -42,7 +42,8 @@ function ProjectGanttPanel({
   panelRef: Ref<HTMLDivElement>;
   onClose: () => void;
 }) {
-  const { program, commentsByActivity, addComment } = useProjects();
+  const { program, plansByLane, commentsByActivity, addComment } = useProjects();
+  const router = useRouter();
   // Opens straight to the project's high-level plan (Design/Build/SIT/
   // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
   // what the Gantt button next to a project name on the Program page is
@@ -87,6 +88,9 @@ function ProjectGanttPanel({
       onDeleteActivity={deleteActivity}
       commentsByActivity={commentsByActivity}
       onAddComment={addComment}
+      planIssues={findUnassignedPlanIssues(project.lanes, plansByLane)}
+      onFixPlanIssue={() => router.push(`/project/${project.id}`)}
+      planOptions={[]}
     />
   );
 }
@@ -299,14 +303,16 @@ export default function ProgramPage() {
               {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
-          <div className={styles.headerActions}>
-            <button type="button" className={styles.importButton} onClick={openImportPanel}>
-              {t.header.importButton}
-            </button>
-            <button type="button" className={styles.importButton} onClick={openAddProjectPanel}>
-              <IconPlus /> {t.header.addProjectButton}
-            </button>
-          </div>
+          {!(settings.sidePanelMode === "overlay" && anyPanelOpen) && (
+            <div className={styles.headerActions}>
+              <button type="button" className={styles.importButton} onClick={openImportPanel}>
+                {t.header.importButton}
+              </button>
+              <button type="button" className={styles.importButton} onClick={openAddProjectPanel}>
+                <IconPlus /> {t.header.addProjectButton}
+              </button>
+            </div>
+          )}
         </div>
 
         <ExecutiveSummary projects={projects} onSetNote={setProjectNote} />

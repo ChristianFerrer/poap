@@ -4,8 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
-import type { Gate, Lane } from "@/components/poap-renderer/types";
-import { findLinkageIssues, type Project } from "@/lib/portfolio";
+import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
+import {
+  derivePlanAggregateBars,
+  findLinkageIssues,
+  findUnassignedPlanIssues,
+  groupPhasesByPlan,
+  UNASSIGNED_PLAN_ID,
+  type Project,
+} from "@/lib/portfolio";
+import type { ActivitySeed } from "../../mock-data";
 import { BANDS } from "../../mock-data";
 import { useProjects } from "../../ProjectsProvider";
 import { useProjectSwimlines } from "../../useProjectSwimlines";
@@ -19,7 +27,25 @@ import { useSidePanel } from "../../useSidePanel";
 import { useLanguage } from "../../i18n/LanguageProvider";
 import { MONTH_ABBR } from "@/lib/i18n";
 import { formatMonthRange } from "../../formatMonthRange";
+import { IconPlus } from "@/lib/icons";
 import styles from "../../page.module.css";
+import explorerStyles from "../../ExplorerPanel.module.css";
+
+/** Where the recursive swimline canvas currently is — null means "top of
+ * the project" (Equipos, exactly as before). Each step down mirrors the
+ * mockup mechanic verbatim: click a swimline's name, the next screen pins
+ * it as the anchor on top and shows *its* children as swimlines below,
+ * repeated at every level (Equipo -> Plan -> Fase -> Actividad). Kept as
+ * page-local client state, not a route — there is exactly one mechanism,
+ * reused, not a page per level. */
+type Drill =
+  | { level: "equipo"; laneId: string }
+  | { level: "plan"; laneId: string; planId: string }
+  | { level: "fase"; laneId: string; planId: string; phaseId: string };
+
+function activitiesAsBars(activities: ActivitySeed[]): Phase[] {
+  return activities.map((a) => ({ id: a.id, title: a.title, start: a.start, end: a.end, status: a.status }));
+}
 
 /**
  * Project detail view — the middle level of the Program → Project → Phase
@@ -70,6 +96,8 @@ function ProjectView({ project }: { project: Project }) {
     deleteProject,
     setProjectLanes,
     setProjectGates,
+    plansByLane,
+    addPlan,
     commentsByActivity,
     addComment,
     stageCategories,
@@ -96,13 +124,15 @@ function ProjectView({ project }: { project: Project }) {
   const gates = project.gates;
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
   const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
+  const [drill, setDrill] = useState<Drill | null>(null);
+  const [newPlanName, setNewPlanName] = useState("");
 
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
-  const linkageIssueCount = findLinkageIssues(lanes).length;
+  const linkageIssueCount = findLinkageIssues(lanes).length + findUnassignedPlanIssues(lanes, plansByLane).length;
 
   function closeAllPanels() {
     setExplorer(null);
@@ -151,12 +181,13 @@ function ProjectView({ project }: { project: Project }) {
     sidePanel.scrollToPanel();
   }
 
-  // "Home" always means "just this project's calendar", regardless of
-  // side-panel mode — it does not navigate back up to the Program page,
-  // that's what the breadcrumb link is for.
+  // "Home" always means "the top of this project" — clears the drill path
+  // back to Equipos as well as closing whatever panel was open, regardless
+  // of side-panel mode.
   function goHome() {
     closeAllPanels();
     sidePanel.hideFixedPanel();
+    setDrill(null);
   }
 
   // Switching into "fixed" mode while something was already open should
@@ -166,54 +197,258 @@ function ProjectView({ project }: { project: Project }) {
     if (mode === "fixed" && anyPanelOpen) sidePanel.revealFixedPanel();
   }
 
+  function submitNewPlan() {
+    if (!drill || drill.level !== "equipo" || !newPlanName.trim()) return;
+    addPlan(drill.laneId, newPlanName.trim());
+    setNewPlanName("");
+  }
+
   function importLanes(newLanes: Lane[]) {
     setProjectLanes(project.id, (prev) => [...prev, ...newLanes.map((lane, i) => ({ ...lane, sortOrder: prev.length + i }))]);
   }
 
-  function handlePhaseClick(phaseId: string) {
-    openExplorer({ level: "activities", phaseId });
+  // Fixing a Plan-linkage issue (a Fase with no real Plan) means landing
+  // right where it can be resolved: drilled into its Equipo, looking at the
+  // "Sin plan asignado" bucket, where each orphaned phase gets its own Plan
+  // picker (see planOptions/ExplorerPanel's Plan column below).
+  function handleFixPlanIssue(laneId: string) {
+    setDrill({ level: "equipo", laneId });
+    openExplorer({ level: "phases", laneId: UNASSIGNED_PLAN_ID });
   }
 
-  // A team lane's name now drills into its Planes (Equipo -> Plan -> Fase —
-  // see the new /lane/[laneId] route), matching the same "click the name to
-  // enter" mechanic every other level uses. The isProjectPlan anchor lane
-  // is a different concept (the project-wide plan, not a team with Planes
-  // of its own) and keeps its original side-panel phases view.
-  function handleLaneClick(laneId: string) {
-    const lane = lanes.find((l) => l.id === laneId);
-    if (lane?.isProjectPlan) {
-      openExplorer({ level: "phases", laneId });
+  // Only meaningful while looking at the "Sin plan asignado" bucket's
+  // phases (laneId === UNASSIGNED_PLAN_ID) under a drilled-in Equipo — the
+  // one place ExplorerPanel needs a target list of real Plans to reassign
+  // an orphaned phase into.
+  const planOptions =
+    drill?.level === "equipo" && explorer?.level === "phases" && explorer.laneId === UNASSIGNED_PLAN_ID
+      ? (plansByLane[drill.laneId] ?? [])
+      : [];
+
+  // ---------------------------------------------------------------------
+  // The recursive canvas: what PoapRenderer actually renders right now,
+  // derived fresh from `drill` on every render rather than stored — a
+  // Plan/Fase edited elsewhere shows up the instant you're looking at it,
+  // same "never go stale" rule as the linkage alerts.
+  // ---------------------------------------------------------------------
+
+  function equipoName(laneId: string): string {
+    return lanes.find((l) => l.id === laneId)?.name ?? "";
+  }
+  function planName(laneId: string, planId: string): string {
+    if (planId === UNASSIGNED_PLAN_ID) return t.plansNav.unassignedPlanLabel;
+    return (plansByLane[laneId] ?? []).find((p) => p.id === planId)?.name ?? "";
+  }
+  function faseName(laneId: string, phaseId: string): string {
+    return lanes.find((l) => l.id === laneId)?.phases.find((p) => p.id === phaseId)?.title ?? "";
+  }
+
+  const canvasLanes: Lane[] = (() => {
+    if (!drill) {
+      return lanes.map((lane) =>
+        lane.isProjectPlan ? lane : { ...lane, phases: derivePlanAggregateBars(lane, plansByLane[lane.id] ?? []) },
+      );
+    }
+    if (drill.level === "equipo") {
+      const lane = lanes.find((l) => l.id === drill.laneId);
+      if (!lane) return [];
+      const plans = plansByLane[drill.laneId] ?? [];
+      const anchor: Lane = { ...lane, isProjectPlan: true, phases: derivePlanAggregateBars(lane, plans) };
+      const children = groupPhasesByPlan(lane, plans, t.plansNav.unassignedPlanLabel);
+      return [anchor, ...children];
+    }
+    if (drill.level === "plan") {
+      const lane = lanes.find((l) => l.id === drill.laneId);
+      if (!lane) return [];
+      const plans = plansByLane[drill.laneId] ?? [];
+      const isUnassigned = drill.planId === UNASSIGNED_PLAN_ID;
+      const planPhases = lane.phases.filter((p) =>
+        isUnassigned ? !p.planId || !plans.some((pl) => pl.id === p.planId) : p.planId === drill.planId,
+      );
+      const anchor: Lane = {
+        id: drill.planId,
+        name: planName(drill.laneId, drill.planId),
+        sortOrder: 0,
+        isProjectPlan: true,
+        phases: planPhases,
+      };
+      const children: Lane[] = planPhases.map((phase) => ({
+        id: phase.id,
+        name: phase.title,
+        sortOrder: 0,
+        phases: activitiesAsBars(getActivities(phase)),
+      }));
+      return [anchor, ...children];
+    }
+    // drill.level === "fase" — Actividad is the true leaf, no children below it
+    const lane = lanes.find((l) => l.id === drill.laneId);
+    const phase = lane?.phases.find((p) => p.id === drill.phaseId);
+    if (!phase) return [];
+    const anchor: Lane = {
+      id: phase.id,
+      name: phase.title,
+      sortOrder: 0,
+      isProjectPlan: true,
+      phases: activitiesAsBars(getActivities(phase)),
+    };
+    return [anchor];
+  })();
+
+  // `lanes` ExplorerPanel actually edits against — real project lanes for
+  // the top level, or (while drilled in) that Equipo's Planes-as-lanes
+  // synthetic view *plus* the real lanes, so category-suggestion can still
+  // find the real isProjectPlan anchor lane. See handleAddPhase/
+  // handleUpdatePhase/handleDeletePhase for how a mutation on one of these
+  // synthetic ids gets redirected back to the real lane it belongs to.
+  const explorerLanes: Lane[] = (() => {
+    if (drill?.level === "equipo") {
+      const lane = lanes.find((l) => l.id === drill.laneId);
+      if (!lane) return lanes;
+      const plans = plansByLane[drill.laneId] ?? [];
+      return [...groupPhasesByPlan(lane, plans, t.plansNav.unassignedPlanLabel), ...lanes];
+    }
+    if (drill?.level === "plan") {
+      const lane = lanes.find((l) => l.id === drill.laneId);
+      if (!lane) return lanes;
+      const plans = plansByLane[drill.laneId] ?? [];
+      const isUnassigned = drill.planId === UNASSIGNED_PLAN_ID;
+      const planPhases = lane.phases.filter((p) =>
+        isUnassigned ? !p.planId || !plans.some((pl) => pl.id === p.planId) : p.planId === drill.planId,
+      );
+      return [{ id: drill.planId, name: planName(drill.laneId, drill.planId), sortOrder: 0, phases: planPhases }, ...lanes];
+    }
+    return lanes;
+  })();
+
+  function handlePhaseClick(barId: string) {
+    if (!drill) {
+      // A team lane's bar here is a Plan aggregate (id = a real Plan's id);
+      // the anchor's own bars are the isProjectPlan lane's real phases.
+      const owningLaneId = Object.keys(plansByLane).find((laneId) => plansByLane[laneId]!.some((p) => p.id === barId));
+      if (owningLaneId) {
+        setDrill({ level: "plan", laneId: owningLaneId, planId: barId });
+        return;
+      }
+      openExplorer({ level: "activities", phaseId: barId });
       return;
     }
-    router.push(`/project/${project.id}/lane/${laneId}`);
+    if (drill.level === "equipo") {
+      const plans = plansByLane[drill.laneId] ?? [];
+      if (plans.some((p) => p.id === barId)) {
+        setDrill({ level: "plan", laneId: drill.laneId, planId: barId });
+        return;
+      }
+      openExplorer({ level: "activities", phaseId: barId });
+      return;
+    }
+    if (drill.level === "plan") {
+      const lane = lanes.find((l) => l.id === drill.laneId);
+      if (lane?.phases.some((p) => p.id === barId)) {
+        setDrill({ level: "fase", laneId: drill.laneId, planId: drill.planId, phaseId: barId });
+        return;
+      }
+      const owningPhase = lane?.phases.find((p) => getActivities(p).some((a) => a.id === barId));
+      if (owningPhase) openExplorer({ level: "activity", phaseId: owningPhase.id, activityId: barId });
+      return;
+    }
+    // drill.level === "fase" — every bar here is one of this Fase's own activities
+    openExplorer({ level: "activity", phaseId: drill.phaseId, activityId: barId });
   }
 
-  // Defense in depth alongside PoapRenderer's own isLaneCreatable gate — a
-  // track can't exist without a Plan except on the project's own anchor
-  // lane, so this never opens the phases form for a team lane even if
-  // something else ever manages to invoke it.
+  // A team lane's name drills into its Planes; a Plan's name drills into
+  // its Fases; a Fase has no further swimline to enter (Actividad is the
+  // leaf — see handlePhaseClick for opening one). The isProjectPlan anchor
+  // lane at the top is a different concept (project-wide, not a team with
+  // Planes of its own) and keeps its original phases-panel behavior.
+  function handleLaneClick(laneId: string) {
+    if (!drill) {
+      const lane = lanes.find((l) => l.id === laneId);
+      if (lane?.isProjectPlan) {
+        openExplorer({ level: "phases", laneId });
+        return;
+      }
+      setDrill({ level: "equipo", laneId });
+      return;
+    }
+    if (drill.level === "equipo") {
+      if (laneId === drill.laneId) return;
+      setDrill({ level: "plan", laneId: drill.laneId, planId: laneId });
+      return;
+    }
+    if (drill.level === "plan") {
+      if (laneId === drill.planId) return;
+      setDrill({ level: "fase", laneId: drill.laneId, planId: drill.planId, phaseId: laneId });
+    }
+  }
+
+  // Only ever a real, unambiguous parent may receive a dragged track:
+  // the isProjectPlan lane at the top, a real Plan once you've drilled
+  // into its Equipo, or the Plan itself once it's the anchor — never the
+  // "Sin plan asignado" bucket, which would just manufacture more orphans.
+  function isLaneCreatable(laneId: string): boolean {
+    if (!drill) return lanes.find((l) => l.id === laneId)?.isProjectPlan ?? false;
+    if (drill.level === "equipo") return laneId !== UNASSIGNED_PLAN_ID && laneId !== drill.laneId;
+    if (drill.level === "plan") return laneId === drill.planId && drill.planId !== UNASSIGNED_PLAN_ID;
+    return false;
+  }
+
   function handleCreatePhase(laneId: string, start: number, end: number) {
-    const targetLane = lanes.find((l) => l.id === laneId);
-    if (!targetLane?.isProjectPlan) return;
+    if (!isLaneCreatable(laneId)) return;
     setDraftRange({ laneId, start, end });
     openExplorer({ level: "phases", laneId });
   }
 
-  // ExplorerPanel's own breadcrumb/"Ver fases" navigation can still land on
-  // {level:"phases", laneId} for a team lane (via the Sidebar's Swimlines
-  // list) — that form has no idea Plans exist, so a phase created there
-  // would have nowhere to belong. Redirect into that lane's real Planes
-  // page instead of opening the old form; the isProjectPlan anchor lane is
-  // exempt and keeps navigating inline exactly as before.
-  function handleExplorerNavigate(view: ExplorerView) {
-    if (view.level === "phases") {
-      const targetLane = lanes.find((l) => l.id === view.laneId);
-      if (targetLane && !targetLane.isProjectPlan) {
-        router.push(`/project/${project.id}/lane/${view.laneId}`);
+  // The small Gantt-icon next to a row's name (same affordance the Program
+  // page already uses for its own project rows) — the one way into
+  // add/edit for whatever that row actually is: a Plan's Fases, or a
+  // Fase's own Actividades. Not gated by isLaneCreatable — that rule is
+  // specifically about a *track needing a Plan*, unrelated to viewing or
+  // adding activities under an existing Fase.
+  function handleLaneGanttClick(laneId: string) {
+    if (!drill) return;
+    if (drill.level === "equipo") {
+      if (laneId === drill.laneId) return;
+      openExplorer({ level: "phases", laneId }); // laneId = a real Plan's id, or UNASSIGNED_PLAN_ID
+      return;
+    }
+    if (drill.level === "plan") {
+      if (laneId === drill.planId) {
+        if (drill.planId === UNASSIGNED_PLAN_ID) return;
+        openExplorer({ level: "phases", laneId: drill.planId });
         return;
       }
+      openExplorer({ level: "activities", phaseId: laneId }); // laneId = a Fase's id
+      return;
     }
-    setExplorer(view);
+    if (drill.level === "fase" && laneId === drill.phaseId) {
+      openExplorer({ level: "activities", phaseId: drill.phaseId });
+    }
+  }
+
+  // Every phase mutation ExplorerPanel fires targets whatever synthetic
+  // laneId it was given (a Plan's own id while drilled in) — these
+  // wrappers redirect it at the *real* team lane instead, tagging planId
+  // as needed, since that's the only lane actually persisted.
+  function handleAddPhase(laneId: string, phase: Phase) {
+    // The "Sin plan asignado" bucket is a read/fix surface for existing
+    // orphans, never a place to manufacture new ones — same hard rule as
+    // isLaneCreatable, just enforced here for the panel's own add-form.
+    if (laneId === UNASSIGNED_PLAN_ID) return;
+    if (drill?.level === "equipo") {
+      addPhase(drill.laneId, { ...phase, planId: laneId });
+      return;
+    }
+    if (drill?.level === "plan") {
+      addPhase(drill.laneId, { ...phase, planId: drill.planId === UNASSIGNED_PLAN_ID ? undefined : drill.planId });
+      return;
+    }
+    addPhase(laneId, phase);
+  }
+  function handleUpdatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category" | "planId">>) {
+    updatePhase(drill ? drill.laneId : laneId, phaseId, patch);
+  }
+  function handleDeletePhase(laneId: string, phaseId: string) {
+    deletePhase(drill ? drill.laneId : laneId, phaseId);
   }
 
   function toggleGateActive(gateId: string) {
@@ -288,25 +523,28 @@ function ProjectView({ project }: { project: Project }) {
   const panelContent = explorer ? (
     <ExplorerPanel
       ref={sidePanel.panelRef}
-      lanes={lanes}
+      lanes={explorerLanes}
       startMonth={program.startMonth}
       view={explorer}
       stageCategories={stageCategories}
       getActivities={getActivities}
-      onNavigate={handleExplorerNavigate}
+      onNavigate={setExplorer}
       onClose={sidePanel.closePanel}
       onAddLane={addLane}
       onRenameLane={renameLane}
       draftRange={draftRange}
       onDraftRangeConsumed={() => setDraftRange(null)}
-      onUpdatePhase={updatePhase}
-      onAddPhase={addPhase}
+      onUpdatePhase={handleUpdatePhase}
+      onAddPhase={handleAddPhase}
       onAddActivity={addActivity}
       onDeleteLane={deleteLane}
-      onDeletePhase={deletePhase}
+      onDeletePhase={handleDeletePhase}
       onDeleteActivity={deleteActivity}
       commentsByActivity={commentsByActivity}
       onAddComment={addComment}
+      planIssues={findUnassignedPlanIssues(lanes, plansByLane)}
+      onFixPlanIssue={handleFixPlanIssue}
+      planOptions={planOptions}
     />
   ) : gatesPanelOpen ? (
     <GatesPanel
@@ -366,6 +604,8 @@ function ProjectView({ project }: { project: Project }) {
         showPanelToggle={settings.sidePanelMode === "fixed"}
         panelVisible={sidePanel.fixedPanelVisible}
         onTogglePanel={sidePanel.toggleFixedPanel}
+        issuesCount={linkageIssueCount}
+        onIssuesClick={() => openExplorer({ level: "lanes" })}
       />
       <main className={`${styles.main} ${settings.navPosition === "left" ? styles.mainNavLeft : styles.mainNavRight}`}>
         <div className={styles.headerRow}>
@@ -379,29 +619,72 @@ function ProjectView({ project }: { project: Project }) {
               {t.header.monthsWord} · {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
-          <div className={styles.headerActions}>
-            {linkageIssueCount > 0 && (
-              <button
-                type="button"
-                className={styles.linkageBadge}
-                onClick={() => openExplorer({ level: "lanes" })}
-                title={t.linkage.bannerTitle}
-              >
-                {t.linkage.count(linkageIssueCount)}
+          {!(settings.sidePanelMode === "overlay" && anyPanelOpen) && (
+            <div className={styles.headerActions}>
+              <button type="button" className={styles.importButton} onClick={openImportPanel}>
+                {t.header.importButton}
               </button>
-            )}
-            <button type="button" className={styles.importButton} onClick={openImportPanel}>
-              {t.header.importButton}
-            </button>
-          </div>
+            </div>
+          )}
         </div>
+
+        {drill && (
+          <nav className={styles.drillBreadcrumb} aria-label={t.explorer.breadcrumbNav}>
+            <button type="button" className={styles.drillCrumb} onClick={() => setDrill(null)}>
+              {project.name}
+            </button>
+            <span className={styles.drillSep} aria-hidden="true">/</span>
+            <button
+              type="button"
+              className={`${styles.drillCrumb} ${drill.level === "equipo" ? styles.drillCrumbCurrent : ""}`}
+              onClick={() => setDrill({ level: "equipo", laneId: drill.laneId })}
+            >
+              {equipoName(drill.laneId)}
+            </button>
+            {drill.level !== "equipo" && (
+              <>
+                <span className={styles.drillSep} aria-hidden="true">/</span>
+                <button
+                  type="button"
+                  className={`${styles.drillCrumb} ${drill.level === "plan" ? styles.drillCrumbCurrent : ""}`}
+                  onClick={() => setDrill({ level: "plan", laneId: drill.laneId, planId: drill.planId })}
+                >
+                  {planName(drill.laneId, drill.planId)}
+                </button>
+              </>
+            )}
+            {drill.level === "fase" && (
+              <>
+                <span className={styles.drillSep} aria-hidden="true">/</span>
+                <span className={`${styles.drillCrumb} ${styles.drillCrumbCurrent}`}>{faseName(drill.laneId, drill.phaseId)}</span>
+              </>
+            )}
+          </nav>
+        )}
+
+        {drill?.level === "equipo" && (
+          <div className={explorerStyles.addGroup} style={{ margin: "0 0 14px" }}>
+            <p className={explorerStyles.sectionTitle}>{t.plansNav.addPlanSection}</p>
+            <div className={explorerStyles.addRow}>
+              <input
+                className={explorerStyles.textInput}
+                placeholder={t.plansNav.planNamePlaceholder}
+                value={newPlanName}
+                onChange={(e) => setNewPlanName(e.target.value)}
+              />
+              <button type="button" className={explorerStyles.addButton} disabled={!newPlanName.trim()} onClick={submitNewPlan}>
+                <IconPlus /> {t.explorer.addButton}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className={`${styles.layout} ${settings.sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
           <div className={styles.calendarCol}>
             <PoapRenderer
               months={program.months}
               startMonth={program.startMonth}
-              lanes={lanes}
+              lanes={canvasLanes}
               gates={gates}
               bands={BANDS}
               selectedPhaseId={selectedPhaseId}
@@ -409,8 +692,9 @@ function ProjectView({ project }: { project: Project }) {
               activeGateIds={activeGateIds}
               onGateClick={handleGateClick}
               onLaneClick={handleLaneClick}
+              onLaneGanttClick={drill ? handleLaneGanttClick : undefined}
               onCreatePhase={handleCreatePhase}
-              isLaneCreatable={(laneId) => lanes.find((l) => l.id === laneId)?.isProjectPlan ?? false}
+              isLaneCreatable={isLaneCreatable}
               onGatesLabelClick={openGatesPanel}
               locale={locale}
               showWeekends={settings.showWeekends}

@@ -37,7 +37,7 @@ export function useProjectSwimlines(project: Project, initialView: ExplorerView 
     setProjectLanes(project.id, (prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, name } : lane)));
   }
 
-  function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category">>) {
+  function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category" | "planId">>) {
     setProjectLanes(project.id, (prev) =>
       prev.map((lane) =>
         lane.id !== laneId

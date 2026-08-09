@@ -71,6 +71,31 @@
   margin: 4px 0;
 }
 
+/* Pushes the issues badge (see .issuesButton) to the bottom of the rail,
+   below every destination button — a corner of its own, not competing
+   with navigation for attention. */
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* Permanent alert — lives in the rail itself, not inside any panel, so it
+   can never be closed or covered while something the user needs to fix
+   still exists. Amber like an at-risk phase; the count is the whole
+   point, so it's the only nav item with a visible number. */
+.issuesButton {
+  composes: navButton;
+  color: var(--color-amber-ink, var(--color-amber));
+}
+.issuesButton:hover {
+  background: color-mix(in srgb, var(--color-amber) 16%, transparent);
+  color: var(--color-amber-ink, var(--color-amber));
+}
+.issuesCount {
+  font-size: var(--text-3xs);
+  font-weight: 800;
+  line-height: 1;
+}
+
 @media (max-width: 640px) {
   .sidebar {
     width: 48px;
