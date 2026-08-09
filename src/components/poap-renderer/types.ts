@@ -70,6 +70,13 @@ export interface PoapRendererProps {
    * a management view for that lane without the renderer knowing what
    * "managing a lane" means. */
   onLaneClick?: (laneId: string) => void;
+  /** Dragging across empty space in an expanded lane's track — the
+   * renderer only reports the lane and the dragged axis range, exactly
+   * like a manually-typed date range would; it has no opinion on what
+   * "creating a track" involves beyond that (title, category, ...). Omit
+   * to leave the track non-interactive for creation (e.g. the read-only
+   * Program-level portfolio view). */
+  onCreatePhase?: (laneId: string, start: number, end: number) => void;
   /** A second, explicit per-lane action distinct from onLaneClick — e.g.
    * the Program page uses this for a "view swimlines" shortcut on each
    * project row, while onLaneClick itself still navigates into the

@@ -19,9 +19,12 @@ import {
   syncPhaseActivities,
   syncProjectGates,
   syncProjectLanes,
+  updateProgram as updateProgramRow,
   updateProjectNote,
   updateStageCategoryLabel,
+  type ProgramRow,
 } from "@/lib/db";
+import { PROGRAM as FALLBACK_PROGRAM } from "./mock-data";
 
 // How long an undo stays offered before a delete becomes final.
 const UNDO_WINDOW_MS = 6000;
@@ -36,6 +39,12 @@ interface ProjectsContextValue {
    * failure) — callers show a loading state until then instead of
    * flashing an empty program/project. */
   loaded: boolean;
+  /** The Program's own name + shared timeline — a real, editable database
+   * row (see src/lib/db.ts ProgramRow) rather than the hardcoded constant
+   * this used to be. Falls back to the seed data's PROGRAM until the
+   * initial load settles, same as `projects` defaulting to []. */
+  program: ProgramRow;
+  updateProgram: (patch: Partial<Pick<ProgramRow, "name" | "startMonth" | "months">>) => void;
   projects: Project[];
   /** Creates a project and returns its new id (synchronously — computed
    * off the current `projects` closure, not read back out of the setState
@@ -126,6 +135,12 @@ function slugify(name: string): string {
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { t } = useLanguage();
   const [loaded, setLoaded] = useState(false);
+  const [program, setProgram] = useState<ProgramRow>({
+    id: FALLBACK_PROGRAM.id,
+    name: FALLBACK_PROGRAM.name,
+    startMonth: FALLBACK_PROGRAM.startMonth,
+    months: FALLBACK_PROGRAM.months,
+  });
   const [projects, setProjects] = useState<Project[]>([]);
   const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>({});
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
@@ -167,6 +182,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     Promise.race([fetchAppData(), timeout])
       .then((data) => {
         if (cancelled) return;
+        if (data.program) setProgram(data.program);
         setProjects(data.projects);
         setActivitiesByPhase(data.activitiesByPhase);
         setCommentsByActivity(data.commentsByActivity);
@@ -206,6 +222,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     pendingUndo?.undo();
     setPendingUndo(null);
+  }
+
+  function updateProgram(patch: Partial<Pick<ProgramRow, "name" | "startMonth" | "months">>) {
+    setProgram((prev) => ({ ...prev, ...patch }));
+    void updateProgramRow(program.id, patch);
   }
 
   function addProject(input: { name: string; lanes: Lane[]; gates: Gate[] }): string {
@@ -316,6 +337,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     <ProjectsContext.Provider
       value={{
         loaded,
+        program,
+        updateProgram,
         projects,
         addProject,
         deleteProject,

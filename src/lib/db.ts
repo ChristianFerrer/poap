@@ -55,7 +55,15 @@ function logFailure(action: string, error: unknown) {
 // Hydration — one batched load, called once on mount.
 // ---------------------------------------------------------------------
 
+export interface ProgramRow {
+  id: string;
+  name: string;
+  startMonth: string;
+  months: number;
+}
+
 interface AppData {
+  program: ProgramRow | null;
   projects: Project[];
   activitiesByPhase: Record<string, ActivitySeed[]>;
   commentsByActivity: Record<string, ActivityComment[]>;
@@ -64,6 +72,7 @@ interface AppData {
 
 export async function fetchAppData(): Promise<AppData> {
   const [
+    { data: programRows, error: programError },
     { data: stageCategoryRows, error: stageCategoriesError },
     { data: projectRows, error: projectsError },
     { data: laneRows, error: lanesError },
@@ -72,6 +81,7 @@ export async function fetchAppData(): Promise<AppData> {
     { data: activityRows, error: activitiesError },
     { data: commentRows, error: commentsError },
   ] = await Promise.all([
+    supabase.from("programs").select("*").limit(1),
     supabase.from("stage_categories").select("*").order("sort_order"),
     supabase.from("projects").select("*").order("sort_order"),
     supabase.from("lanes").select("*").order("sort_order"),
@@ -82,8 +92,13 @@ export async function fetchAppData(): Promise<AppData> {
   ]);
 
   const firstError =
-    stageCategoriesError || projectsError || lanesError || phasesError || gatesError || activitiesError || commentsError;
+    programError || stageCategoriesError || projectsError || lanesError || phasesError || gatesError || activitiesError || commentsError;
   if (firstError) throw firstError;
+
+  const programRow = programRows?.[0];
+  const program: ProgramRow | null = programRow
+    ? { id: programRow.id, name: programRow.name, startMonth: programRow.start_month, months: programRow.months }
+    : null;
 
   const stageCategories: StageCategoryDef[] = (stageCategoryRows ?? []).map((r) => ({ id: r.id, label: r.label }));
 
@@ -154,7 +169,26 @@ export async function fetchAppData(): Promise<AppData> {
     (activitiesByPhase[r.phase_id] ??= []).push(activity);
   }
 
-  return { projects, activitiesByPhase, commentsByActivity, stageCategories };
+  return { program, projects, activitiesByPhase, commentsByActivity, stageCategories };
+}
+
+// ---------------------------------------------------------------------
+// Program — a single row (id "program-1", seeded by migration). No
+// insert/delete path: the program itself is provisioned once by the
+// database, this only ever patches name/timeline.
+// ---------------------------------------------------------------------
+
+export async function updateProgram(id: string, patch: Partial<Pick<ProgramRow, "name" | "startMonth" | "months">>) {
+  try {
+    const row: Record<string, unknown> = {};
+    if (patch.name !== undefined) row.name = patch.name;
+    if (patch.startMonth !== undefined) row.start_month = patch.startMonth;
+    if (patch.months !== undefined) row.months = patch.months;
+    const { error } = await supabase.from("programs").update(row).eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`updateProgram(${id})`, error);
+  }
 }
 
 // ---------------------------------------------------------------------

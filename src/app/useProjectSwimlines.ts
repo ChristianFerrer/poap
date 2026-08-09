@@ -33,6 +33,10 @@ export function useProjectSwimlines(project: Project, initialView: ExplorerView 
     setProjectLanes(project.id, (prev) => [...prev, { id: crypto.randomUUID(), name, sortOrder: prev.length, phases: [] }]);
   }
 
+  function renameLane(laneId: string, name: string) {
+    setProjectLanes(project.id, (prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, name } : lane)));
+  }
+
   function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category">>) {
     setProjectLanes(project.id, (prev) =>
       prev.map((lane) =>
@@ -133,6 +137,7 @@ export function useProjectSwimlines(project: Project, initialView: ExplorerView 
     setExplorer,
     getActivities,
     addLane,
+    renameLane,
     updatePhase,
     addPhase,
     deleteLane,

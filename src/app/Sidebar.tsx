@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IconGateDiamond, IconHome, IconLanes, IconPanel, IconSettings } from "@/lib/icons";
+import { IconGateDiamond, IconHome, IconLanes, IconPanel, IconSettings, IconUploadNav } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
-export type SidebarActive = "home" | "swimlines" | "gates" | "settings";
+export type SidebarActive = "home" | "swimlines" | "gates" | "import" | "settings";
 export type SidebarPosition = "left" | "right";
 
 /**
@@ -26,6 +26,7 @@ export function Sidebar({
   onHome,
   onSwimlines,
   onGates,
+  onImport,
   onSettings,
   showPanelToggle,
   panelVisible,
@@ -36,6 +37,10 @@ export function Sidebar({
   onHome: () => void;
   onSwimlines?: () => void;
   onGates?: () => void;
+  /** Opens the Excel-import flow — a first-class menu entry (not just a
+   * page-header button) since it's how a team gets a plan into the app in
+   * the first place, on both the Program and Project pages. */
+  onImport: () => void;
   onSettings: () => void;
   /** Only meaningful in "fixed" side-panel mode — a floating panel already
    * fully appears/disappears on its own, so this extra show/hide control
@@ -53,6 +58,7 @@ export function Sidebar({
     ...(onGates
       ? [{ key: "gates" as const, icon: <IconGateDiamond />, ariaLabel: t.sidebar.gatesAria, label: t.sidebar.gatesLabel, onClick: onGates }]
       : []),
+    { key: "import" as const, icon: <IconUploadNav />, ariaLabel: t.sidebar.importAria, label: t.sidebar.importLabel, onClick: onImport },
     { key: "settings", icon: <IconSettings />, ariaLabel: t.sidebar.settingsAria, label: t.sidebar.settingsLabel, onClick: onSettings },
   ];
 

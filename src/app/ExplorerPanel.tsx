@@ -1,9 +1,9 @@
 "use client";
 
-import { forwardRef, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
-import type { StageCategoryDef } from "@/lib/portfolio";
+import { findLinkageIssues, type StageCategoryDef } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { formatDate, fromISODate, toISODate } from "./dateAxis";
 import { DateRangeField } from "./DateRangeField";
@@ -23,6 +23,22 @@ function filterByName<T>(items: T[], search: string, getName: (item: T) => strin
 
 function sortItems<T>(items: T[], sortBy: SortBy, getName: (item: T) => string, getDate: (item: T) => number): T[] {
   return [...items].sort((a, b) => (sortBy === "name" ? getName(a).localeCompare(getName(b)) : getDate(a) - getDate(b)));
+}
+
+/** Picks whichever plan-lane phase (a "top plan" track) overlaps the given
+ * range the most — the auto-suggestion behind the otherwise-mandatory
+ * category field on a team phase. Returns null if the plan lane has
+ * nothing overlapping at all, leaving the field for the user to fill in
+ * by hand (and the persistent linkage alert to flag once saved). */
+function suggestCategory(start: number, end: number, planLane: Lane | null): string | undefined {
+  if (!planLane) return undefined;
+  let best: { category: string; overlap: number } | null = null;
+  for (const p of planLane.phases) {
+    if (!p.category) continue;
+    const overlap = Math.min(end, p.end) - Math.max(start, p.start);
+    if (overlap > 0 && (!best || overlap > best.overlap)) best = { category: p.category, overlap };
+  }
+  return best?.category;
 }
 
 function FilterBar({
@@ -149,6 +165,14 @@ export const ExplorerPanel = forwardRef<
     onNavigate: (view: ExplorerView) => void;
     onClose: () => void;
     onAddLane: (name: string) => void;
+    onRenameLane: (laneId: string, name: string) => void;
+    /** A date range dragged directly on the Gantt canvas (see PoapRenderer's
+     * onCreatePhase) — seeds the "add phase" form's dates (and, once both
+     * are set, its category suggestion) the moment the matching lane's
+     * phases view is open. Consumed once via onDraftRangeConsumed so it
+     * doesn't keep re-applying itself over whatever the user types next. */
+    draftRange?: { laneId: string; start: number; end: number } | null;
+    onDraftRangeConsumed?: () => void;
     onUpdatePhase: (
       laneId: string,
       phaseId: string,
@@ -172,6 +196,9 @@ export const ExplorerPanel = forwardRef<
     onNavigate,
     onClose,
     onAddLane,
+    onRenameLane,
+    draftRange,
+    onDraftRangeConsumed,
     onUpdatePhase,
     onAddPhase,
     onAddActivity,
@@ -195,6 +222,21 @@ export const ExplorerPanel = forwardRef<
   });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
   const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    if (!draftRange || view.level !== "phases" || view.laneId !== draftRange.laneId) return;
+    const lane = lanes.find((l) => l.id === draftRange.laneId);
+    const planLane = lanes.find((l) => l.isProjectPlan) ?? null;
+    const suggested = !lane?.isProjectPlan ? suggestCategory(draftRange.start, draftRange.end, planLane) : undefined;
+    setNewPhase((p) => ({
+      ...p,
+      start: toISODate(draftRange.start, startMonth),
+      end: toISODate(draftRange.end, startMonth),
+      category: suggested ?? p.category,
+    }));
+    onDraftRangeConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftRange]);
 
   const [laneSearch, setLaneSearch] = useState("");
   const [laneSort, setLaneSort] = useState<SortBy>("name");
@@ -262,16 +304,44 @@ export const ExplorerPanel = forwardRef<
             (l) => l.name,
             (l) => (l.phases.length ? Math.min(...l.phases.map((p) => p.start)) : Infinity),
           );
+          const linkageIssues = findLinkageIssues(lanes);
           return (
             <>
               <p className={styles.eyebrow}>{t.explorer.lanesEyebrow}</p>
               <h2 className={styles.title}>{t.explorer.lanesTitle}</h2>
 
+              {linkageIssues.length > 0 && planLane && (
+                <div className={styles.linkageBanner} role="alert">
+                  <p className={styles.linkageBannerTitle}>
+                    {t.linkage.bannerTitle} · {t.linkage.count(linkageIssues.length)}
+                  </p>
+                  <ul className={styles.linkageList}>
+                    {linkageIssues.map((issue) => (
+                      <li key={issue.phaseId} className={styles.linkageItem}>
+                        <span>{t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name)}</span>
+                        <button
+                          type="button"
+                          className={styles.linkageFixButton}
+                          onClick={() => onNavigate({ level: "phases", laneId: issue.laneId })}
+                        >
+                          {t.linkage.fixButton}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {planLane && (
                 <div className={styles.planLaneCard}>
                   <p className={styles.sectionTitle}>{t.explorer.projectPlanEyebrow}</p>
                   <div className={styles.planLaneRow}>
-                    <span className={styles.planLaneName}>{planLane.name}</span>
+                    <input
+                      className={`${styles.planLaneName} ${styles.tableTextInput}`}
+                      value={planLane.name}
+                      onChange={(e) => onRenameLane(planLane.id, e.target.value)}
+                      aria-label={t.explorer.laneNameAria}
+                    />
                     <span className={styles.tableMetaCell}>
                       {planLane.phases.length}{" "}
                       {pluralForm(planLane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
@@ -333,13 +403,17 @@ export const ExplorerPanel = forwardRef<
                     </thead>
                     <tbody>
                       {visibleLanes.map((lane) => (
-                        <tr
-                          key={lane.id}
-                          className={styles.clickableRow}
-                          onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
-                        >
-                          <td className={styles.tableNameCell}>{lane.name}</td>
-                          <td className={styles.tableMetaCell}>
+                        <tr key={lane.id} className={styles.clickableRow}>
+                          <td className={styles.tableNameCell}>
+                            <input
+                              className={styles.tableTextInput}
+                              value={lane.name}
+                              onChange={(e) => onRenameLane(lane.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={t.explorer.laneNameAria}
+                            />
+                          </td>
+                          <td className={styles.tableMetaCell} onClick={() => onNavigate({ level: "phases", laneId: lane.id })}>
                             {lane.phases.length}{" "}
                             {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
                           </td>
@@ -408,6 +482,12 @@ export const ExplorerPanel = forwardRef<
                   end: Math.max(...lane.phases.map((p) => p.end)),
                 }
               : null;
+          // Every team-lane phase must point at a track of the project's
+          // plan lane (the "plan ancla") — the plan lane itself is what
+          // that taxonomy *is*, so it's exempt from needing to point at
+          // itself.
+          const planLane = lanes.find((l) => l.isProjectPlan) ?? null;
+          const categoryRequired = !lane.isProjectPlan;
           return (
             <>
               <Breadcrumb items={[rootCrumb, { label: lane.name }]} onNavigate={onNavigate} />
@@ -435,7 +515,13 @@ export const ExplorerPanel = forwardRef<
                   <DateRangeField
                     startValue={newPhase.start}
                     endValue={newPhase.end}
-                    onChange={(start, end) => setNewPhase((p) => ({ ...p, start, end }))}
+                    onChange={(start, end) => {
+                      const suggested =
+                        categoryRequired && start && end && !newPhase.category
+                          ? suggestCategory(fromISODate(start, startMonth), fromISODate(end, startMonth), planLane)
+                          : undefined;
+                      setNewPhase((p) => ({ ...p, start, end, category: suggested ?? p.category }));
+                    }}
                     ariaLabel={t.explorer.dateRangeAria}
                   />
                   <select
@@ -456,17 +542,26 @@ export const ExplorerPanel = forwardRef<
                     onChange={(e) => setNewPhase((p) => ({ ...p, category: e.target.value }))}
                     aria-label={t.explorer.categoryAria}
                   >
-                    <option value="">{t.explorer.categoryNone}</option>
+                    {!categoryRequired && <option value="">{t.explorer.categoryNone}</option>}
+                    {categoryRequired && !newPhase.category && <option value="">{t.explorer.categoryAria}…</option>}
                     {stageCategories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
                       </option>
                     ))}
                   </select>
+                  {categoryRequired && (
+                    <p className={styles.fieldHint}>
+                      {newPhase.category && newPhase.start && newPhase.end &&
+                      suggestCategory(fromISODate(newPhase.start, startMonth), fromISODate(newPhase.end, startMonth), planLane) === newPhase.category
+                        ? t.explorer.categorySuggested(stageCategories.find((c) => c.id === newPhase.category)?.label ?? newPhase.category)
+                        : t.explorer.categoryRequired}
+                    </p>
+                  )}
                   <button
                     type="button"
                     className={styles.addButton}
-                    disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
+                    disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end || (categoryRequired && !newPhase.category)}
                     onClick={() => submitNewPhase(lane.id)}
                   >
                     <IconPlus /> {t.explorer.addButton}
@@ -539,7 +634,13 @@ export const ExplorerPanel = forwardRef<
                               onChange={(e) => onUpdatePhase(lane.id, phase.id, { category: e.target.value || undefined })}
                               aria-label={t.explorer.categoryAria}
                             >
-                              <option value="">{t.explorer.categoryNone}</option>
+                              {/* A team phase that's already linked can't be blanked back out
+                                  once categoryRequired — but a legacy phase that's still
+                                  unlinked keeps the option so there's a way to leave it as-is
+                                  while looking at the rest of the row. */}
+                              {(!categoryRequired || !phase.category) && (
+                                <option value="">{t.explorer.categoryNone}</option>
+                              )}
                               {stageCategories.map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.label}

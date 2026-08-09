@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
@@ -369,6 +369,7 @@ export function PoapRenderer({
   onLaneClick,
   onLaneGanttClick,
   onGatesLabelClick,
+  onCreatePhase,
   showWeekends = true,
   showToday = true,
 }: PoapRendererProps) {
@@ -384,6 +385,12 @@ export function PoapRenderer({
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [gateTooltip, setGateTooltip] = useState<GateTooltipState | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);
+  const [dragCreate, setDragCreate] = useState<{
+    laneId: string;
+    rect: DOMRect;
+    startAxis: number;
+    currentAxis: number;
+  } | null>(null);
   const activeGateIds = useMemo(() => new Set(activeGateIdsProp), [activeGateIdsProp]);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
@@ -546,6 +553,54 @@ export function PoapRenderer({
     );
   }
 
+  // Drag-to-create a track: mousedown on an expanded team/plan lane's empty
+  // track background (not on an existing bar — those still just navigate,
+  // see the `closest("button")` bail-out in the onMouseDown below) starts
+  // tracking a live axis range the same way Focus Cell resolves a click
+  // (daysToAxis over the row's own bounding rect, captured once at
+  // mousedown so a mousemove elsewhere on the page still resolves against
+  // the row it started in). A plain click (no real movement) never fires
+  // onCreatePhase — MIN_DRAG_AXIS keeps an accidental single-pixel jiggle
+  // from opening a same-day phase nobody meant to create.
+  const MIN_DRAG_AXIS = 0.05;
+
+  function axisFromClientX(clientX: number, rect: DOMRect): number {
+    const ratio = (clientX - rect.left) / rect.width;
+    return daysToAxis(ratio * scale.totalDays, scale);
+  }
+
+  function startDragCreate(e: ReactMouseEvent<HTMLDivElement>, laneId: string) {
+    if (!onCreatePhase) return;
+    if ((e.target as HTMLElement).closest("button")) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const axis = axisFromClientX(e.clientX, rect);
+    setDragCreate({ laneId, rect, startAxis: axis, currentAxis: axis });
+  }
+
+  useEffect(() => {
+    if (!dragCreate) return;
+    function onMove(e: globalThis.MouseEvent) {
+      setDragCreate((prev) => (prev ? { ...prev, currentAxis: axisFromClientX(e.clientX, prev.rect) } : prev));
+    }
+    function onUp() {
+      setDragCreate((prev) => {
+        if (prev && onCreatePhase) {
+          const start = Math.min(prev.startAxis, prev.currentAxis);
+          const end = Math.max(prev.startAxis, prev.currentAxis);
+          if (end - start >= MIN_DRAG_AXIS) onCreatePhase(prev.laneId, start, end);
+        }
+        return null;
+      });
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragCreate !== null]);
+
   function showTooltip(e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) {
     setTooltip({ ...data, x: e.clientX, y: e.clientY });
   }
@@ -623,7 +678,12 @@ export function PoapRenderer({
       );
     }
     return (
-      <div key={lane.id} className={trackClass} style={{ height: laneRowHeight(rows.length) }}>
+      <div
+        key={lane.id}
+        className={`${trackClass} ${onCreatePhase ? styles.laneTrackCreatable : ""}`.trim()}
+        style={{ height: laneRowHeight(rows.length) }}
+        onMouseDown={onCreatePhase ? (e) => startDragCreate(e, lane.id) : undefined}
+      >
         {rows.map((row, r) => (
           <div key={r} className={styles.laneRow}>
             {row.map((phase) => (
@@ -640,6 +700,19 @@ export function PoapRenderer({
             ))}
           </div>
         ))}
+        {dragCreate && dragCreate.laneId === lane.id && (
+          <div
+            className={styles.dragCreatePreview}
+            style={{
+              left: pct(Math.min(dragCreate.startAxis, dragCreate.currentAxis), scale),
+              width: pctSpan(
+                Math.min(dragCreate.startAxis, dragCreate.currentAxis),
+                Math.max(dragCreate.startAxis, dragCreate.currentAxis),
+                scale,
+              ),
+            }}
+          />
+        )}
       </div>
     );
   }

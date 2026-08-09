@@ -3,6 +3,7 @@
 import { forwardRef, useState } from "react";
 import { useLanguage } from "./i18n/LanguageProvider";
 import type { Project, StageCategoryDef } from "@/lib/portfolio";
+import type { ProgramRow } from "@/lib/db";
 import type { Theme } from "./useAppSettings";
 import { IconClose, IconPlus, IconTrash } from "@/lib/icons";
 import { SwitchToggle } from "./SwitchToggle";
@@ -34,6 +35,8 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
   onAddStageCategory: (label: string) => void;
   onRenameStageCategory: (id: string, label: string) => void;
   onDeleteStageCategory: (id: string) => void;
+  program: ProgramRow;
+  onUpdateProgram: (patch: Partial<Pick<ProgramRow, "name" | "startMonth" | "months">>) => void;
   projects: Project[];
   onDeleteProject: (id: string) => void;
   onClose: () => void;
@@ -53,6 +56,8 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
     onAddStageCategory,
     onRenameStageCategory,
     onDeleteStageCategory,
+    program,
+    onUpdateProgram,
     projects,
     onDeleteProject,
     onClose,
@@ -183,6 +188,38 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
 
       {tab === "data" && (
         <>
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.programSection}</p>
+            <p className={styles.optionHint}>{t.settings.programHint}</p>
+            <div className={explorerStyles.addRow}>
+              <input
+                className={explorerStyles.textInput}
+                value={program.name}
+                onChange={(e) => onUpdateProgram({ name: e.target.value })}
+                aria-label={t.settings.programNameAria}
+              />
+              <input
+                type="month"
+                className={explorerStyles.statusSelect}
+                value={program.startMonth}
+                onChange={(e) => e.target.value && onUpdateProgram({ startMonth: e.target.value })}
+                aria-label={t.settings.programStartAria}
+              />
+              <input
+                type="number"
+                min={1}
+                max={60}
+                className={explorerStyles.statusSelect}
+                value={program.months}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (n >= 1) onUpdateProgram({ months: n });
+                }}
+                aria-label={t.settings.programMonthsAria}
+              />
+            </div>
+          </div>
+
           <div className={styles.group}>
             <p className={styles.sectionTitle}>{t.settings.stagesSection}</p>
             <p className={styles.optionHint}>{t.settings.stagesHint}</p>

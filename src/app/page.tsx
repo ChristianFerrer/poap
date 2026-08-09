@@ -4,7 +4,6 @@ import { useMemo, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Lane } from "@/components/poap-renderer/types";
-import { PROGRAM } from "./mock-data";
 import { deriveProgramLanes, type Project, type StageCategoryDef } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
@@ -39,7 +38,7 @@ function ProjectGanttPanel({
   panelRef: Ref<HTMLDivElement>;
   onClose: () => void;
 }) {
-  const { commentsByActivity, addComment } = useProjects();
+  const { program, commentsByActivity, addComment } = useProjects();
   // Opens straight to the project's high-level plan (Design/Build/SIT/
   // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
   // what the Gantt button next to a project name on the Program page is
@@ -53,6 +52,7 @@ function ProjectGanttPanel({
     setExplorer,
     getActivities,
     addLane,
+    renameLane,
     updatePhase,
     addPhase,
     deleteLane,
@@ -65,13 +65,14 @@ function ProjectGanttPanel({
     <ExplorerPanel
       ref={panelRef}
       lanes={project.lanes}
-      startMonth={PROGRAM.startMonth}
+      startMonth={program.startMonth}
       view={explorer ?? { level: "lanes" }}
       stageCategories={stageCategories}
       getActivities={getActivities}
       onNavigate={setExplorer}
       onClose={onClose}
       onAddLane={addLane}
+      onRenameLane={renameLane}
       onUpdatePhase={updatePhase}
       onAddPhase={addPhase}
       onAddActivity={addActivity}
@@ -103,6 +104,8 @@ export default function ProgramPage() {
   const settings = useAppSettings();
   const {
     loaded,
+    program,
+    updateProgram,
     projects,
     addProject,
     deleteProject,
@@ -196,7 +199,7 @@ export default function ProgramPage() {
     router.push(`/project/${id}`);
   }
 
-  const sidebarActive: SidebarActive = settingsOpen ? "settings" : "home";
+  const sidebarActive: SidebarActive = settingsOpen ? "settings" : importOpen ? "import" : "home";
 
   const panelContent = ganttProject ? (
     <ProjectGanttPanel
@@ -209,7 +212,7 @@ export default function ProgramPage() {
   ) : addProjectOpen ? (
     <AddProjectPanel
       ref={sidePanel.panelRef}
-      startMonth={PROGRAM.startMonth}
+      startMonth={program.startMonth}
       stageCategories={stageCategories}
       onClose={sidePanel.closePanel}
       onCreate={createProject}
@@ -217,8 +220,8 @@ export default function ProgramPage() {
   ) : importOpen ? (
     <ImportPanel
       ref={sidePanel.panelRef}
-      startMonth={PROGRAM.startMonth}
-      months={PROGRAM.months}
+      startMonth={program.startMonth}
+      months={program.months}
       nameField={{ value: importProjectName, onChange: setImportProjectName, placeholder: t.addProject.namePlaceholder }}
       onClose={sidePanel.closePanel}
       onImport={createProjectFromImport}
@@ -240,6 +243,8 @@ export default function ProgramPage() {
       onAddStageCategory={addStageCategory}
       onRenameStageCategory={renameStageCategory}
       onDeleteStageCategory={deleteStageCategory}
+      program={program}
+      onUpdateProgram={updateProgram}
       projects={projects}
       onDeleteProject={deleteProject}
       onClose={sidePanel.closePanel}
@@ -252,6 +257,7 @@ export default function ProgramPage() {
         position={settings.navPosition}
         active={sidebarActive}
         onHome={goHome}
+        onImport={openImportPanel}
         onSettings={openSettingsPanel}
         showPanelToggle={settings.sidePanelMode === "fixed"}
         panelVisible={sidePanel.fixedPanelVisible}
@@ -261,10 +267,10 @@ export default function ProgramPage() {
         <div className={styles.headerRow}>
           <div>
             <p className={styles.eyebrow}>{t.header.eyebrow}</p>
-            <h1 className={styles.title}>{t.header.programTitle(PROGRAM.name)}</h1>
+            <h1 className={styles.title}>{t.header.programTitle(program.name)}</h1>
             <p className={styles.meta}>
-              {projects.length} {t.header.projectsWord} · {PROGRAM.months} {t.header.monthsWord} ·{" "}
-              {formatMonthRange(PROGRAM.startMonth, PROGRAM.months, MONTH_ABBR[locale])}
+              {projects.length} {t.header.projectsWord} · {program.months} {t.header.monthsWord} ·{" "}
+              {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
           <div className={styles.headerActions}>
@@ -298,8 +304,8 @@ export default function ProgramPage() {
               </div>
             ) : (
               <PoapRenderer
-                months={PROGRAM.months}
-                startMonth={PROGRAM.startMonth}
+                months={program.months}
+                startMonth={program.startMonth}
                 lanes={lanes}
                 onLaneClick={openProject}
                 onLaneGanttClick={openGanttPanel}

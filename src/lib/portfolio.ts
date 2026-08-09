@@ -119,6 +119,38 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
  * possibly-just-edited list (e.g. from ProjectsProvider) without needing
  * a full Program object to wrap it in.
  */
+export interface LinkageIssue {
+  laneId: string;
+  laneName: string;
+  phaseId: string;
+  phaseTitle: string;
+}
+
+/**
+ * Every team-lane phase that doesn't point at a real track of the
+ * project's plan lane (see Lane.isProjectPlan) — either untagged, or
+ * tagged with a category the plan lane doesn't actually have a phase for
+ * (its own track got renamed/deleted out from under it). This is meant to
+ * be recomputed on every render from whatever's currently true, not stored
+ * — so a plan-lane edit that breaks a previously-valid link surfaces the
+ * same way a phase that was never tagged does, and a fix clears itself the
+ * moment the data agrees again.
+ */
+export function findLinkageIssues(lanes: Lane[]): LinkageIssue[] {
+  const planLane = lanes.find((l) => l.isProjectPlan);
+  const planCategories = new Set(planLane?.phases.map((p) => p.category).filter((c): c is string => Boolean(c)));
+  const issues: LinkageIssue[] = [];
+  for (const lane of lanes) {
+    if (lane.isProjectPlan) continue;
+    for (const phase of lane.phases) {
+      if (!phase.category || !planCategories.has(phase.category)) {
+        issues.push({ laneId: lane.id, laneName: lane.name, phaseId: phase.id, phaseTitle: phase.title });
+      }
+    }
+  }
+  return issues;
+}
+
 export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[]): Lane[] {
   return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)

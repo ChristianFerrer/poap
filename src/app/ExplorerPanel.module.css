@@ -148,6 +148,56 @@
    the same lime accent PoapRenderer gives this lane in the main chart so
    the two read as the same thing. No delete action: unlike a team lane,
    this one isn't meant to be removable from here. */
+/* Persistent, actionable warning — stays on screen for as long as any
+   team phase doesn't point at a real plan-lane track, recomputed live on
+   every render rather than dismissed/stored, so it can't go stale. */
+.linkageBanner {
+  padding: 12px;
+  margin: 4px 0 20px;
+  background: color-mix(in srgb, var(--color-amber) 12%, var(--color-surface2));
+  border: 1px solid color-mix(in srgb, var(--color-amber) 40%, var(--color-line));
+  border-left: 3px solid var(--color-amber);
+  border-radius: var(--radius-2xl);
+}
+.linkageBannerTitle {
+  margin: 0 0 8px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-amber-ink, var(--color-amber));
+}
+.linkageList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.linkageItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--text-xs);
+  color: var(--color-fog);
+}
+.linkageFixButton {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-amber) 50%, var(--color-line));
+  background: transparent;
+  color: var(--color-snow);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.linkageFixButton:hover {
+  background: color-mix(in srgb, var(--color-amber) 16%, transparent);
+}
+
 .planLaneCard {
   padding: 12px;
   margin: 4px 0 20px;
@@ -458,6 +508,15 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+/* Sits under an .addRow on its own line (flex-basis: 100%) — the mandatory-
+   category note (or its auto-suggested value) for a team-lane phase. */
+.fieldHint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--text-2xs);
+  color: var(--color-fog);
 }
 .textInput {
   flex: 1 1 auto;

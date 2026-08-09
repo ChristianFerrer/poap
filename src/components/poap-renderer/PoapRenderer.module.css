@@ -588,6 +588,27 @@
   gap: 2px;
   border-bottom: 0.5px solid var(--color-line);
 }
+
+/* Drag-to-create is available on this lane — crosshair over empty track
+   space signals it the same way a text cursor signals an editable field;
+   a bar's own `cursor: pointer` (see .bar) still wins over this since it's
+   the more specific element. */
+.laneTrackCreatable {
+  cursor: crosshair;
+}
+
+/* Live preview while dragging a new track's date range — spans the full
+   lane height (not row-precise) since the eventual track's row placement
+   is decided by packLane only once it actually exists. */
+.dragCreatePreview {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--color-lime) 22%, transparent);
+  border: 1.5px dashed var(--color-lime);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+}
 .laneRow {
   position: relative;
   height: 17px;

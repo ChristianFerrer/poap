@@ -71,6 +71,20 @@
   flex: 0 0 auto;
 }
 
+/* Persistent count badge for unresolved plan-lane links (see
+   findLinkageIssues) — amber like an at-risk phase, always visible in the
+   header (not just inside the panel) so the alert survives closing it. */
+.linkageBadge {
+  composes: btnSecondary from "./buttons.module.css";
+  color: var(--color-amber-ink, var(--color-amber));
+  border-color: color-mix(in srgb, var(--color-amber) 45%, var(--color-line));
+  background: color-mix(in srgb, var(--color-amber) 12%, var(--color-surface2));
+}
+.linkageBadge:hover {
+  color: var(--color-amber-ink, var(--color-amber));
+  border-color: var(--color-amber);
+}
+
 .eyebrow {
   font-size: var(--text-2xs);
   color: var(--color-fog);

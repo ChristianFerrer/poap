@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Gate, Lane } from "@/components/poap-renderer/types";
-import type { Project } from "@/lib/portfolio";
-import { BANDS, PROGRAM } from "../../mock-data";
+import { findLinkageIssues, type Project } from "@/lib/portfolio";
+import { BANDS } from "../../mock-data";
 import { useProjects } from "../../ProjectsProvider";
 import { useProjectSwimlines } from "../../useProjectSwimlines";
 import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
@@ -64,6 +64,8 @@ function ProjectView({ project }: { project: Project }) {
   const router = useRouter();
   const settings = useAppSettings();
   const {
+    program,
+    updateProgram,
     projects,
     deleteProject,
     setProjectLanes,
@@ -81,6 +83,7 @@ function ProjectView({ project }: { project: Project }) {
     setExplorer,
     getActivities,
     addLane,
+    renameLane,
     updatePhase,
     addPhase,
     deleteLane,
@@ -92,12 +95,14 @@ function ProjectView({ project }: { project: Project }) {
   const lanes = project.lanes;
   const gates = project.gates;
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
+  const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
 
   const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
+  const linkageIssueCount = findLinkageIssues(lanes).length;
 
   function closeAllPanels() {
     setExplorer(null);
@@ -173,6 +178,11 @@ function ProjectView({ project }: { project: Project }) {
     openExplorer({ level: "phases", laneId });
   }
 
+  function handleCreatePhase(laneId: string, start: number, end: number) {
+    setDraftRange({ laneId, start, end });
+    openExplorer({ level: "phases", laneId });
+  }
+
   function toggleGateActive(gateId: string) {
     setActiveGateIds((prev) => (prev.includes(gateId) ? prev.filter((id) => id !== gateId) : [...prev, gateId]));
   }
@@ -236,21 +246,26 @@ function ProjectView({ project }: { project: Project }) {
     ? "settings"
     : gatesPanelOpen
       ? "gates"
-      : explorer
-        ? "swimlines"
-        : "home";
+      : importOpen
+        ? "import"
+        : explorer
+          ? "swimlines"
+          : "home";
 
   const panelContent = explorer ? (
     <ExplorerPanel
       ref={sidePanel.panelRef}
       lanes={lanes}
-      startMonth={PROGRAM.startMonth}
+      startMonth={program.startMonth}
       view={explorer}
       stageCategories={stageCategories}
       getActivities={getActivities}
       onNavigate={setExplorer}
       onClose={sidePanel.closePanel}
       onAddLane={addLane}
+      onRenameLane={renameLane}
+      draftRange={draftRange}
+      onDraftRangeConsumed={() => setDraftRange(null)}
       onUpdatePhase={updatePhase}
       onAddPhase={addPhase}
       onAddActivity={addActivity}
@@ -265,7 +280,7 @@ function ProjectView({ project }: { project: Project }) {
       ref={sidePanel.panelRef}
       gates={gates}
       activeGateIds={new Set(activeGateIds)}
-      startMonth={PROGRAM.startMonth}
+      startMonth={program.startMonth}
       onClose={sidePanel.closePanel}
       onToggle={toggleGateActive}
       onUpdate={updateGate}
@@ -275,8 +290,8 @@ function ProjectView({ project }: { project: Project }) {
   ) : importOpen ? (
     <ImportPanel
       ref={sidePanel.panelRef}
-      startMonth={PROGRAM.startMonth}
-      months={PROGRAM.months}
+      startMonth={program.startMonth}
+      months={program.months}
       onClose={sidePanel.closePanel}
       onImport={importLanes}
     />
@@ -297,6 +312,8 @@ function ProjectView({ project }: { project: Project }) {
       onAddStageCategory={addStageCategory}
       onRenameStageCategory={renameStageCategory}
       onDeleteStageCategory={deleteStageCategory}
+      program={program}
+      onUpdateProgram={updateProgram}
       projects={projects}
       onDeleteProject={handleDeleteProject}
       onClose={sidePanel.closePanel}
@@ -311,6 +328,7 @@ function ProjectView({ project }: { project: Project }) {
         onHome={goHome}
         onSwimlines={() => openExplorer({ level: "lanes" })}
         onGates={openGatesPanel}
+        onImport={openImportPanel}
         onSettings={openSettingsPanel}
         showPanelToggle={settings.sidePanelMode === "fixed"}
         panelVisible={sidePanel.fixedPanelVisible}
@@ -324,11 +342,21 @@ function ProjectView({ project }: { project: Project }) {
             </Link>
             <h1 className={styles.title}>{t.header.projectTitle(project.name)}</h1>
             <p className={styles.meta}>
-              {lanes.length} {t.header.lanesWord} · {phaseCount} {t.header.phasesWord} · {PROGRAM.months}{" "}
-              {t.header.monthsWord} · {formatMonthRange(PROGRAM.startMonth, PROGRAM.months, MONTH_ABBR[locale])}
+              {lanes.length} {t.header.lanesWord} · {phaseCount} {t.header.phasesWord} · {program.months}{" "}
+              {t.header.monthsWord} · {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
           <div className={styles.headerActions}>
+            {linkageIssueCount > 0 && (
+              <button
+                type="button"
+                className={styles.linkageBadge}
+                onClick={() => openExplorer({ level: "lanes" })}
+                title={t.linkage.bannerTitle}
+              >
+                {t.linkage.count(linkageIssueCount)}
+              </button>
+            )}
             <button type="button" className={styles.importButton} onClick={openImportPanel}>
               {t.header.importButton}
             </button>
@@ -338,8 +366,8 @@ function ProjectView({ project }: { project: Project }) {
         <div className={`${styles.layout} ${settings.sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
           <div className={styles.calendarCol}>
             <PoapRenderer
-              months={PROGRAM.months}
-              startMonth={PROGRAM.startMonth}
+              months={program.months}
+              startMonth={program.startMonth}
               lanes={lanes}
               gates={gates}
               bands={BANDS}
@@ -348,6 +376,7 @@ function ProjectView({ project }: { project: Project }) {
               activeGateIds={activeGateIds}
               onGateClick={handleGateClick}
               onLaneClick={handleLaneClick}
+              onCreatePhase={handleCreatePhase}
               onGatesLabelClick={openGatesPanel}
               locale={locale}
               showWeekends={settings.showWeekends}
