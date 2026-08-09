@@ -16,6 +16,13 @@ export interface Phase {
    * phases. Untagged phases (undefined) just don't count toward any
    * stage's aggregate span. */
   category?: string;
+  /** Which of its team lane's Planes this phase belongs to (see the Plan
+   * type in src/lib/portfolio.ts) — another app-level grouping tag the
+   * renderer never reads, same shape as `category` but one level down the
+   * hierarchy (Equipo -> Plan -> Fase, vs. category's Proyecto -> Fase).
+   * Undefined for the isProjectPlan anchor lane's own phases, which don't
+   * have Planes of their own. */
+  planId?: string;
 }
 
 export interface Lane {

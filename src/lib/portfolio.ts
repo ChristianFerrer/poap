@@ -11,6 +11,23 @@ export interface StageCategoryDef {
 }
 
 /**
+ * A team lane's (Equipo's) own sub-grouping of its phases — one level
+ * between Equipo and Fase (Equipo -> Plan -> Fase), a different concept
+ * from the project-wide "Plan del proyecto" anchor lane (Lane.isProjectPlan)
+ * despite the name overlap: this is per-team, that one is per-project.
+ * Kept as a flat list per lane (see ProjectsProvider's plansByLane) rather
+ * than nested inside Lane, the same way activities live in a flat
+ * activitiesByPhase map instead of inside Phase — Phase.planId is what
+ * actually ties a phase to one of these.
+ */
+export interface Plan {
+  id: string;
+  laneId: string;
+  name: string;
+  sortOrder: number;
+}
+
+/**
  * A Project is one level below Program: its own set of team lanes (exactly
  * what the existing single-project app already modeled), plus its own
  * stage gates. Deliberately no startMonth/months of its own — every
@@ -119,6 +136,34 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
  * possibly-just-edited list (e.g. from ProjectsProvider) without needing
  * a full Program object to wrap it in.
  */
+/**
+ * Turns one team lane's flat phase list into one synthetic Lane per Plan
+ * (each holding that Plan's own real phases, packed exactly like any other
+ * lane) — the same "reinterpret Lane as a different level" trick
+ * deriveProgramLanes uses for Proyecto-as-lane, one level further down.
+ * Any phase whose planId doesn't match a real Plan (never assigned, or its
+ * Plan got deleted) still shows up, grouped under `unassignedLabel`, rather
+ * than silently disappearing — same "never hide an orphan" rule as
+ * findLinkageIssues below.
+ */
+export function groupPhasesByPlan(lane: Lane, plans: Plan[], unassignedLabel: string): Lane[] {
+  const byPlan = new Map<string, Phase[]>();
+  for (const phase of lane.phases) {
+    const key = phase.planId && plans.some((p) => p.id === phase.planId) ? phase.planId : "__unassigned__";
+    const group = byPlan.get(key) ?? [];
+    group.push(phase);
+    byPlan.set(key, group);
+  }
+  const planLanes: Lane[] = [...plans]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((plan) => ({ id: plan.id, name: plan.name, sortOrder: plan.sortOrder, phases: byPlan.get(plan.id) ?? [] }));
+  const unassigned = byPlan.get("__unassigned__") ?? [];
+  if (unassigned.length > 0) {
+    planLanes.push({ id: "__unassigned__", name: unassignedLabel, sortOrder: plans.length, phases: unassigned });
+  }
+  return planLanes;
+}
+
 export interface LinkageIssue {
   laneId: string;
   laneName: string;

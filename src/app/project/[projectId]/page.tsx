@@ -174,8 +174,18 @@ function ProjectView({ project }: { project: Project }) {
     openExplorer({ level: "activities", phaseId });
   }
 
+  // A team lane's name now drills into its Planes (Equipo -> Plan -> Fase —
+  // see the new /lane/[laneId] route), matching the same "click the name to
+  // enter" mechanic every other level uses. The isProjectPlan anchor lane
+  // is a different concept (the project-wide plan, not a team with Planes
+  // of its own) and keeps its original side-panel phases view.
   function handleLaneClick(laneId: string) {
-    openExplorer({ level: "phases", laneId });
+    const lane = lanes.find((l) => l.id === laneId);
+    if (lane?.isProjectPlan) {
+      openExplorer({ level: "phases", laneId });
+      return;
+    }
+    router.push(`/project/${project.id}/lane/${laneId}`);
   }
 
   function handleCreatePhase(laneId: string, start: number, end: number) {

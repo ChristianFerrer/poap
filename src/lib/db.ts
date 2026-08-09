@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
-import type { Project, StageCategoryDef } from "@/lib/portfolio";
+import type { Plan, Project, StageCategoryDef } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "@/app/mock-data";
 
 /**
@@ -65,6 +65,7 @@ export interface ProgramRow {
 interface AppData {
   program: ProgramRow | null;
   projects: Project[];
+  plansByLane: Record<string, Plan[]>;
   activitiesByPhase: Record<string, ActivitySeed[]>;
   commentsByActivity: Record<string, ActivityComment[]>;
   stageCategories: StageCategoryDef[];
@@ -76,6 +77,7 @@ export async function fetchAppData(): Promise<AppData> {
     { data: stageCategoryRows, error: stageCategoriesError },
     { data: projectRows, error: projectsError },
     { data: laneRows, error: lanesError },
+    { data: planRows, error: plansError },
     { data: phaseRows, error: phasesError },
     { data: gateRows, error: gatesError },
     { data: activityRows, error: activitiesError },
@@ -85,6 +87,7 @@ export async function fetchAppData(): Promise<AppData> {
     supabase.from("stage_categories").select("*").order("sort_order"),
     supabase.from("projects").select("*").order("sort_order"),
     supabase.from("lanes").select("*").order("sort_order"),
+    supabase.from("plans").select("*").order("sort_order"),
     supabase.from("phases").select("*"),
     supabase.from("gates").select("*").order("position"),
     supabase.from("activities").select("*"),
@@ -92,8 +95,14 @@ export async function fetchAppData(): Promise<AppData> {
   ]);
 
   const firstError =
-    programError || stageCategoriesError || projectsError || lanesError || phasesError || gatesError || activitiesError || commentsError;
+    programError || stageCategoriesError || projectsError || lanesError || plansError || phasesError || gatesError || activitiesError || commentsError;
   if (firstError) throw firstError;
+
+  const plansByLane: Record<string, Plan[]> = {};
+  for (const r of planRows ?? []) {
+    const plan: Plan = { id: r.id, laneId: r.lane_id, name: r.name, sortOrder: r.sort_order };
+    (plansByLane[r.lane_id] ??= []).push(plan);
+  }
 
   const programRow = programRows?.[0];
   const program: ProgramRow | null = programRow
@@ -111,6 +120,7 @@ export async function fetchAppData(): Promise<AppData> {
       end: r.end_day,
       status: r.status as PhaseStatus,
       category: r.category ?? undefined,
+      planId: r.plan_id ?? undefined,
       subLane: r.sub_lane ?? undefined,
       owners: r.owners ?? undefined,
     };
@@ -169,7 +179,7 @@ export async function fetchAppData(): Promise<AppData> {
     (activitiesByPhase[r.phase_id] ??= []).push(activity);
   }
 
-  return { program, projects, activitiesByPhase, commentsByActivity, stageCategories };
+  return { program, projects, plansByLane, activitiesByPhase, commentsByActivity, stageCategories };
 }
 
 // ---------------------------------------------------------------------
@@ -265,6 +275,7 @@ function phaseToRow(phase: Phase, laneId: string) {
     end_day: phase.end,
     status: phase.status,
     category: phase.category ?? null,
+    plan_id: phase.planId ?? null,
     sub_lane: phase.subLane ?? null,
     owners: phase.owners ?? null,
   };
@@ -309,6 +320,43 @@ export async function syncProjectLanes(projectId: string, prevLanes: Lane[], nex
 
 function laneIdForPhase(lanes: Lane[], phaseId: string): string {
   return lanes.find((l) => l.phases.some((p) => p.id === phaseId))?.id ?? "";
+}
+
+// ---------------------------------------------------------------------
+// Plans — a team lane's own sub-grouping of its phases (see the Plan type
+// in src/lib/portfolio.ts). Simple targeted calls like stage categories
+// below, not a diffed collection, since a Plan list changes one row at a
+// time from its own small "add plan" form rather than as part of some
+// larger array edit.
+// ---------------------------------------------------------------------
+
+export async function insertPlan(plan: Plan) {
+  try {
+    const { error } = await supabase
+      .from("plans")
+      .insert({ id: plan.id, lane_id: plan.laneId, name: plan.name, sort_order: plan.sortOrder });
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`insertPlan(${plan.id})`, error);
+  }
+}
+
+export async function renamePlanRow(id: string, name: string) {
+  try {
+    const { error } = await supabase.from("plans").update({ name }).eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`renamePlanRow(${id})`, error);
+  }
+}
+
+export async function deletePlanRow(id: string) {
+  try {
+    const { error } = await supabase.from("plans").delete().eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`deletePlanRow(${id})`, error);
+  }
 }
 
 // ---------------------------------------------------------------------

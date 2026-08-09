@@ -2,19 +2,22 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
-import type { Project, StageCategoryDef } from "@/lib/portfolio";
+import type { Plan, Project, StageCategoryDef } from "@/lib/portfolio";
 import { activitiesFor, type ActivityComment, type ActivitySeed } from "./mock-data";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { UndoToast } from "./UndoToast";
 import { SyncErrorToast } from "./SyncErrorToast";
 import {
+  deletePlanRow,
   deleteProjectRow,
   deleteStageCategoryRow,
   errorMessage,
   fetchAppData,
   insertComment,
+  insertPlan,
   insertProject,
   insertStageCategory,
+  renamePlanRow,
   setSyncErrorHandler,
   syncPhaseActivities,
   syncProjectGates,
@@ -53,6 +56,13 @@ interface ProjectsContextValue {
   deleteProject: (projectId: string) => void;
   setProjectLanes: (projectId: string, updater: (lanes: Lane[]) => Lane[]) => void;
   setProjectGates: (projectId: string, updater: (gates: Gate[]) => Gate[]) => void;
+  /** A team lane's own Planes (Equipo -> Plan -> Fase), keyed by lane id —
+   * flat like activitiesByPhase rather than nested inside Lane, since
+   * Phase.planId is what actually ties a phase to one. */
+  plansByLane: Record<string, Plan[]>;
+  addPlan: (laneId: string, name: string) => void;
+  renamePlan: (id: string, name: string) => void;
+  deletePlan: (id: string) => void;
   /** Short freeform status note surfaced on the Program page's executive
    * summary for projects that need one — not a project field teams edit
    * day to day, just the "why" a PMO/sponsor asks for without opening the
@@ -142,6 +152,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     months: FALLBACK_PROGRAM.months,
   });
   const [projects, setProjects] = useState<Project[]>([]);
+  const [plansByLane, setPlansByLane] = useState<Record<string, Plan[]>>({});
   const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>({});
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
   const [stageCategories, setStageCategories] = useState<StageCategoryDef[]>([]);
@@ -184,6 +195,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         if (data.program) setProgram(data.program);
         setProjects(data.projects);
+        setPlansByLane(data.plansByLane);
         setActivitiesByPhase(data.activitiesByPhase);
         setCommentsByActivity(data.commentsByActivity);
         setStageCategories(data.stageCategories);
@@ -303,6 +315,58 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     await insertComment(activityId, comment);
   }
 
+  function addPlan(laneId: string, name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const existing = plansByLane[laneId] ?? [];
+    const plan: Plan = { id: crypto.randomUUID(), laneId, name: trimmed, sortOrder: existing.length };
+    setPlansByLane((prev) => ({ ...prev, [laneId]: [...(prev[laneId] ?? []), plan] }));
+    void insertPlan(plan);
+  }
+
+  function renamePlan(id: string, name: string) {
+    setPlansByLane((prev) => {
+      const next: Record<string, Plan[]> = {};
+      for (const [laneId, plans] of Object.entries(prev)) {
+        next[laneId] = plans.map((p) => (p.id === id ? { ...p, name } : p));
+      }
+      return next;
+    });
+    void renamePlanRow(id, name);
+  }
+
+  function deletePlan(id: string) {
+    let removedLaneId: string | null = null;
+    let removedIndex = -1;
+    let removedPlan: Plan | null = null;
+    for (const [laneId, plans] of Object.entries(plansByLane)) {
+      const index = plans.findIndex((p) => p.id === id);
+      if (index !== -1) {
+        removedLaneId = laneId;
+        removedIndex = index;
+        removedPlan = plans[index]!;
+        break;
+      }
+    }
+    if (!removedLaneId || !removedPlan) return;
+    const laneId = removedLaneId;
+    const plan = removedPlan;
+    const index = removedIndex;
+    setPlansByLane((prev) => ({ ...prev, [laneId]: (prev[laneId] ?? []).filter((p) => p.id !== id) }));
+    void deletePlanRow(id);
+    // Phases that pointed at this Plan aren't touched — they just fall
+    // into groupPhasesByPlan's "unassigned" bucket until reassigned, same
+    // "never hide an orphan" rule the linkage alert already follows.
+    announceUndo(t.undo.planDeleted(plan.name), () => {
+      setPlansByLane((prev) => {
+        const next = [...(prev[laneId] ?? [])];
+        next.splice(index, 0, plan);
+        return { ...prev, [laneId]: next };
+      });
+      void insertPlan(plan);
+    });
+  }
+
   function addStageCategory(label: string) {
     const trimmed = label.trim();
     if (!trimmed) return;
@@ -344,6 +408,10 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         deleteProject,
         setProjectLanes,
         setProjectGates,
+        plansByLane,
+        addPlan,
+        renamePlan,
+        deletePlan,
         setProjectNote,
         activitiesByPhase,
         updatePhaseActivities,
