@@ -58,6 +58,36 @@
   margin: 0 0 4px;
 }
 
+/* "Where am I" — Programa / Proyecto / Equipo / Plan / Fase, in that
+   order, one crumb per ancestor level above whatever's currently shown as
+   the page's own .title below it. Reuses .eyebrow's own small size/color
+   (it occupies that exact slot, just with clickable, meaningful segments
+   instead of static branding text) rather than the old .drillCrumb style,
+   which was sized for its own separate row beneath the header. */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 0 0 4px;
+  font-size: var(--text-2xs);
+}
+.breadcrumbCrumb {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-fog);
+  cursor: pointer;
+}
+.breadcrumbCrumb:hover {
+  color: var(--color-snow);
+  text-decoration: underline;
+}
+.breadcrumbSep {
+  color: var(--color-mist);
+}
+
 .title {
   font-family: var(--font-display);
   font-size: var(--text-xl);
@@ -71,45 +101,6 @@
   font-size: var(--text-xs);
   color: var(--color-fog);
   margin: 0 0 18px;
-}
-
-/* Persistent breadcrumb for the recursive swimline canvas (Equipo -> Plan
-   -> Fase) — always the same shape as the trail deepens, one crumb per
-   drill level, each clickable to jump back to it. Sits below the header
-   row and above the calendar, never inside a side panel — the whole point
-   is that it's visible regardless of what panel (if any) is open. */
-.drillBreadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 0 0 14px;
-}
-.drillCrumb {
-  background: none;
-  border: none;
-  padding: 3px 8px;
-  border-radius: var(--radius-lg);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-fog);
-  cursor: pointer;
-}
-.drillCrumb:hover {
-  background: var(--color-surface2);
-  color: var(--color-snow);
-}
-.drillCrumbCurrent {
-  color: var(--color-snow);
-  cursor: default;
-}
-.drillCrumbCurrent:hover {
-  background: none;
-}
-.drillSep {
-  color: var(--color-mist);
-  font-size: var(--text-sm);
 }
 
 /* The calendar takes the full remaining height below the header — the

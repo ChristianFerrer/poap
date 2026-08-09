@@ -505,6 +505,34 @@ function ProjectView({ project }: { project: Project }) {
           ? "swimlines"
           : "home";
 
+  // "Where am I" — every ancestor level above whatever's shown as the
+  // page's own title below it (Programa always first, then this project,
+  // then however deep the recursive canvas is currently drilled). The
+  // title itself is never repeated as its own crumb — that's exactly what
+  // makes it the title instead of just the last breadcrumb segment.
+  const breadcrumbCrumbs: { label: string; onClick: () => void }[] = [
+    { label: t.header.levelProgram, onClick: () => router.push("/") },
+  ];
+  if (drill) {
+    breadcrumbCrumbs.push({ label: project.name, onClick: () => setDrill(null) });
+    if (drill.level !== "equipo") {
+      breadcrumbCrumbs.push({ label: equipoName(drill.laneId), onClick: () => setDrill({ level: "equipo", laneId: drill.laneId }) });
+    }
+    if (drill.level === "fase") {
+      breadcrumbCrumbs.push({
+        label: planName(drill.laneId, drill.planId),
+        onClick: () => setDrill({ level: "plan", laneId: drill.laneId, planId: drill.planId }),
+      });
+    }
+  }
+  const headerTitle = !drill
+    ? t.header.projectTitle(project.name)
+    : drill.level === "equipo"
+      ? equipoName(drill.laneId)
+      : drill.level === "plan"
+        ? planName(drill.laneId, drill.planId)
+        : faseName(drill.laneId, drill.phaseId);
+
   const panelContent = explorer ? (
     <ExplorerPanel
       ref={sidePanel.panelRef}
@@ -587,10 +615,19 @@ function ProjectView({ project }: { project: Project }) {
       <main className={`${styles.main} ${styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
-            <Link href="/" className={styles.eyebrow}>
-              {t.header.backToProgram}
-            </Link>
-            <h1 className={styles.title}>{t.header.projectTitle(project.name)}</h1>
+            <nav className={styles.breadcrumb} aria-label={t.header.breadcrumbAria}>
+              {breadcrumbCrumbs.map((crumb, i) => (
+                <span key={i}>
+                  <button type="button" className={styles.breadcrumbCrumb} onClick={crumb.onClick}>
+                    {crumb.label}
+                  </button>
+                  {i < breadcrumbCrumbs.length - 1 && (
+                    <span className={styles.breadcrumbSep} aria-hidden="true"> / </span>
+                  )}
+                </span>
+              ))}
+            </nav>
+            <h1 className={styles.title}>{headerTitle}</h1>
             <p className={styles.meta}>
               {lanes.length} {t.header.lanesWord} · {phaseCount} {t.header.phasesWord} · {program.months}{" "}
               {t.header.monthsWord} · {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
@@ -604,40 +641,6 @@ function ProjectView({ project }: { project: Project }) {
             </div>
           )}
         </div>
-
-        {drill && (
-          <nav className={styles.drillBreadcrumb} aria-label={t.explorer.breadcrumbNav}>
-            <button type="button" className={styles.drillCrumb} onClick={() => setDrill(null)}>
-              {project.name}
-            </button>
-            <span className={styles.drillSep} aria-hidden="true">/</span>
-            <button
-              type="button"
-              className={`${styles.drillCrumb} ${drill.level === "equipo" ? styles.drillCrumbCurrent : ""}`}
-              onClick={() => setDrill({ level: "equipo", laneId: drill.laneId })}
-            >
-              {equipoName(drill.laneId)}
-            </button>
-            {drill.level !== "equipo" && (
-              <>
-                <span className={styles.drillSep} aria-hidden="true">/</span>
-                <button
-                  type="button"
-                  className={`${styles.drillCrumb} ${drill.level === "plan" ? styles.drillCrumbCurrent : ""}`}
-                  onClick={() => setDrill({ level: "plan", laneId: drill.laneId, planId: drill.planId })}
-                >
-                  {planName(drill.laneId, drill.planId)}
-                </button>
-              </>
-            )}
-            {drill.level === "fase" && (
-              <>
-                <span className={styles.drillSep} aria-hidden="true">/</span>
-                <span className={`${styles.drillCrumb} ${styles.drillCrumbCurrent}`}>{faseName(drill.laneId, drill.phaseId)}</span>
-              </>
-            )}
-          </nav>
-        )}
 
         {drill?.level === "equipo" && (
           <div className={explorerStyles.addGroup} style={{ margin: "0 0 14px" }}>

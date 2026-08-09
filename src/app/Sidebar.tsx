@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IconAlertTriangle, IconGateDiamond, IconHome, IconLanes, IconSettings, IconUploadNav } from "@/lib/icons";
+import { IconAddNav, IconAlertTriangle, IconGateDiamond, IconHome, IconLanes, IconSettings, IconUploadNav } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
-export type SidebarActive = "home" | "swimlines" | "gates" | "import" | "settings";
+export type SidebarActive = "home" | "swimlines" | "gates" | "import" | "addProject" | "settings";
 
 /**
  * Left-anchored icon nav — the app's single entry point for the
@@ -23,6 +23,7 @@ export function Sidebar({
   onSwimlines,
   onGates,
   onImport,
+  onAddProject,
   onSettings,
   issuesCount = 0,
   onIssuesClick,
@@ -35,6 +36,10 @@ export function Sidebar({
    * page-header button) since it's how a team gets a plan into the app in
    * the first place, on both the Program and Project pages. */
   onImport: () => void;
+  /** Opens the "add project" form — only meaningful on the Program page
+   * (a project has no "sub-projects" of its own), so it simply isn't
+   * rendered anywhere else, same pattern as onSwimlines/onGates. */
+  onAddProject?: () => void;
   onSettings: () => void;
   /** Count of tracks missing a required parent (no plan-lane category, or
    * no Plan) — rendered as a permanent badge in the rail itself rather
@@ -54,6 +59,9 @@ export function Sidebar({
       ? [{ key: "gates" as const, icon: <IconGateDiamond />, ariaLabel: t.sidebar.gatesAria, label: t.sidebar.gatesLabel, onClick: onGates }]
       : []),
     { key: "import" as const, icon: <IconUploadNav />, ariaLabel: t.sidebar.importAria, label: t.sidebar.importLabel, onClick: onImport },
+    ...(onAddProject
+      ? [{ key: "addProject" as const, icon: <IconAddNav />, ariaLabel: t.header.addProjectButton, label: t.sidebar.addProjectLabel, onClick: onAddProject }]
+      : []),
     { key: "settings", icon: <IconSettings />, ariaLabel: t.sidebar.settingsAria, label: t.sidebar.settingsLabel, onClick: onSettings },
   ];
 

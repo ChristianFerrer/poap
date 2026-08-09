@@ -119,7 +119,6 @@ export default function ProgramPage() {
     projects,
     addProject,
     deleteProject,
-    setProjectNote,
     stageCategories,
     addStageCategory,
     renameStageCategory,
@@ -212,7 +211,13 @@ export default function ProgramPage() {
     router.push(`/project/${id}`);
   }
 
-  const sidebarActive: SidebarActive = settingsOpen ? "settings" : importOpen ? "import" : "home";
+  const sidebarActive: SidebarActive = settingsOpen
+    ? "settings"
+    : importOpen
+      ? "import"
+      : addProjectOpen
+        ? "addProject"
+        : "home";
 
   const panelContent = ganttProject ? (
     <ProjectGanttPanel
@@ -264,30 +269,26 @@ export default function ProgramPage() {
 
   return (
     <>
-      <Sidebar active={sidebarActive} onHome={goHome} onImport={openImportPanel} onSettings={openSettingsPanel} />
+      <Sidebar
+        active={sidebarActive}
+        onHome={goHome}
+        onImport={openImportPanel}
+        onAddProject={openAddProjectPanel}
+        onSettings={openSettingsPanel}
+      />
       <main className={`${styles.main} ${styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
-            <p className={`${styles.eyebrow} ${styles.eyebrowDecorative}`}>{t.header.eyebrow}</p>
-            <h1 className={styles.title}>{t.header.programTitle(program.name)}</h1>
+            <p className={styles.eyebrow}>{t.header.levelProgram}</p>
+            <h1 className={styles.title}>{program.name}</h1>
             <p className={styles.meta}>
               {projects.length} {t.header.projectsWord} · {program.months} {t.header.monthsWord} ·{" "}
               {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
-          {!anyPanelOpen && (
-            <div className={styles.headerActions}>
-              <button type="button" className={styles.importButton} onClick={openImportPanel}>
-                {t.header.importButton}
-              </button>
-              <button type="button" className={styles.importButton} onClick={openAddProjectPanel}>
-                <IconPlus /> {t.header.addProjectButton}
-              </button>
-            </div>
-          )}
         </div>
 
-        <ExecutiveSummary projects={projects} onSetNote={setProjectNote} />
+        <ExecutiveSummary projects={projects} />
 
         <div className={styles.layout}>
           <div className={styles.calendarCol}>

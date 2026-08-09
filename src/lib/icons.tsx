@@ -56,3 +56,4 @@ export const IconLanes = icon(Rows3, NAV_SIZE);
 export const IconSettings = icon(SettingsIcon, NAV_SIZE);
 export const IconUploadNav = icon(Upload, NAV_SIZE);
 export const IconAlertTriangle = icon(AlertTriangle, NAV_SIZE);
+export const IconAddNav = icon(Plus, NAV_SIZE);

@@ -10,7 +10,7 @@ import type { Locale } from "@/lib/i18n";
 const es = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
-    programTitle: (name: string) => `Programa ${name}`,
+    levelProgram: "Programa",
     projectTitle: (name: string) => `${name} — plan on a page`,
     projectsWord: "proyectos",
     lanesWord: "carriles",
@@ -21,6 +21,7 @@ const es = {
     languageAria: "Idioma",
     resizeHandleAria: "Ajustar ancho del panel",
     backToProgram: "← Volver al programa",
+    breadcrumbAria: "Ubicación actual",
     emptyProgramTitle: "Todavía no hay proyectos en este programa",
     emptyProgramBody: "Creá el primero a mano o importá un plan existente desde Excel — podés agregar más en cualquier momento.",
     loading: "Cargando…",
@@ -159,6 +160,7 @@ const es = {
     gatesLabel: "Gates",
     swimlinesLabel: "Swimlines",
     importLabel: "Importar",
+    addProjectLabel: "Proyecto",
     settingsLabel: "Ajustes",
     navAria: "Navegación principal",
   },
@@ -210,9 +212,6 @@ const es = {
   },
   summary: {
     projectsCount: (n: number) => `${n} ${n === 1 ? "proyecto" : "proyectos"}`,
-    riskHeading: "En riesgo — por qué",
-    riskNotePlaceholder: "¿Por qué está en riesgo? (visible para todos)",
-    riskNoteAria: (name: string) => `Nota de riesgo para ${name}`,
   },
   sync: {
     saveFailed: (detail: string) => `No se pudo guardar el último cambio (sigue visible acá, pero no sobrevivirá a un recargo): ${detail}`,
@@ -257,7 +256,7 @@ type Translations = typeof es;
 const en: Translations = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
-    programTitle: (name) => `${name} Program`,
+    levelProgram: "Program",
     projectTitle: (name) => `${name} — plan on a page`,
     projectsWord: "projects",
     lanesWord: "lanes",
@@ -268,6 +267,7 @@ const en: Translations = {
     languageAria: "Language",
     resizeHandleAria: "Resize panel",
     backToProgram: "← Back to program",
+    breadcrumbAria: "Current location",
     emptyProgramTitle: "No projects in this program yet",
     emptyProgramBody: "Create the first one by hand or import an existing plan from Excel — you can add more anytime.",
     loading: "Loading…",
@@ -406,6 +406,7 @@ const en: Translations = {
     gatesLabel: "Gates",
     swimlinesLabel: "Swimlines",
     importLabel: "Import",
+    addProjectLabel: "Project",
     settingsLabel: "Settings",
     navAria: "Main navigation",
   },
@@ -457,9 +458,6 @@ const en: Translations = {
   },
   summary: {
     projectsCount: (n) => `${n} ${n === 1 ? "project" : "projects"}`,
-    riskHeading: "At risk — why",
-    riskNotePlaceholder: "Why is it at risk? (visible to everyone)",
-    riskNoteAria: (name) => `Risk note for ${name}`,
   },
   sync: {
     saveFailed: (detail) => `Couldn't save your last change (it's still visible here, but won't survive a reload): ${detail}`,
