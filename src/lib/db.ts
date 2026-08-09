@@ -255,6 +255,15 @@ export async function updateProjectNote(id: string, note: string) {
   }
 }
 
+export async function updateProjectName(id: string, name: string) {
+  try {
+    const { error } = await supabase.from("projects").update({ name }).eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`updateProjectName(${id})`, error);
+  }
+}
+
 // ---------------------------------------------------------------------
 // Lanes + phases — one project's full lanes array is diffed against
 // whatever it was before, so any caller that already has a

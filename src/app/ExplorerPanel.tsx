@@ -166,6 +166,13 @@ export const ExplorerPanel = forwardRef<
     onClose: () => void;
     onAddLane: (name: string) => void;
     onRenameLane: (laneId: string, name: string) => void;
+    /** A project's plan lane (Lane.isProjectPlan) is the project itself,
+     * shown as one more Gantt row — not a separate named thing. Its
+     * "phases" view never reads or edits lane.name; it shows the owning
+     * project's own name/rename handler instead, so the two can't drift
+     * apart the way a plain lane rename would let them. */
+    projectName: string;
+    onRenameProject: (name: string) => void;
     /** A date range dragged directly on the Gantt canvas (see PoapRenderer's
      * onCreatePhase) — seeds the "add phase" form's dates (and, once both
      * are set, its category suggestion) the moment the matching lane's
@@ -208,6 +215,8 @@ export const ExplorerPanel = forwardRef<
     onClose,
     onAddLane,
     onRenameLane,
+    projectName,
+    onRenameProject,
     draftRange,
     onDraftRangeConsumed,
     onUpdatePhase,
@@ -366,9 +375,9 @@ export const ExplorerPanel = forwardRef<
                   <div className={styles.planLaneRow}>
                     <input
                       className={`${styles.planLaneName} ${styles.tableTextInput}`}
-                      value={planLane.name}
-                      onChange={(e) => onRenameLane(planLane.id, e.target.value)}
-                      aria-label={t.explorer.laneNameAria}
+                      value={projectName}
+                      onChange={(e) => onRenameProject(e.target.value)}
+                      aria-label={t.explorer.projectNameAria}
                     />
                     <span className={styles.tableMetaCell}>
                       {planLane.phases.length}{" "}
@@ -378,8 +387,8 @@ export const ExplorerPanel = forwardRef<
                       type="button"
                       className={styles.viewButton}
                       onClick={() => onNavigate({ level: "phases", laneId: planLane.id })}
-                      aria-label={t.explorer.viewGanttAria(planLane.name)}
-                      title={t.explorer.viewGanttAria(planLane.name)}
+                      aria-label={t.explorer.viewGanttAria(projectName)}
+                      title={t.explorer.viewGanttAria(projectName)}
                     >
                       <IconGantt />
                     </button>
@@ -526,17 +535,22 @@ export const ExplorerPanel = forwardRef<
           // (see isLaneCreatable/handleAddPhase). Its own add-form is
           // hidden entirely; each row gets a Plan picker instead.
           const isUnassignedBucket = lane.id === UNASSIGNED_PLAN_ID;
+          // The plan lane isn't a separately-named thing — it's the
+          // project, shown as one more Gantt row (see the projectName prop
+          // doc above). Everywhere else lane.name is the real, independent
+          // name of an actual team swimline.
+          const displayName = lane.isProjectPlan ? projectName : lane.name;
           return (
             <>
-              <Breadcrumb items={[rootCrumb, { label: lane.name }]} onNavigate={onNavigate} />
+              <Breadcrumb items={[rootCrumb, { label: displayName }]} onNavigate={onNavigate} />
               {isUnassignedBucket ? (
-                <h2 className={styles.title}>{lane.name}</h2>
+                <h2 className={styles.title}>{displayName}</h2>
               ) : (
                 <input
                   className={styles.titleInput}
-                  value={lane.name}
-                  onChange={(e) => onRenameLane(lane.id, e.target.value)}
-                  aria-label={t.explorer.laneNameAria}
+                  value={displayName}
+                  onChange={(e) => (lane.isProjectPlan ? onRenameProject(e.target.value) : onRenameLane(lane.id, e.target.value))}
+                  aria-label={lane.isProjectPlan ? t.explorer.projectNameAria : t.explorer.laneNameAria}
                 />
               )}
               <p className={styles.subtitle}>
@@ -556,12 +570,39 @@ export const ExplorerPanel = forwardRef<
               <div className={styles.addGroup}>
                 <p className={styles.sectionTitle}>{t.explorer.addPhaseSection}</p>
                 <div className={styles.addRow}>
-                  <input
-                    className={styles.textInput}
-                    placeholder={t.explorer.phaseTitlePlaceholder}
-                    value={newPhase.title}
-                    onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
-                  />
+                  {lane.isProjectPlan ? (
+                    // The plan lane's own phases ARE the predefined lifecycle
+                    // stages (Settings → Fases de proyecto) — picking one sets
+                    // both the phase's title and its category together,
+                    // instead of typing a free title and then separately
+                    // picking an unexplained "Stage" that duplicated it.
+                    <>
+                      <select
+                        className={styles.textInput}
+                        value={newPhase.category}
+                        onChange={(e) => {
+                          const chosen = stageCategories.find((c) => c.id === e.target.value);
+                          setNewPhase((p) => ({ ...p, category: e.target.value, title: chosen?.label ?? "" }));
+                        }}
+                        aria-label={t.explorer.stagePickerAria}
+                      >
+                        <option value="">{t.explorer.stagePickerPlaceholder}</option>
+                        {stageCategories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                      {stageCategories.length === 0 && <p className={styles.fieldHint}>{t.explorer.stagePickerEmpty}</p>}
+                    </>
+                  ) : (
+                    <input
+                      className={styles.textInput}
+                      placeholder={t.explorer.phaseTitlePlaceholder}
+                      value={newPhase.title}
+                      onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
+                    />
+                  )}
                   <DateRangeField
                     startValue={newPhase.start}
                     endValue={newPhase.end}
@@ -586,32 +627,33 @@ export const ExplorerPanel = forwardRef<
                       </option>
                     ))}
                   </select>
-                  <select
-                    className={styles.statusSelect}
-                    value={newPhase.category}
-                    onChange={(e) => setNewPhase((p) => ({ ...p, category: e.target.value }))}
-                    aria-label={t.explorer.categoryAria}
-                  >
-                    {!categoryRequired && <option value="">{t.explorer.categoryNone}</option>}
-                    {categoryRequired && !newPhase.category && <option value="">{t.explorer.categoryAria}…</option>}
-                    {stageCategories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
                   {categoryRequired && (
-                    <p className={styles.fieldHint}>
-                      {newPhase.category && newPhase.start && newPhase.end &&
-                      suggestCategory(fromISODate(newPhase.start, startMonth), fromISODate(newPhase.end, startMonth), planLane) === newPhase.category
-                        ? t.explorer.categorySuggested(stageCategories.find((c) => c.id === newPhase.category)?.label ?? newPhase.category)
-                        : t.explorer.categoryRequired}
-                    </p>
+                    <>
+                      <select
+                        className={styles.statusSelect}
+                        value={newPhase.category}
+                        onChange={(e) => setNewPhase((p) => ({ ...p, category: e.target.value }))}
+                        aria-label={t.explorer.categoryAria}
+                      >
+                        {!newPhase.category && <option value="">{t.explorer.categoryAria}…</option>}
+                        {stageCategories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className={styles.fieldHint}>
+                        {newPhase.category && newPhase.start && newPhase.end &&
+                        suggestCategory(fromISODate(newPhase.start, startMonth), fromISODate(newPhase.end, startMonth), planLane) === newPhase.category
+                          ? t.explorer.categorySuggested(stageCategories.find((c) => c.id === newPhase.category)?.label ?? newPhase.category)
+                          : t.explorer.categoryRequired}
+                      </p>
+                    </>
                   )}
                   <button
                     type="button"
                     className={styles.addButton}
-                    disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
+                    disabled={(lane.isProjectPlan ? !newPhase.category : !newPhase.title.trim()) || !newPhase.start || !newPhase.end}
                     onClick={() => submitNewPhase(lane.id)}
                   >
                     <IconPlus /> {t.explorer.addButton}
@@ -770,7 +812,11 @@ export const ExplorerPanel = forwardRef<
           return (
             <>
               <Breadcrumb
-                items={[rootCrumb, { label: lane.name, view: { level: "phases", laneId: lane.id } }, { label: phase.title }]}
+                items={[
+                  rootCrumb,
+                  { label: lane.isProjectPlan ? projectName : lane.name, view: { level: "phases", laneId: lane.id } },
+                  { label: phase.title },
+                ]}
                 onNavigate={onNavigate}
               />
               <h2 className={styles.title}>{phase.title}</h2>
@@ -942,7 +988,7 @@ export const ExplorerPanel = forwardRef<
               <Breadcrumb
                 items={[
                   rootCrumb,
-                  { label: lane.name, view: { level: "phases", laneId: lane.id } },
+                  { label: lane.isProjectPlan ? projectName : lane.name, view: { level: "phases", laneId: lane.id } },
                   { label: phase.title, view: { level: "activities", phaseId: phase.id } },
                   { label: activity.title },
                 ]}

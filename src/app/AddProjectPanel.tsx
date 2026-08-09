@@ -65,8 +65,11 @@ export const AddProjectPanel = forwardRef<
         status: "not_started" as PhaseStatus,
         category: r.categoryId,
       }));
+    // The plan lane isn't a separately-named thing from the project itself
+    // (see ExplorerPanel's projectName prop) — seed it with the same name
+    // being submitted here so the two never start out diverged.
     const lanes: Lane[] = phases.length
-      ? [{ id: crypto.randomUUID(), name: t.addProject.defaultLaneName, sortOrder: 0, phases, isProjectPlan: true }]
+      ? [{ id: crypto.randomUUID(), name: name.trim(), sortOrder: 0, phases, isProjectPlan: true }]
       : [];
     onCreate({ name: name.trim(), lanes });
   }

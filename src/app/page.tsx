@@ -42,7 +42,7 @@ function ProjectGanttPanel({
   panelRef: Ref<HTMLDivElement>;
   onClose: () => void;
 }) {
-  const { program, plansByLane, commentsByActivity, addComment } = useProjects();
+  const { program, plansByLane, commentsByActivity, addComment, renameProject } = useProjects();
   const router = useRouter();
   // Opens straight to the project's high-level plan (Design/Build/SIT/
   // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
@@ -78,6 +78,8 @@ function ProjectGanttPanel({
       onClose={onClose}
       onAddLane={addLane}
       onRenameLane={renameLane}
+      projectName={project.name}
+      onRenameProject={(name) => renameProject(project.id, name)}
       draftRange={draftRange}
       onDraftRangeConsumed={onDraftRangeConsumed}
       onUpdatePhase={updatePhase}

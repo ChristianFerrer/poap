@@ -94,6 +94,7 @@ function ProjectView({ project }: { project: Project }) {
     updateProgram,
     projects,
     deleteProject,
+    renameProject,
     setProjectLanes,
     setProjectGates,
     plansByLane,
@@ -578,6 +579,8 @@ function ProjectView({ project }: { project: Project }) {
       onClose={sidePanel.closePanel}
       onAddLane={addLane}
       onRenameLane={handleRenameLane}
+      projectName={project.name}
+      onRenameProject={(name) => renameProject(project.id, name)}
       draftRange={draftRange}
       onDraftRangeConsumed={() => setDraftRange(null)}
       onUpdatePhase={handleUpdatePhase}

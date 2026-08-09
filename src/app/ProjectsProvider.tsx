@@ -23,6 +23,7 @@ import {
   syncProjectGates,
   syncProjectLanes,
   updateProgram as updateProgramRow,
+  updateProjectName,
   updateProjectNote,
   updateStageCategoryLabel,
   type ProgramRow,
@@ -54,6 +55,12 @@ interface ProjectsContextValue {
    * updater, so the caller can navigate to it immediately). */
   addProject: (input: { name: string; lanes: Lane[]; gates: Gate[] }) => string;
   deleteProject: (projectId: string) => void;
+  /** A project's name is a single value, not two — the project-plan lane
+   * that represents it on a Gantt row has its own `name` column for
+   * historical/schema reasons, but nothing should ever read or edit that
+   * column as if it were an independent name. This is the one place a
+   * project gets renamed from. */
+  renameProject: (projectId: string, name: string) => void;
   setProjectLanes: (projectId: string, updater: (lanes: Lane[]) => Lane[]) => void;
   setProjectGates: (projectId: string, updater: (gates: Gate[]) => Gate[]) => void;
   /** A team lane's own Planes (Equipo -> Plan -> Fase), keyed by lane id —
@@ -272,6 +279,19 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  // Keeps the plan lane's own `name` column (a leftover of it being a
+  // regular `lanes` row before isProjectPlan existed) mirrored to the
+  // project's name in the database too — not just hidden client-side —
+  // so a lane rename never drifts away from its project again, even for
+  // anyone who queries `lanes` directly.
+  function renameProject(projectId: string, name: string) {
+    const prevLanes = projects.find((p) => p.id === projectId)?.lanes ?? [];
+    const nextLanes = prevLanes.map((l) => (l.isProjectPlan ? { ...l, name } : l));
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, name, lanes: nextLanes } : p)));
+    void updateProjectName(projectId, name);
+    if (prevLanes.some((l) => l.isProjectPlan)) void syncProjectLanes(projectId, prevLanes, nextLanes);
+  }
+
   function setProjectLanes(projectId: string, updater: (lanes: Lane[]) => Lane[]) {
     const prevLanes = projects.find((p) => p.id === projectId)?.lanes ?? [];
     const nextLanes = updater(prevLanes);
@@ -406,6 +426,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         projects,
         addProject,
         deleteProject,
+        renameProject,
         setProjectLanes,
         setProjectGates,
         plansByLane,
