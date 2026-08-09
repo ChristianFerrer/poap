@@ -98,6 +98,7 @@ function ProjectView({ project }: { project: Project }) {
     setProjectGates,
     plansByLane,
     addPlan,
+    renamePlan,
     commentsByActivity,
     addComment,
     stageCategories,
@@ -392,10 +393,18 @@ function ProjectView({ project }: { project: Project }) {
   // specifically about a *track needing a Plan*, unrelated to viewing or
   // adding activities under an existing Fase.
   function handleLaneGanttClick(laneId: string) {
-    if (!drill) return;
+    if (!drill) {
+      // Top level: laneId is a real team lane (or the isProjectPlan lane)
+      // — opens the same rename+edit-tracks panel a Plan/Equipo-anchor row
+      // gets once drilled in, without requiring a drill first.
+      openExplorer({ level: "phases", laneId });
+      return;
+    }
     if (drill.level === "equipo") {
-      if (laneId === drill.laneId) return;
-      openExplorer({ level: "phases", laneId }); // laneId = a real Plan's id, or UNASSIGNED_PLAN_ID
+      // laneId is either this Equipo's own real lane (the anchor row) or
+      // one of its real Plans (or UNASSIGNED_PLAN_ID) — either way it's a
+      // real "phases" panel target, see explorerLanes for why both resolve.
+      openExplorer({ level: "phases", laneId });
       return;
     }
     if (drill.level === "plan") {
@@ -436,6 +445,30 @@ function ProjectView({ project }: { project: Project }) {
   }
   function handleDeletePhase(laneId: string, phaseId: string) {
     deletePhase(drill ? drill.laneId : laneId, phaseId);
+  }
+
+  // Same "redirect the synthetic id" idea as the phase wrappers above, but
+  // for renaming whatever the "phases" panel's own name field is currently
+  // showing — a real team lane at the top level or the Equipo anchor, a
+  // Plan everywhere else. The "Sin plan asignado" bucket never reaches
+  // this (see ExplorerPanel, which keeps it a plain heading).
+  function handleRenameLane(laneId: string, name: string) {
+    if (!drill) {
+      renameLane(laneId, name);
+      return;
+    }
+    if (drill.level === "equipo") {
+      if (laneId === drill.laneId) {
+        renameLane(laneId, name);
+        return;
+      }
+      if (laneId === UNASSIGNED_PLAN_ID) return;
+      renamePlan(laneId, name);
+      return;
+    }
+    if (drill.level === "plan" && laneId === drill.planId && drill.planId !== UNASSIGNED_PLAN_ID) {
+      renamePlan(laneId, name);
+    }
   }
 
   function toggleGateActive(gateId: string) {
@@ -544,7 +577,7 @@ function ProjectView({ project }: { project: Project }) {
       onNavigate={setExplorer}
       onClose={sidePanel.closePanel}
       onAddLane={addLane}
-      onRenameLane={renameLane}
+      onRenameLane={handleRenameLane}
       draftRange={draftRange}
       onDraftRangeConsumed={() => setDraftRange(null)}
       onUpdatePhase={handleUpdatePhase}
@@ -672,7 +705,7 @@ function ProjectView({ project }: { project: Project }) {
               activeGateIds={activeGateIds}
               onGateClick={handleGateClick}
               onLaneClick={handleLaneClick}
-              onLaneGanttClick={drill ? handleLaneGanttClick : undefined}
+              onLaneGanttClick={handleLaneGanttClick}
               onCreatePhase={handleCreatePhase}
               isLaneCreatable={isLaneCreatable}
               onGatesLabelClick={openGatesPanel}

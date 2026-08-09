@@ -529,7 +529,16 @@ export const ExplorerPanel = forwardRef<
           return (
             <>
               <Breadcrumb items={[rootCrumb, { label: lane.name }]} onNavigate={onNavigate} />
-              <h2 className={styles.title}>{lane.name}</h2>
+              {isUnassignedBucket ? (
+                <h2 className={styles.title}>{lane.name}</h2>
+              ) : (
+                <input
+                  className={styles.titleInput}
+                  value={lane.name}
+                  onChange={(e) => onRenameLane(lane.id, e.target.value)}
+                  aria-label={t.explorer.laneNameAria}
+                />
+              )}
               <p className={styles.subtitle}>
                 {lane.phases.length}{" "}
                 {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}

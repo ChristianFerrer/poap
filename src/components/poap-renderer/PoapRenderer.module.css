@@ -103,18 +103,15 @@
     padding: 6px 8px;
     font-size: var(--text-2xs);
   }
+  /* Narrower than desktop, but the per-row Gantt-icon shortcut (see
+     .ganttButton) stays visible even here — on the project page's
+     recursive canvas it's the ONLY way to reach a row's own rename+
+     edit-tracks panel; tapping the name drills to the next level
+     instead, it doesn't open that panel. An earlier pass hid this icon
+     on mobile on the assumption the name click was equivalent — it
+     wasn't, so it's back. */
   .labelsCol {
-    width: 112px !important;
-  }
-  /* The per-row shortcut to a lane's own management panel — tapping the
-     name itself already gets you there (see onLaneClick), just via a full
-     navigation instead of an in-place panel. On a phone that redundancy
-     isn't worth the width: every row was spending a quarter of its label
-     column on this second icon, leaving both the name and the timeline
-     itself cramped (see .ganttButton's own comment for what it normally
-     does on desktop, where the extra shortcut is worth the width). */
-  .ganttButton {
-    display: none;
+    width: 130px !important;
   }
 }
 
