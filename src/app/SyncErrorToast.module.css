@@ -34,7 +34,7 @@
 }
 
 .message {
-  font-size: var(--text-sm, 13px);
+  font-size: var(--text-sm);
   color: var(--color-rose-ink);
 }
 

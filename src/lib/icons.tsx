@@ -15,6 +15,7 @@ import {
   ChartNoAxesGantt,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Diamond,
   Home,
@@ -44,6 +45,7 @@ export const IconPlus = icon(Plus, BUTTON_SIZE);
 export const IconMinus = icon(Minus, BUTTON_SIZE);
 export const IconUpload = icon(Upload, BUTTON_SIZE);
 export const IconChevronRight = icon(ChevronRight, BUTTON_SIZE);
+export const IconChevronLeft = icon(ChevronLeft, BUTTON_SIZE);
 export const IconChevronDown = icon(ChevronDown, BUTTON_SIZE);
 export const IconCheck = icon(Check, BUTTON_SIZE);
 export const IconSearch = icon(Search, BUTTON_SIZE);

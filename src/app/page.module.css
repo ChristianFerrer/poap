@@ -18,12 +18,21 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Follows the sidebar's own width transition (see Sidebar.module.css)
+     so the content area's clearance resizes in step with the rail
+     instead of jumping the instant the collapse toggle is clicked. */
+  transition: padding-left 0.15s ease;
 }
 
 /* Extra clearance for the fixed icon sidebar (see Sidebar.module.css) —
-   added on top of .main's own base padding, not replacing it. */
+   added on top of .main's own base padding, not replacing it. Two
+   variants matching the rail's own expanded/collapsed widths; callers
+   pick whichever one matches the current sidebarCollapsed setting. */
 .mainNavLeft {
-  padding-left: 116px;
+  padding-left: 260px;
+}
+.mainNavLeftCollapsed {
+  padding-left: 112px;
 }
 
 .headerRow {
@@ -194,7 +203,8 @@
        full width a phone actually has to offer. */
     padding: 14px 12px calc(56px + env(safe-area-inset-bottom));
   }
-  .mainNavLeft {
+  .mainNavLeft,
+  .mainNavLeftCollapsed {
     padding-left: 0;
   }
   /* Purely decorative eyebrow text (the Program page's "PoAP · Plan on a

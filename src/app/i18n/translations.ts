@@ -163,6 +163,8 @@ const es = {
     addProjectLabel: "Proyecto",
     settingsLabel: "Ajustes",
     navAria: "Navegación principal",
+    collapseAria: "Contraer menú",
+    expandAria: "Expandir menú",
   },
   settings: {
     close: "Cerrar",
@@ -409,6 +411,8 @@ const en: Translations = {
     addProjectLabel: "Project",
     settingsLabel: "Settings",
     navAria: "Main navigation",
+    collapseAria: "Collapse menu",
+    expandAria: "Expand menu",
   },
   settings: {
     close: "Close",

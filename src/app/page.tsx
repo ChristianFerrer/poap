@@ -275,8 +275,10 @@ export default function ProgramPage() {
         onImport={openImportPanel}
         onAddProject={openAddProjectPanel}
         onSettings={openSettingsPanel}
+        collapsed={settings.sidebarCollapsed}
+        onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
       />
-      <main className={`${styles.main} ${styles.mainNavLeft}`}>
+      <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
             <p className={styles.eyebrow}>{t.header.levelProgram}</p>

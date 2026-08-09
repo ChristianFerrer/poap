@@ -644,8 +644,10 @@ function ProjectView({ project }: { project: Project }) {
         onSettings={openSettingsPanel}
         issuesCount={linkageIssueCount}
         onIssuesClick={() => openExplorer({ level: "lanes" })}
+        collapsed={settings.sidebarCollapsed}
+        onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
       />
-      <main className={`${styles.main} ${styles.mainNavLeft}`}>
+      <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
             <nav className={styles.breadcrumb} aria-label={t.header.breadcrumbAria}>

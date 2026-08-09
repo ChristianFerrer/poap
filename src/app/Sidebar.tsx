@@ -1,7 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IconAddNav, IconAlertTriangle, IconGateDiamond, IconHome, IconLanes, IconSettings, IconUploadNav } from "@/lib/icons";
+import {
+  IconAddNav,
+  IconAlertTriangle,
+  IconChevronLeft,
+  IconChevronRight,
+  IconGateDiamond,
+  IconHome,
+  IconLanes,
+  IconSettings,
+  IconUploadNav,
+} from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
@@ -27,6 +37,8 @@ export function Sidebar({
   onSettings,
   issuesCount = 0,
   onIssuesClick,
+  collapsed,
+  onToggleCollapsed,
 }: {
   active: SidebarActive;
   onHome: () => void;
@@ -48,6 +60,14 @@ export function Sidebar({
    * page has no lanes of its own yet, so it simply never passes this. */
   issuesCount?: number;
   onIssuesClick?: () => void;
+  /** Desktop-only rail width toggle (icon+label vs. icon-only) — the
+   * caller owns persisting it (see useAppSettings), this component only
+   * renders whichever state it's told. Meaningless below the mobile
+   * breakpoint, where the rail becomes a bottom tab bar regardless, so
+   * the toggle button itself is hidden there via CSS rather than by a
+   * second prop. */
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }) {
   const { t } = useLanguage();
   const items: { key: SidebarActive; icon: ReactNode; ariaLabel: string; label: string; onClick: () => void }[] = [
@@ -66,7 +86,10 @@ export function Sidebar({
   ];
 
   return (
-    <nav className={styles.sidebar} aria-label={t.sidebar.navAria}>
+    <nav
+      className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ""}`}
+      aria-label={t.sidebar.navAria}
+    >
       {items.map((item) => (
         <button
           key={item.key}
@@ -75,6 +98,7 @@ export function Sidebar({
           onClick={item.onClick}
           aria-pressed={active === item.key}
           aria-label={item.ariaLabel}
+          title={collapsed ? item.label : undefined}
         >
           {item.icon}
           <span className={styles.navLabel}>{item.label}</span>
@@ -95,6 +119,17 @@ export function Sidebar({
           <span className={styles.issuesCount}>{issuesCount}</span>
         </button>
       )}
+
+      <button
+        type="button"
+        className={styles.collapseToggle}
+        onClick={onToggleCollapsed}
+        aria-pressed={collapsed}
+        aria-label={collapsed ? t.sidebar.expandAria : t.sidebar.collapseAria}
+        title={collapsed ? t.sidebar.expandAria : t.sidebar.collapseAria}
+      >
+        {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
+      </button>
     </nav>
   );
 }
