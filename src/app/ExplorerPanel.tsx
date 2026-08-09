@@ -566,7 +566,7 @@ export const ExplorerPanel = forwardRef<
                   <button
                     type="button"
                     className={styles.addButton}
-                    disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end || (categoryRequired && !newPhase.category)}
+                    disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
                     onClick={() => submitNewPhase(lane.id)}
                   >
                     <IconPlus /> {t.explorer.addButton}
