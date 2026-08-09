@@ -12,7 +12,7 @@
 import {
   AlertTriangle,
   ArrowUpDown,
-  ChartGantt,
+  ChartNoAxesGantt,
   Check,
   ChevronDown,
   ChevronRight,
@@ -48,7 +48,7 @@ export const IconChevronDown = icon(ChevronDown, BUTTON_SIZE);
 export const IconCheck = icon(Check, BUTTON_SIZE);
 export const IconSearch = icon(Search, BUTTON_SIZE);
 export const IconSort = icon(ArrowUpDown, BUTTON_SIZE);
-export const IconGantt = icon(ChartGantt, BUTTON_SIZE);
+export const IconGantt = icon(ChartNoAxesGantt, BUTTON_SIZE);
 
 export const IconHome = icon(Home, NAV_SIZE);
 export const IconGateDiamond = icon(Diamond, NAV_SIZE);
