@@ -274,6 +274,83 @@ function formatColumnLabel(
   return `${monthAbbr[start.getUTCMonth()]!.charAt(0).toUpperCase()}${monthAbbr[start.getUTCMonth()]!.slice(1)} ${start.getUTCFullYear()}`;
 }
 
+/** Monday of the calendar week containing `date` — a real Mon–Fri business
+ * week, deliberately not the same "7 days from the 1st of startMonth"
+ * bucketing subCells() uses for the ruler's own sub-row cells (that one
+ * exists purely to keep ruler columns a consistent width; this one has to
+ * match how a person actually reads "the week of"). */
+function mondayOf(date: Date): Date {
+  const daysSinceMonday = (date.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - daysSinceMonday));
+}
+function fridayOf(monday: Date): Date {
+  return new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 4));
+}
+function firstBusinessDayOfMonth(date: Date): Date {
+  const first = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  const dow = first.getUTCDay();
+  if (dow === 6) return new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 3));
+  if (dow === 0) return new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 2));
+  return first;
+}
+function lastBusinessDayOfMonth(date: Date): Date {
+  const last = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
+  const dow = last.getUTCDay();
+  if (dow === 6) return new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), last.getUTCDate() - 1));
+  if (dow === 0) return new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), last.getUTCDate() - 2));
+  return last;
+}
+
+/**
+ * Snaps a raw dragged (or hovered) axis range to whatever unit is actually
+ * visible at the current zoom — Día stays exact (a person picking days
+ * wants days), Semana snaps out to the Mon–Fri business week each end
+ * falls in, Mes/Año snap out to the first/last business day of each end's
+ * month. Matches how someone reads the ruler at that zoom: "I dragged from
+ * the July cell to the September cell" should mean the whole of July
+ * through the whole of September, not whatever fraction of those months
+ * the cursor happened to land on in pixels.
+ */
+function snapAxisRange(rawStart: number, rawEnd: number, zoomKey: ZoomLevel["key"], startMonth: string): { start: number; end: number } {
+  const s = Math.min(rawStart, rawEnd);
+  const e = Math.max(rawStart, rawEnd);
+  if (zoomKey === "dia") {
+    return { start: toAxis(fromAxis(s, startMonth), startMonth), end: toAxis(fromAxis(e, startMonth), startMonth) };
+  }
+  if (zoomKey === "semana") {
+    return {
+      start: toAxis(mondayOf(fromAxis(s, startMonth)), startMonth),
+      end: toAxis(fridayOf(mondayOf(fromAxis(e, startMonth))), startMonth),
+    };
+  }
+  return {
+    start: toAxis(firstBusinessDayOfMonth(fromAxis(s, startMonth)), startMonth),
+    end: toAxis(lastBusinessDayOfMonth(fromAxis(e, startMonth)), startMonth),
+  };
+}
+
+/** The full visible cell (day/week/month) a single hovered point falls
+ * in — deliberately its whole natural width (Monday–Sunday, 1st–last of
+ * month), not the Mon–Fri business range snapAxisRange creates a track
+ * with. This one just answers "which cell is the cursor over", the same
+ * question the ruler itself answers with its own column widths; the
+ * business-day trim only matters once something's actually being created. */
+function hoverCellRange(axis: number, zoomKey: ZoomLevel["key"], startMonth: string): { start: number; end: number } {
+  const date = fromAxis(axis, startMonth);
+  if (zoomKey === "dia") {
+    const next = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
+    return { start: toAxis(date, startMonth), end: toAxis(next, startMonth) };
+  }
+  if (zoomKey === "semana") {
+    const monday = mondayOf(date);
+    const nextMonday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 7));
+    return { start: toAxis(monday, startMonth), end: toAxis(nextMonday, startMonth) };
+  }
+  const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  const nextMonthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+  return { start: toAxis(monthStart, startMonth), end: toAxis(nextMonthStart, startMonth) };
+}
+
 function laneRowHeight(rowCount: number): number {
   const rows = Math.max(rowCount, 1);
   return LANE_PADDING_Y * 2 + rows * BAR_HEIGHT + (rows - 1) * ROW_GAP;
@@ -391,6 +468,7 @@ export function PoapRenderer({
     startAxis: number;
     currentAxis: number;
   } | null>(null);
+  const [hoverColumn, setHoverColumn] = useState<{ start: number; end: number } | null>(null);
   const activeGateIds = useMemo(() => new Set(activeGateIdsProp), [activeGateIdsProp]);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
@@ -585,9 +663,8 @@ export function PoapRenderer({
     function onUp() {
       setDragCreate((prev) => {
         if (prev && onCreatePhase) {
-          const start = Math.min(prev.startAxis, prev.currentAxis);
-          const end = Math.max(prev.startAxis, prev.currentAxis);
-          if (end - start >= MIN_DRAG_AXIS) onCreatePhase(prev.laneId, start, end);
+          const { start, end } = snapAxisRange(prev.startAxis, prev.currentAxis, zoomKey, startMonth);
+          if (Math.abs(prev.currentAxis - prev.startAxis) >= MIN_DRAG_AXIS) onCreatePhase(prev.laneId, start, end);
         }
         return null;
       });
@@ -600,6 +677,17 @@ export function PoapRenderer({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragCreate !== null]);
+
+  // Animated hover highlight — a live preview of what dragging from here
+  // would snap to (see snapAxisRange), shown continuously as the mouse
+  // moves across the calendar, not just while actually dragging. Only
+  // meaningful where track-creation exists at all.
+  function handleTimelineHover(e: ReactMouseEvent<HTMLDivElement>) {
+    if (!onCreatePhase) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const axis = axisFromClientX(e.clientX, rect);
+    setHoverColumn(hoverCellRange(axis, zoomKey, startMonth));
+  }
 
   function showTooltip(e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) {
     setTooltip({ ...data, x: e.clientX, y: e.clientY });
@@ -700,19 +788,17 @@ export function PoapRenderer({
             ))}
           </div>
         ))}
-        {dragCreate && dragCreate.laneId === lane.id && (
-          <div
-            className={styles.dragCreatePreview}
-            style={{
-              left: pct(Math.min(dragCreate.startAxis, dragCreate.currentAxis), scale),
-              width: pctSpan(
-                Math.min(dragCreate.startAxis, dragCreate.currentAxis),
-                Math.max(dragCreate.startAxis, dragCreate.currentAxis),
-                scale,
-              ),
-            }}
-          />
-        )}
+        {dragCreate &&
+          dragCreate.laneId === lane.id &&
+          (() => {
+            const snapped = snapAxisRange(dragCreate.startAxis, dragCreate.currentAxis, zoomKey, startMonth);
+            return (
+              <div
+                className={styles.dragCreatePreview}
+                style={{ left: pct(snapped.start, scale), width: pctSpan(snapped.start, snapped.end, scale) }}
+              />
+            );
+          })()}
       </div>
     );
   }
@@ -798,7 +884,12 @@ export function PoapRenderer({
           className={styles.timelineScroll}
           onScroll={(e) => syncScroll(e.currentTarget, labelsColRef.current)}
         >
-          <div className={styles.timelineInner} style={{ minWidth: timelineMinWidth }}>
+          <div
+            className={styles.timelineInner}
+            style={{ minWidth: timelineMinWidth }}
+            onMouseMove={onCreatePhase ? handleTimelineHover : undefined}
+            onMouseLeave={onCreatePhase ? () => setHoverColumn(null) : undefined}
+          >
             <div className={styles.bandsOverlay} aria-hidden="true">
               {bands.map((band) => (
                 <div
@@ -819,6 +910,16 @@ export function PoapRenderer({
                   style={{ left: pct(range.start, scale), width: pctSpan(range.start, range.end, scale) }}
                 />
               ))}
+              {/* Animated hover highlight — glides between snapped units
+                  (day/week/month, per zoom) as the mouse moves, not tied to
+                  any one lane, so it reads as "this is what dragging here
+                  would create" before the user even starts dragging. */}
+              {hoverColumn && !dragCreate && (
+                <div
+                  className={styles.hoverColumnHighlight}
+                  style={{ left: pct(hoverColumn.start, scale), width: pctSpan(hoverColumn.start, hoverColumn.end, scale) }}
+                />
+              )}
               {/* Month lines only cross the year row at an actual year
                   change (top: BADGE_STRIP_HEIGHT, i.e. right at the ruler's
                   own top) — everywhere else they start below it, at the

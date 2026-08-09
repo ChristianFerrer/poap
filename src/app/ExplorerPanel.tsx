@@ -235,8 +235,13 @@ export const ExplorerPanel = forwardRef<
       category: suggested ?? p.category,
     }));
     onDraftRangeConsumed?.();
+    // Re-checked on `view` too (not just `draftRange`) — a drag on an
+    // already-open project's row doesn't remount this panel, so if the
+    // explorer wasn't already sitting on the right lane's phases the
+    // moment the drag landed, it still catches up the first time the user
+    // navigates there while the draft is still unconsumed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftRange]);
+  }, [draftRange, view]);
 
   const [laneSearch, setLaneSearch] = useState("");
   const [laneSort, setLaneSort] = useState<SortBy>("name");

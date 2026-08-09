@@ -597,6 +597,26 @@
   cursor: crosshair;
 }
 
+/* Passive hover cue — glides between cells as the mouse moves (see
+   hoverCellRange), full lane-stack height, always behind bars/gates since
+   it lives in bandsOverlay. The eased left/width transition is what reads
+   as "gliding" instead of jumping between cells. */
+.hoverColumnHighlight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--color-fog) 10%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--color-fog) 30%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--color-fog) 30%, transparent);
+  pointer-events: none;
+  transition: left 0.1s ease-out, width 0.1s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hoverColumnHighlight {
+    transition: none;
+  }
+}
+
 /* Live preview while dragging a new track's date range — spans the full
    lane height (not row-precise) since the eventual track's row placement
    is decided by packLane only once it actually exists. */
