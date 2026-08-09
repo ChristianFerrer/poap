@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { NavPosition, SidePanelMode } from "./SettingsPanel";
 
 const SETTINGS_STORAGE_KEY = "poap-settings";
 
@@ -10,16 +9,12 @@ export type Theme = "dark" | "light";
 interface AppSettings {
   showWeekends: boolean;
   showToday: boolean;
-  sidePanelMode: SidePanelMode;
-  navPosition: NavPosition;
   theme: Theme;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   showWeekends: true,
   showToday: true,
-  sidePanelMode: "overlay",
-  navPosition: "left",
   theme: "dark",
 };
 
@@ -28,14 +23,11 @@ const DEFAULT_SETTINGS: AppSettings = {
  * under one JSON blob (same idea as the language choice in
  * LanguageProvider). Shared by every page — Program portfolio and every
  * Project detail view all read/write the same preferences, since "should
- * weekends be tinted" or "where does the nav bar live" isn't a
- * per-project decision.
+ * weekends be tinted" isn't a per-project decision.
  */
 export function useAppSettings() {
   const [showWeekends, setShowWeekends] = useState(DEFAULT_SETTINGS.showWeekends);
   const [showToday, setShowToday] = useState(DEFAULT_SETTINGS.showToday);
-  const [sidePanelMode, setSidePanelMode] = useState<SidePanelMode>(DEFAULT_SETTINGS.sidePanelMode);
-  const [navPosition, setNavPosition] = useState<NavPosition>(DEFAULT_SETTINGS.navPosition);
   const [theme, setTheme] = useState<Theme>(DEFAULT_SETTINGS.theme);
   // Gates the save effect below until the load effect has actually run —
   // without this, the save effect's very first pass (still holding the
@@ -57,8 +49,6 @@ export function useAppSettings() {
         const parsed = JSON.parse(saved) as Partial<AppSettings>;
         if (typeof parsed.showWeekends === "boolean") setShowWeekends(parsed.showWeekends);
         if (typeof parsed.showToday === "boolean") setShowToday(parsed.showToday);
-        if (parsed.sidePanelMode === "overlay" || parsed.sidePanelMode === "fixed") setSidePanelMode(parsed.sidePanelMode);
-        if (parsed.navPosition === "left" || parsed.navPosition === "right") setNavPosition(parsed.navPosition);
         if (parsed.theme === "dark" || parsed.theme === "light") setTheme(parsed.theme);
       } catch {
         // Malformed/foreign localStorage value — fall back to defaults
@@ -70,9 +60,9 @@ export function useAppSettings() {
 
   useEffect(() => {
     if (!loaded) return;
-    const settings: AppSettings = { showWeekends, showToday, sidePanelMode, navPosition, theme };
+    const settings: AppSettings = { showWeekends, showToday, theme };
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-  }, [loaded, showWeekends, showToday, sidePanelMode, navPosition, theme]);
+  }, [loaded, showWeekends, showToday, theme]);
 
   // Reflects the theme choice onto <html data-theme>, same attribute the
   // no-flash inline script in layout.tsx already set before this ever ran
@@ -90,10 +80,6 @@ export function useAppSettings() {
     setShowWeekends,
     showToday,
     setShowToday,
-    sidePanelMode,
-    setSidePanelMode,
-    navPosition,
-    setNavPosition,
     theme,
     setTheme,
   };

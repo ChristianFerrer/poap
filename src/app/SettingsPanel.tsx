@@ -10,15 +10,11 @@ import { SwitchToggle } from "./SwitchToggle";
 import styles from "./SettingsPanel.module.css";
 import explorerStyles from "./ExplorerPanel.module.css";
 
-export type SidePanelMode = "overlay" | "fixed";
-export type NavPosition = "left" | "right";
-
 /**
  * App-level display preferences plus the two pieces of "app-wide"
  * management that don't belong to any one project — the stage lifecycle
  * taxonomy and the project list itself — since both are configuration a
- * user sets up once and expects everywhere, same as weekends/today or the
- * side-panel mode below.
+ * user sets up once and expects everywhere, same as weekends/today above.
  */
 export const SettingsPanel = forwardRef<HTMLDivElement, {
   theme: Theme;
@@ -27,10 +23,6 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
   onShowWeekendsChange: (value: boolean) => void;
   showToday: boolean;
   onShowTodayChange: (value: boolean) => void;
-  sidePanelMode: SidePanelMode;
-  onSidePanelModeChange: (value: SidePanelMode) => void;
-  navPosition: NavPosition;
-  onNavPositionChange: (value: NavPosition) => void;
   stageCategories: StageCategoryDef[];
   onAddStageCategory: (label: string) => void;
   onRenameStageCategory: (id: string, label: string) => void;
@@ -48,10 +40,6 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
     onShowWeekendsChange,
     showToday,
     onShowTodayChange,
-    sidePanelMode,
-    onSidePanelModeChange,
-    navPosition,
-    onNavPositionChange,
     stageCategories,
     onAddStageCategory,
     onRenameStageCategory,
@@ -127,38 +115,6 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
             </div>
           </div>
 
-          <div className={styles.group}>
-            <p className={styles.sectionTitle}>{t.settings.panelModeSection}</p>
-            <div className={styles.optionRow}>
-              <span className={styles.optionLabel}>{t.settings.panelModeLabel}</span>
-              <OptionGroup
-                value={sidePanelMode}
-                onChange={onSidePanelModeChange}
-                options={[
-                  { value: "overlay", label: t.settings.panelModeOverlay },
-                  { value: "fixed", label: t.settings.panelModeFixed },
-                ]}
-                ariaLabel={t.settings.panelModeLabel}
-              />
-            </div>
-            <p className={styles.optionHint}>{t.settings.panelModeHint}</p>
-          </div>
-
-          <div className={styles.group}>
-            <p className={styles.sectionTitle}>{t.settings.navSection}</p>
-            <div className={styles.optionRow}>
-              <span className={styles.optionLabel}>{t.settings.navPositionLabel}</span>
-              <OptionGroup
-                value={navPosition}
-                onChange={onNavPositionChange}
-                options={[
-                  { value: "left", label: t.settings.navLeft },
-                  { value: "right", label: t.settings.navRight },
-                ]}
-                ariaLabel={t.settings.navPositionLabel}
-              />
-            </div>
-          </div>
         </>
       )}
 

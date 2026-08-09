@@ -11,7 +11,7 @@ import { AddProjectPanel } from "./AddProjectPanel";
 import { ExecutiveSummary } from "./ExecutiveSummary";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { ImportPanel } from "./ImportPanel";
-import { SettingsPanel, type SidePanelMode } from "./SettingsPanel";
+import { SettingsPanel } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
 import { useAppSettings } from "./useAppSettings";
 import { useSidePanel } from "./useSidePanel";
@@ -146,7 +146,6 @@ export default function ProgramPage() {
   }
 
   const sidePanel = useSidePanel({
-    sidePanelMode: settings.sidePanelMode,
     isOpen: anyPanelOpen,
     onCloseAll: closeAllPanels,
   });
@@ -154,14 +153,12 @@ export default function ProgramPage() {
   function openSettingsPanel() {
     closeAllPanels();
     setSettingsOpen(true);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
   function openAddProjectPanel() {
     closeAllPanels();
     setAddProjectOpen(true);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
@@ -169,7 +166,6 @@ export default function ProgramPage() {
     closeAllPanels();
     setImportProjectName("");
     setImportOpen(true);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
@@ -178,7 +174,6 @@ export default function ProgramPage() {
   function openGanttPanel(projectId: string) {
     closeAllPanels();
     setGanttProjectId(projectId);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
@@ -194,21 +189,11 @@ export default function ProgramPage() {
     closeAllPanels();
     setGanttProjectId(projectId);
     if (planLane) setDraftRange({ laneId: planLane.id, start, end });
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
-  // "Home" always means "just the calendar", regardless of side-panel mode.
   function goHome() {
     closeAllPanels();
-    sidePanel.hideFixedPanel();
-  }
-
-  // Switching into "fixed" mode while a panel was already open should
-  // dock it visibly right away, not silently drop it.
-  function handleSidePanelModeChange(mode: SidePanelMode) {
-    settings.setSidePanelMode(mode);
-    if (mode === "fixed" && anyPanelOpen) sidePanel.revealFixedPanel();
   }
 
   function openProject(projectId: string) {
@@ -265,10 +250,6 @@ export default function ProgramPage() {
       onShowWeekendsChange={settings.setShowWeekends}
       showToday={settings.showToday}
       onShowTodayChange={settings.setShowToday}
-      sidePanelMode={settings.sidePanelMode}
-      onSidePanelModeChange={handleSidePanelModeChange}
-      navPosition={settings.navPosition}
-      onNavPositionChange={settings.setNavPosition}
       stageCategories={stageCategories}
       onAddStageCategory={addStageCategory}
       onRenameStageCategory={renameStageCategory}
@@ -283,17 +264,8 @@ export default function ProgramPage() {
 
   return (
     <>
-      <Sidebar
-        position={settings.navPosition}
-        active={sidebarActive}
-        onHome={goHome}
-        onImport={openImportPanel}
-        onSettings={openSettingsPanel}
-        showPanelToggle={settings.sidePanelMode === "fixed"}
-        panelVisible={sidePanel.fixedPanelVisible}
-        onTogglePanel={sidePanel.toggleFixedPanel}
-      />
-      <main className={`${styles.main} ${settings.navPosition === "left" ? styles.mainNavLeft : styles.mainNavRight}`}>
+      <Sidebar active={sidebarActive} onHome={goHome} onImport={openImportPanel} onSettings={openSettingsPanel} />
+      <main className={`${styles.main} ${styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
             <p className={styles.eyebrow}>{t.header.eyebrow}</p>
@@ -303,7 +275,7 @@ export default function ProgramPage() {
               {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
-          {!(settings.sidePanelMode === "overlay" && anyPanelOpen) && (
+          {!anyPanelOpen && (
             <div className={styles.headerActions}>
               <button type="button" className={styles.importButton} onClick={openImportPanel}>
                 {t.header.importButton}
@@ -317,7 +289,7 @@ export default function ProgramPage() {
 
         <ExecutiveSummary projects={projects} onSetNote={setProjectNote} />
 
-        <div className={`${styles.layout} ${settings.sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
+        <div className={styles.layout}>
           <div className={styles.calendarCol}>
             {!loaded ? (
               <p className={styles.meta}>{t.header.loading}</p>
@@ -348,32 +320,13 @@ export default function ProgramPage() {
               />
             )}
           </div>
-
-          {/* "Fixed" side-panel mode: a normal flex sibling of the calendar,
-              docked (never overlaying it), only actually rendered while
-              fixedPanelVisible so the calendar reclaims the full width
-              instead of a docked-but-empty box sitting there. */}
-          {settings.sidePanelMode === "fixed" && sidePanel.fixedPanelVisible && (
-            <div className={styles.sidePanelFixed} style={{ width: sidePanel.panelWidth }}>
-              <div
-                className={styles.resizeHandle}
-                onMouseDown={sidePanel.startResize}
-                role="separator"
-                aria-orientation="vertical"
-                aria-label={t.header.resizeHandleAria}
-              />
-              <div className={styles.sidePanelContent}>
-                {panelContent ?? <p className={styles.emptyPanel}>{t.settings.emptyPanel}</p>}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* "Overlay" side-panel mode (the default): fixed, right-anchored,
-            not part of the flex layout above, so it floats over the
-            calendar instead of squeezing it. Only rendered while a panel
-            is actually open, and closes on an outside click. */}
-        {settings.sidePanelMode === "overlay" && anyPanelOpen && (
+        {/* Floating overlay, right-anchored, not part of the flex layout
+            above, so it floats over the calendar instead of squeezing it.
+            Only rendered while a panel is actually open, and closes on an
+            outside click. */}
+        {anyPanelOpen && (
           <div ref={sidePanel.sidePanelWrapperRef} className={styles.sidePanel} style={{ width: sidePanel.panelWidth }}>
             <div
               className={styles.resizeHandle}

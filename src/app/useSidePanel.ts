@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import type { SidePanelMode } from "./SettingsPanel";
 
 const PANEL_WIDTH_DEFAULT = 400;
 const PANEL_WIDTH_MIN = 320;
@@ -23,43 +22,28 @@ function panelWidthDefault(): number {
 
 /**
  * Shared side-panel plumbing for both the Program portfolio page and every
- * Project detail page — width/resize, the "fixed" dock's independent show/
- * hide state, and the click-outside-to-close behavior. What actually gets
- * rendered inside the panel (and which of the caller's own booleans track
- * "is something open") stays with the caller; this hook only owns the
+ * Project detail page — width/resize and the click-outside-to-close
+ * behavior for the floating overlay panel. What actually gets rendered
+ * inside the panel (and which of the caller's own booleans track "is
+ * something open") stays with the caller; this hook only owns the
  * panel-chrome behavior that's identical everywhere it appears.
  *
  * `isOpen` is the caller's own "is any of my panels open" (e.g.
  * explorer/gatesPanelOpen/importOpen/settingsOpen for a project page, or
  * just settingsOpen for the Program page). `onCloseAll` clears every one
- * of those — used both by the outside-click effect and by closePanel's
- * "overlay" branch.
+ * of those — used both by the outside-click effect and by closePanel.
  */
-export function useSidePanel({
-  sidePanelMode,
-  isOpen,
-  onCloseAll,
-}: {
-  sidePanelMode: SidePanelMode;
-  isOpen: boolean;
-  onCloseAll: () => void;
-}) {
+export function useSidePanel({ isOpen, onCloseAll }: { isOpen: boolean; onCloseAll: () => void }) {
   const [panelWidth, setPanelWidth] = useState(panelWidthDefault);
-  // "Fixed" mode only: whether the docked panel is actually shown.
-  // Independent of the caller's own open-state, which tracks *what* it
-  // would show — closing (X) in fixed mode hides the dock without
-  // forgetting what was open, so reactivating it (the sidebar's panel
-  // toggle) restores the same content instead of resetting to empty.
-  const [fixedPanelVisible, setFixedPanelVisible] = useState(false);
   const sidePanelWrapperRef = useRef<HTMLDivElement>(null);
   // Whichever forwardRef panel component (ExplorerPanel/GatesPanel/
   // ImportPanel/SettingsPanel) is currently rendered gets this same ref —
   // scrollToPanel doesn't need to know which one it is.
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // On narrow viewports the panel stacks below the calendar instead of
-  // sitting beside it — bring it into view there, since opening it can
-  // otherwise happen off-screen with no indication anything happened.
+  // Brings the panel into view the moment it opens — a no-op on desktop
+  // (it's position:fixed, always on-screen already) but keeps a phone's
+  // own scroll position from stranding it off the visible viewport.
   function scrollToPanel() {
     requestAnimationFrame(() => {
       panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -77,13 +61,9 @@ export function useSidePanel({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Click-outside-to-close — only meaningful in "overlay" mode, since a
-  // "fixed" panel is docked in the layout permanently and closing it on an
-  // outside click would fight the whole point of pinning it. Attached only
-  // while a panel is actually open, so it never intercepts the mousedown
-  // that opens the very first panel.
+  // Click-outside-to-close — attached only while a panel is actually open,
+  // so it never intercepts the mousedown that opens the very first panel.
   useEffect(() => {
-    if (sidePanelMode !== "overlay") return;
     if (!isOpen) return;
     function onPointerDown(e: MouseEvent) {
       const target = e.target as Node;
@@ -106,7 +86,7 @@ export function useSidePanel({
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sidePanelMode, isOpen]);
+  }, [isOpen]);
 
   // Drag-to-resize the side panel — the handle sits on the panel's left
   // edge, so dragging left (away from the right-anchored panel) grows it.
@@ -128,46 +108,12 @@ export function useSidePanel({
     window.addEventListener("mouseup", onUp);
   }
 
-  // Shared close ("X") handler for whichever panel is currently showing.
-  // In "overlay" mode this clears the caller's content, which is enough to
-  // make the whole floating panel disappear (it's only ever rendered while
-  // something is open). In "fixed" mode the docked panel would otherwise
-  // stay put forever — clearing content wouldn't remove it, it'd just show
-  // the empty-state placeholder — so this hides the dock instead, without
-  // forgetting what was open.
-  function closePanel() {
-    if (sidePanelMode === "fixed") {
-      setFixedPanelVisible(false);
-      return;
-    }
-    onCloseAll();
-  }
-
-  function revealFixedPanel() {
-    setFixedPanelVisible(true);
-  }
-
-  // Unconditional, unlike closePanel — used by "Home", which always means
-  // "just the calendar" regardless of side-panel mode, not just "close
-  // whatever's open right now".
-  function hideFixedPanel() {
-    setFixedPanelVisible(false);
-  }
-
-  function toggleFixedPanel() {
-    setFixedPanelVisible((v) => !v);
-  }
-
   return {
     panelWidth,
-    fixedPanelVisible,
     sidePanelWrapperRef,
     panelRef,
     scrollToPanel,
     startResize,
-    closePanel,
-    revealFixedPanel,
-    hideFixedPanel,
-    toggleFixedPanel,
+    closePanel: onCloseAll,
   };
 }

@@ -29,6 +29,8 @@
 .toolbarControls {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -85,6 +87,25 @@
   background: var(--color-surface);
   color: var(--color-iris-ink);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Below ~640px the toolbar's own two button groups (continuous zoom +
+   Año/Mes/Semana/Día) no longer fit on Legend's line at full size — they
+   already wrap onto their own row (see .toolbarControls' flex-wrap), this
+   just tightens their padding/label so that row fits a phone width too
+   instead of wrapping a second time or scrolling. The `!important` on
+   .labelsCol is the only way to win over the inline width style the
+   component sets for the desktop-width default (see LABEL_COL_WIDTH in
+   constants.ts) — there's no other layout-affecting reason to read its
+   width from JS at all, so overriding it here is safe. */
+@media (max-width: 640px) {
+  .zoomButton {
+    padding: 6px 8px;
+    font-size: var(--text-2xs);
+  }
+  .labelsCol {
+    width: 128px !important;
+  }
 }
 
 /* Label column is a fixed-width flex sibling; the timeline is its own
@@ -494,6 +515,17 @@
   font-weight: 600;
 }
 
+/* The diamond itself is only 10x10, but .gate's padding+margin trick above
+   already extends its real hit area past the visible glyph — this widens
+   that padding further on a phone, where a fingertip needs more room than
+   a mouse cursor does, without touching the diamond's look at any size. */
+@media (max-width: 640px) {
+  .gate {
+    padding: 6px 8px;
+    margin: -6px -8px;
+  }
+}
+
 /* Spans from the gates row down to the bottom of the plan — "hasta el
    final del planning" — so it's obvious which bars each activated gate
    cuts through. Lives in the same top-most overlay as Focus Cell so it's
@@ -538,6 +570,15 @@
 }
 .chevronButton:hover {
   background: var(--color-surface2);
+}
+/* 18px is fine for a mouse but under the touch-target floor on a phone —
+   .gatesLabelSpacer must stay in lockstep (see its own comment) so the
+   "Stage gates" row's label keeps lining up with every other lane name. */
+@media (max-width: 640px) {
+  .chevronButton,
+  .gatesLabelSpacer {
+    width: 24px;
+  }
 }
 .laneNameButton {
   flex: 1 1 auto;

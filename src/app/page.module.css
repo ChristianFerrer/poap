@@ -20,14 +20,10 @@
   overflow: hidden;
 }
 
-/* Extra clearance for the fixed icon sidebar (see Sidebar.module.css),
-   whichever edge it's docked to — added on top of .main's own base
-   padding, not replacing it, since only one side's padding changes here. */
+/* Extra clearance for the fixed icon sidebar (see Sidebar.module.css) —
+   added on top of .main's own base padding, not replacing it. */
 .mainNavLeft {
   padding-left: 116px;
-}
-.mainNavRight {
-  padding-right: 116px;
 }
 
 .headerRow {
@@ -41,8 +37,10 @@
 
 .headerActions {
   flex: 0 0 auto;
+  max-width: 100%;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -52,20 +50,6 @@
 .importButton {
   composes: btnPrimary from "./buttons.module.css";
   flex: 0 0 auto;
-}
-
-/* Persistent count badge for unresolved plan-lane links (see
-   findLinkageIssues) — amber like an at-risk phase, always visible in the
-   header (not just inside the panel) so the alert survives closing it. */
-.linkageBadge {
-  composes: btnSecondary from "./buttons.module.css";
-  color: var(--color-amber-ink, var(--color-amber));
-  border-color: color-mix(in srgb, var(--color-amber) 45%, var(--color-line));
-  background: color-mix(in srgb, var(--color-amber) 12%, var(--color-surface2));
-}
-.linkageBadge:hover {
-  color: var(--color-amber-ink, var(--color-amber));
-  border-color: var(--color-amber);
 }
 
 .eyebrow {
@@ -170,7 +154,10 @@
   margin: 0 0 10px;
 }
 .emptyProgramActions {
+  max-width: 100%;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
 }
 
@@ -207,31 +194,6 @@
   min-width: 0;
   overflow-y: auto;
 }
-/* "Fixed" panel mode — a normal flex sibling of .calendarCol inside
-   .layout (see .layout above), docked in the page's own flow instead of
-   floating over it. Same internal structure (.resizeHandle +
-   .sidePanelContent) as the overlay variant, just without position:fixed,
-   the box-shadow, or the border-left doubling as an escape from .main's
-   overflow:hidden. */
-.sidePanelFixed {
-  flex: 0 0 auto;
-  min-height: 0;
-  display: flex;
-  background: var(--color-surface);
-  border-left: 1px solid var(--color-line);
-}
-
-.emptyPanel {
-  margin: 0;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 24px;
-  text-align: center;
-  color: var(--color-fog);
-  font-size: var(--text-sm);
-}
 
 @media (max-width: 640px) {
   .main {
@@ -239,9 +201,6 @@
   }
   .mainNavLeft {
     padding-left: 72px;
-  }
-  .mainNavRight {
-    padding-right: 72px;
   }
   .title {
     font-size: var(--text-lg);
@@ -256,22 +215,6 @@
     width: 100% !important;
   }
   .resizeHandle {
-    display: none;
-  }
-  /* A permanently docked panel can't also claim a horizontal slice of a
-     phone-sized viewport without leaving no room for the calendar — stack
-     it below instead, full width, with its own capped height/scroll. */
-  .layoutStacked {
-    flex-direction: column;
-  }
-  .layoutStacked .sidePanelFixed {
-    width: 100% !important;
-    flex: 0 0 auto;
-    max-height: 45vh;
-    border-left: none;
-    border-top: 1px solid var(--color-line);
-  }
-  .layoutStacked .resizeHandle {
     display: none;
   }
 }

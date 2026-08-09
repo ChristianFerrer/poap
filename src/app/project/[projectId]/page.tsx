@@ -20,7 +20,7 @@ import { useProjectSwimlines } from "../../useProjectSwimlines";
 import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
 import { GatesPanel } from "../../GatesPanel";
 import { ImportPanel } from "../../ImportPanel";
-import { SettingsPanel, type SidePanelMode } from "../../SettingsPanel";
+import { SettingsPanel } from "../../SettingsPanel";
 import { Sidebar, type SidebarActive } from "../../Sidebar";
 import { useAppSettings } from "../../useAppSettings";
 import { useSidePanel } from "../../useSidePanel";
@@ -143,7 +143,6 @@ function ProjectView({ project }: { project: Project }) {
 
   const anyPanelOpen = Boolean(explorer || gatesPanelOpen || importOpen || settingsOpen);
   const sidePanel = useSidePanel({
-    sidePanelMode: settings.sidePanelMode,
     isOpen: anyPanelOpen,
     onCloseAll: closeAllPanels,
   });
@@ -159,7 +158,6 @@ function ProjectView({ project }: { project: Project }) {
     setGatesPanelOpen(false);
     setImportOpen(false);
     setSettingsOpen(false);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
@@ -168,7 +166,6 @@ function ProjectView({ project }: { project: Project }) {
     setExplorer(null);
     setGatesPanelOpen(false);
     setSettingsOpen(false);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
@@ -177,24 +174,14 @@ function ProjectView({ project }: { project: Project }) {
     setExplorer(null);
     setGatesPanelOpen(false);
     setImportOpen(false);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
   // "Home" always means "the top of this project" — clears the drill path
-  // back to Equipos as well as closing whatever panel was open, regardless
-  // of side-panel mode.
+  // back to Equipos as well as closing whatever panel was open.
   function goHome() {
     closeAllPanels();
-    sidePanel.hideFixedPanel();
     setDrill(null);
-  }
-
-  // Switching into "fixed" mode while something was already open should
-  // dock it visibly right away, not silently drop it.
-  function handleSidePanelModeChange(mode: SidePanelMode) {
-    settings.setSidePanelMode(mode);
-    if (mode === "fixed" && anyPanelOpen) sidePanel.revealFixedPanel();
   }
 
   function submitNewPlan() {
@@ -461,7 +448,6 @@ function ProjectView({ project }: { project: Project }) {
     setImportOpen(false);
     setSettingsOpen(false);
     setGatesPanelOpen(true);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
@@ -473,7 +459,6 @@ function ProjectView({ project }: { project: Project }) {
     setImportOpen(false);
     setSettingsOpen(false);
     setGatesPanelOpen(true);
-    sidePanel.revealFixedPanel();
     sidePanel.scrollToPanel();
   }
 
@@ -575,10 +560,6 @@ function ProjectView({ project }: { project: Project }) {
       onShowWeekendsChange={settings.setShowWeekends}
       showToday={settings.showToday}
       onShowTodayChange={settings.setShowToday}
-      sidePanelMode={settings.sidePanelMode}
-      onSidePanelModeChange={handleSidePanelModeChange}
-      navPosition={settings.navPosition}
-      onNavPositionChange={settings.setNavPosition}
       stageCategories={stageCategories}
       onAddStageCategory={addStageCategory}
       onRenameStageCategory={renameStageCategory}
@@ -594,20 +575,16 @@ function ProjectView({ project }: { project: Project }) {
   return (
     <>
       <Sidebar
-        position={settings.navPosition}
         active={sidebarActive}
         onHome={goHome}
         onSwimlines={() => openExplorer({ level: "lanes" })}
         onGates={openGatesPanel}
         onImport={openImportPanel}
         onSettings={openSettingsPanel}
-        showPanelToggle={settings.sidePanelMode === "fixed"}
-        panelVisible={sidePanel.fixedPanelVisible}
-        onTogglePanel={sidePanel.toggleFixedPanel}
         issuesCount={linkageIssueCount}
         onIssuesClick={() => openExplorer({ level: "lanes" })}
       />
-      <main className={`${styles.main} ${settings.navPosition === "left" ? styles.mainNavLeft : styles.mainNavRight}`}>
+      <main className={`${styles.main} ${styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
             <Link href="/" className={styles.eyebrow}>
@@ -619,7 +596,7 @@ function ProjectView({ project }: { project: Project }) {
               {t.header.monthsWord} · {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
-          {!(settings.sidePanelMode === "overlay" && anyPanelOpen) && (
+          {!anyPanelOpen && (
             <div className={styles.headerActions}>
               <button type="button" className={styles.importButton} onClick={openImportPanel}>
                 {t.header.importButton}
@@ -679,7 +656,7 @@ function ProjectView({ project }: { project: Project }) {
           </div>
         )}
 
-        <div className={`${styles.layout} ${settings.sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
+        <div className={styles.layout}>
           <div className={styles.calendarCol}>
             <PoapRenderer
               months={program.months}
@@ -701,24 +678,9 @@ function ProjectView({ project }: { project: Project }) {
               showToday={settings.showToday}
             />
           </div>
-
-          {settings.sidePanelMode === "fixed" && sidePanel.fixedPanelVisible && (
-            <div className={styles.sidePanelFixed} style={{ width: sidePanel.panelWidth }}>
-              <div
-                className={styles.resizeHandle}
-                onMouseDown={sidePanel.startResize}
-                role="separator"
-                aria-orientation="vertical"
-                aria-label={t.header.resizeHandleAria}
-              />
-              <div className={styles.sidePanelContent}>
-                {panelContent ?? <p className={styles.emptyPanel}>{t.settings.emptyPanel}</p>}
-              </div>
-            </div>
-          )}
         </div>
 
-        {settings.sidePanelMode === "overlay" && anyPanelOpen && (
+        {anyPanelOpen && (
           <div ref={sidePanel.sidePanelWrapperRef} className={styles.sidePanel} style={{ width: sidePanel.panelWidth }}>
             <div
               className={styles.resizeHandle}

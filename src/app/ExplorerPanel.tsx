@@ -431,7 +431,11 @@ export const ExplorerPanel = forwardRef<
                     </thead>
                     <tbody>
                       {visibleLanes.map((lane) => (
-                        <tr key={lane.id} className={styles.clickableRow}>
+                        <tr
+                          key={lane.id}
+                          className={styles.clickableRow}
+                          onClick={() => onNavigate({ level: "phases", laneId: lane.id })}
+                        >
                           <td className={styles.tableNameCell}>
                             <input
                               className={styles.tableTextInput}
@@ -441,7 +445,7 @@ export const ExplorerPanel = forwardRef<
                               aria-label={t.explorer.laneNameAria}
                             />
                           </td>
-                          <td className={styles.tableMetaCell} onClick={() => onNavigate({ level: "phases", laneId: lane.id })}>
+                          <td className={styles.tableMetaCell}>
                             {lane.phases.length}{" "}
                             {pluralForm(lane.phases.length, { one: t.explorer.phaseOne, other: t.explorer.phaseOther })}
                           </td>

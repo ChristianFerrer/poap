@@ -41,3 +41,22 @@
 .trackSm.trackOn .thumb {
   transform: translateX(11px);
 }
+
+/* The compact track is well under the ~24px touch-target floor — fine
+   with a mouse, not on a phone, where GatesPanel's row this sits in is
+   full-width anyway (see page.module.css's 900px panel breakpoint). Bumps
+   it to a comfortably tappable size without touching the default (already
+   36x20) variant used everywhere else. */
+@media (max-width: 640px) {
+  .trackSm {
+    width: 40px;
+    height: 24px;
+  }
+  .trackSm .thumb {
+    width: 18px;
+    height: 18px;
+  }
+  .trackSm.trackOn .thumb {
+    transform: translateX(18px);
+  }
+}

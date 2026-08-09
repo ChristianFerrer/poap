@@ -1,19 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IconAlertTriangle, IconGateDiamond, IconHome, IconLanes, IconPanel, IconSettings, IconUploadNav } from "@/lib/icons";
+import { IconAlertTriangle, IconGateDiamond, IconHome, IconLanes, IconSettings, IconUploadNav } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
 export type SidebarActive = "home" | "swimlines" | "gates" | "import" | "settings";
-export type SidebarPosition = "left" | "right";
 
 /**
- * Left/right-anchored icon nav — the app's single entry point for the
+ * Left-anchored icon nav — the app's single entry point for the
  * management panels (swimlines, stage gates, settings) plus a "home"
- * action that just clears whatever's open. Position is a display
- * preference (see useAppSettings), not something this component decides
- * for itself.
+ * action that just clears whatever's open.
  *
  * onSwimlines/onGates are optional: the Program (portfolio) page has
  * neither concept — "teams" and "stage gates" only exist inside a single
@@ -21,20 +18,15 @@ export type SidebarPosition = "left" | "right";
  * buttons simply don't render there instead of pointing at nothing.
  */
 export function Sidebar({
-  position,
   active,
   onHome,
   onSwimlines,
   onGates,
   onImport,
   onSettings,
-  showPanelToggle,
-  panelVisible,
-  onTogglePanel,
   issuesCount = 0,
   onIssuesClick,
 }: {
-  position: SidebarPosition;
   active: SidebarActive;
   onHome: () => void;
   onSwimlines?: () => void;
@@ -44,12 +36,6 @@ export function Sidebar({
    * the first place, on both the Program and Project pages. */
   onImport: () => void;
   onSettings: () => void;
-  /** Only meaningful in "fixed" side-panel mode — a floating panel already
-   * fully appears/disappears on its own, so this extra show/hide control
-   * would be redundant there. */
-  showPanelToggle: boolean;
-  panelVisible: boolean;
-  onTogglePanel: () => void;
   /** Count of tracks missing a required parent (no plan-lane category, or
    * no Plan) — rendered as a permanent badge in the rail itself rather
    * than inside any one panel, so it can never be closed, buried, or
@@ -72,10 +58,7 @@ export function Sidebar({
   ];
 
   return (
-    <nav
-      className={`${styles.sidebar} ${position === "right" ? styles.sidebarRight : styles.sidebarLeft}`}
-      aria-label={t.sidebar.navAria}
-    >
+    <nav className={styles.sidebar} aria-label={t.sidebar.navAria}>
       {items.map((item) => (
         <button
           key={item.key}
@@ -89,27 +72,6 @@ export function Sidebar({
           <span className={styles.navLabel}>{item.label}</span>
         </button>
       ))}
-
-      {showPanelToggle && (
-        <>
-          {/* Separate from the content-selector buttons above — this one
-              only shows/hides the fixed panel dock, it doesn't change what
-              it's showing. Explicit control for reopening it once closed
-              via the panel's own X, since a docked panel (unlike the
-              floating one) won't otherwise reappear on its own. */}
-          <span className={styles.divider} aria-hidden="true" />
-          <button
-            type="button"
-            className={`${styles.navButton} ${panelVisible ? styles.navButtonActive : ""}`}
-            onClick={onTogglePanel}
-            aria-pressed={panelVisible}
-            aria-label={panelVisible ? t.sidebar.hidePanelAria : t.sidebar.showPanelAria}
-          >
-            <IconPanel />
-            <span className={styles.navLabel}>{t.sidebar.panelLabel}</span>
-          </button>
-        </>
-      )}
 
       <span className={styles.spacer} aria-hidden="true" />
 
