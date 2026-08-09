@@ -84,6 +84,14 @@ export interface PoapRendererProps {
    * to leave the track non-interactive for creation (e.g. the read-only
    * Program-level portfolio view). */
   onCreatePhase?: (laneId: string, start: number, end: number) => void;
+  /** Restricts which lanes onCreatePhase actually applies to — e.g. the
+   * project page shows team lanes and the isProjectPlan anchor lane side
+   * by side, but only the anchor lane's tracks are allowed to exist
+   * without belonging to a Plan, so team lanes there aren't creatable at
+   * all (see the app-level Plan requirement). Omit (with onCreatePhase
+   * set) to allow creation on every lane, e.g. a page that's already
+   * scoped to exactly one creatable lane. */
+  isLaneCreatable?: (laneId: string) => boolean;
   /** A second, explicit per-lane action distinct from onLaneClick — e.g.
    * the Program page uses this for a "view swimlines" shortcut on each
    * project row, while onLaneClick itself still navigates into the

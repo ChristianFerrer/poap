@@ -188,9 +188,32 @@ function ProjectView({ project }: { project: Project }) {
     router.push(`/project/${project.id}/lane/${laneId}`);
   }
 
+  // Defense in depth alongside PoapRenderer's own isLaneCreatable gate — a
+  // track can't exist without a Plan except on the project's own anchor
+  // lane, so this never opens the phases form for a team lane even if
+  // something else ever manages to invoke it.
   function handleCreatePhase(laneId: string, start: number, end: number) {
+    const targetLane = lanes.find((l) => l.id === laneId);
+    if (!targetLane?.isProjectPlan) return;
     setDraftRange({ laneId, start, end });
     openExplorer({ level: "phases", laneId });
+  }
+
+  // ExplorerPanel's own breadcrumb/"Ver fases" navigation can still land on
+  // {level:"phases", laneId} for a team lane (via the Sidebar's Swimlines
+  // list) — that form has no idea Plans exist, so a phase created there
+  // would have nowhere to belong. Redirect into that lane's real Planes
+  // page instead of opening the old form; the isProjectPlan anchor lane is
+  // exempt and keeps navigating inline exactly as before.
+  function handleExplorerNavigate(view: ExplorerView) {
+    if (view.level === "phases") {
+      const targetLane = lanes.find((l) => l.id === view.laneId);
+      if (targetLane && !targetLane.isProjectPlan) {
+        router.push(`/project/${project.id}/lane/${view.laneId}`);
+        return;
+      }
+    }
+    setExplorer(view);
   }
 
   function toggleGateActive(gateId: string) {
@@ -270,7 +293,7 @@ function ProjectView({ project }: { project: Project }) {
       view={explorer}
       stageCategories={stageCategories}
       getActivities={getActivities}
-      onNavigate={setExplorer}
+      onNavigate={handleExplorerNavigate}
       onClose={sidePanel.closePanel}
       onAddLane={addLane}
       onRenameLane={renameLane}
@@ -387,6 +410,7 @@ function ProjectView({ project }: { project: Project }) {
               onGateClick={handleGateClick}
               onLaneClick={handleLaneClick}
               onCreatePhase={handleCreatePhase}
+              isLaneCreatable={(laneId) => lanes.find((l) => l.id === laneId)?.isProjectPlan ?? false}
               onGatesLabelClick={openGatesPanel}
               locale={locale}
               showWeekends={settings.showWeekends}

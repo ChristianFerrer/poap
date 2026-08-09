@@ -447,6 +447,7 @@ export function PoapRenderer({
   onLaneGanttClick,
   onGatesLabelClick,
   onCreatePhase,
+  isLaneCreatable,
   showWeekends = true,
   showToday = true,
 }: PoapRendererProps) {
@@ -647,8 +648,12 @@ export function PoapRenderer({
     return daysToAxis(ratio * scale.totalDays, scale);
   }
 
+  function laneIsCreatable(laneId: string): boolean {
+    return Boolean(onCreatePhase) && (!isLaneCreatable || isLaneCreatable(laneId));
+  }
+
   function startDragCreate(e: ReactMouseEvent<HTMLDivElement>, laneId: string) {
-    if (!onCreatePhase) return;
+    if (!laneIsCreatable(laneId)) return;
     if ((e.target as HTMLElement).closest("button")) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const axis = axisFromClientX(e.clientX, rect);
@@ -765,12 +770,13 @@ export function PoapRenderer({
         </div>
       );
     }
+    const creatable = laneIsCreatable(lane.id);
     return (
       <div
         key={lane.id}
-        className={`${trackClass} ${onCreatePhase ? styles.laneTrackCreatable : ""}`.trim()}
+        className={`${trackClass} ${creatable ? styles.laneTrackCreatable : ""}`.trim()}
         style={{ height: laneRowHeight(rows.length) }}
-        onMouseDown={onCreatePhase ? (e) => startDragCreate(e, lane.id) : undefined}
+        onMouseDown={creatable ? (e) => startDragCreate(e, lane.id) : undefined}
       >
         {rows.map((row, r) => (
           <div key={r} className={styles.laneRow}>

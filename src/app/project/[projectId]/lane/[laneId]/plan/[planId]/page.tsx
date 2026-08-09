@@ -122,7 +122,12 @@ export default function PlanPage({ params }: { params: { projectId: string; lane
     openExplorer({ level: "activities", phaseId });
   }
 
+  // "Sin plan asignado" isn't a real Plan — creating more phases from that
+  // pseudo-view would just manufacture more of the exact orphans this page
+  // exists to help clear out, so both entry points into "add phase" are
+  // disabled while isUnassigned.
   function handleCreatePhase(_syntheticLaneId: string, start: number, end: number) {
+    if (isUnassigned) return;
     setDraftRange({ laneId: params.planId, start, end });
     openExplorer({ level: "phases", laneId: params.planId });
   }
@@ -132,7 +137,8 @@ export default function PlanPage({ params }: { params: { projectId: string; lane
   // *real* team lane (params.laneId) instead, since that's the only lane
   // actually persisted, tagging/untagging planId as needed.
   function handleAddPhase(_syntheticLaneId: string, phase: Parameters<typeof addPhase>[1]) {
-    addPhase(params.laneId, { ...phase, planId: isUnassigned ? undefined : params.planId });
+    if (isUnassigned) return;
+    addPhase(params.laneId, { ...phase, planId: params.planId });
   }
   function handleUpdatePhase(_syntheticLaneId: string, phaseId: string, patch: Parameters<typeof updatePhase>[2]) {
     updatePhase(params.laneId, phaseId, patch);
@@ -217,15 +223,17 @@ export default function PlanPage({ params }: { params: { projectId: string; lane
               {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
             </p>
           </div>
-          <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.importButton}
-              onClick={() => openExplorer({ level: "phases", laneId: params.planId })}
-            >
-              <IconGantt /> {t.explorer.addPhaseSection}
-            </button>
-          </div>
+          {!isUnassigned && (
+            <div className={styles.headerActions}>
+              <button
+                type="button"
+                className={styles.importButton}
+                onClick={() => openExplorer({ level: "phases", laneId: params.planId })}
+              >
+                <IconGantt /> {t.explorer.addPhaseSection}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className={`${styles.layout} ${settings.sidePanelMode === "fixed" ? styles.layoutStacked : ""}`}>
@@ -237,6 +245,7 @@ export default function PlanPage({ params }: { params: { projectId: string; lane
               selectedPhaseId={selectedPhaseId}
               onPhaseClick={handlePhaseClick}
               onCreatePhase={handleCreatePhase}
+              isLaneCreatable={() => !isUnassigned}
               locale={locale}
               showWeekends={settings.showWeekends}
               showToday={settings.showToday}
