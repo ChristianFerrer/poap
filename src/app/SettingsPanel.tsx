@@ -30,6 +30,8 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
   onShowWeekendsChange: (value: boolean) => void;
   showToday: boolean;
   onShowTodayChange: (value: boolean) => void;
+  flagUncategorizedPhases: boolean;
+  onFlagUncategorizedPhasesChange: (value: boolean) => void;
   stageCategories: StageCategoryDef[];
   onAddStageCategory: (label: string) => void;
   onRenameStageCategory: (id: string, label: string) => void;
@@ -47,6 +49,8 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
     onShowWeekendsChange,
     showToday,
     onShowTodayChange,
+    flagUncategorizedPhases,
+    onFlagUncategorizedPhasesChange,
     stageCategories,
     onAddStageCategory,
     onRenameStageCategory,
@@ -226,6 +230,16 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
               ))}
               {stageCategories.length === 0 && <p className={explorerStyles.emptyCell}>{t.settings.noStages}</p>}
             </div>
+          </div>
+
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.uncategorizedWarningSection}</p>
+            <Switch
+              checked={flagUncategorizedPhases}
+              onChange={onFlagUncategorizedPhasesChange}
+              label={t.settings.uncategorizedWarningToggleLabel}
+              hint={t.settings.uncategorizedWarningToggleHint}
+            />
           </div>
 
           <div className={styles.group}>

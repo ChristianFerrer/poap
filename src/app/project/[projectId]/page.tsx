@@ -596,26 +596,17 @@ function ProjectView({ project }: { project: Project }) {
           ? "swimlines"
           : "none";
 
-  // "Where am I" — every ancestor level above whatever's shown as the
-  // page's own title below it (Programa always first, then this project,
-  // then however deep the recursive canvas is currently drilled). The
-  // title itself is never repeated as its own crumb — that's exactly what
-  // makes it the title instead of just the last breadcrumb segment.
-  const breadcrumbCrumbs: { label: string; onClick: () => void }[] = [
-    { label: t.header.levelProgram, onClick: () => router.push("/") },
-  ];
-  if (drill) {
-    breadcrumbCrumbs.push({ label: project.name, onClick: () => setDrill(null) });
-    if (drill.level !== "equipo") {
-      breadcrumbCrumbs.push({ label: equipoName(drill.laneId), onClick: () => setDrill({ level: "equipo", laneId: drill.laneId }) });
-    }
-    if (drill.level === "fase") {
-      breadcrumbCrumbs.push({
-        label: planName(drill.laneId, drill.planId),
-        onClick: () => setDrill({ level: "plan", laneId: drill.laneId, planId: drill.planId }),
-      });
-    }
-  }
+  // "What am I looking at" — a single word for the current view's own
+  // level, not a path chain (see .eyebrow in page.module.css): the level
+  // this page's own title/canvas is actually showing right now, not its
+  // ancestors.
+  const levelLabel = !drill
+    ? t.header.levelProject
+    : drill.level === "equipo"
+      ? t.header.levelEquipo
+      : drill.level === "plan"
+        ? t.header.levelPlan
+        : t.header.levelFase;
   const headerTitle = !drill
     ? t.header.projectTitle(project.name)
     : drill.level === "equipo"
@@ -682,6 +673,8 @@ function ProjectView({ project }: { project: Project }) {
       onShowWeekendsChange={settings.setShowWeekends}
       showToday={settings.showToday}
       onShowTodayChange={settings.setShowToday}
+      flagUncategorizedPhases={settings.flagUncategorizedPhases}
+      onFlagUncategorizedPhasesChange={settings.setFlagUncategorizedPhases}
       stageCategories={stageCategories}
       onAddStageCategory={addStageCategory}
       onRenameStageCategory={renameStageCategory}
@@ -710,18 +703,7 @@ function ProjectView({ project }: { project: Project }) {
       <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
-            <nav className={styles.breadcrumb} aria-label={t.header.breadcrumbAria}>
-              {breadcrumbCrumbs.map((crumb, i) => (
-                <span key={i}>
-                  <button type="button" className={styles.breadcrumbCrumb} onClick={crumb.onClick}>
-                    {crumb.label}
-                  </button>
-                  {i < breadcrumbCrumbs.length - 1 && (
-                    <span className={styles.breadcrumbSep} aria-hidden="true"> / </span>
-                  )}
-                </span>
-              ))}
-            </nav>
+            <p className={styles.eyebrow}>{levelLabel}</p>
             <h1 className={styles.title}>{headerTitle}</h1>
             <p className={styles.meta}>
               {lanes.length} {t.header.lanesWord} · {phaseCount} {t.header.phasesWord} · {program.months}{" "}

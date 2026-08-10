@@ -61,40 +61,16 @@
   flex: 0 0 auto;
 }
 
+/* "What am I looking at" — a single word for the current view's own
+   level (Programa/Proyecto/Equipo/Plan/Fase), not a clickable path chain
+   — a full ancestor breadcrumb here read as ambiguous about which level
+   was actually on screen (e.g. "Programa" alone, while looking at a
+   project, read as "this is the Program page"). Plain static text, same
+   slot/size every page already used for the Program page's own eyebrow. */
 .eyebrow {
   font-size: var(--text-2xs);
   color: var(--color-fog);
   margin: 0 0 4px;
-}
-
-/* "Where am I" — Programa / Proyecto / Equipo / Plan / Fase, in that
-   order, one crumb per ancestor level above whatever's currently shown as
-   the page's own .title below it. Reuses .eyebrow's own small size/color
-   (it occupies that exact slot, just with clickable, meaningful segments
-   instead of static branding text) rather than the old .drillCrumb style,
-   which was sized for its own separate row beneath the header. */
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin: 0 0 4px;
-  font-size: var(--text-2xs);
-}
-.breadcrumbCrumb {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: var(--color-fog);
-  cursor: pointer;
-}
-.breadcrumbCrumb:hover {
-  color: var(--color-snow);
-  text-decoration: underline;
-}
-.breadcrumbSep {
-  color: var(--color-mist);
 }
 
 .title {

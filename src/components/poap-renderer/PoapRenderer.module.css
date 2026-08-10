@@ -616,28 +616,40 @@
 }
 /* Was the old collapse/expand chevron's own slot — now the "add a new
    swimline right below this one" button, same width/position so
-   .gatesLabelSpacer still lines the Stage-gates row up with every lane. */
+   .gatesLabelSpacer still lines the Stage-gates row up with every lane.
+   Always lime + a surface-color icon (not just on hover, unlike
+   .ganttButton/.deleteLaneButton below) — "add" is the one swimline-row
+   action that should read as an inviting, ready-to-use accent at rest,
+   the same way .btnPrimary is lime everywhere else in the app. A fixed
+   square (not the row's full height) so it centers on wrapped
+   multi-line labels via .laneLabel's own align-items instead of
+   stretching into a tall bar. */
 .leadingButton {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 18px;
-  height: 100%;
-  background: none;
+  height: 18px;
+  background: var(--color-lime);
+  color: var(--color-surface);
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
   padding: 0;
+  transition: filter 0.12s ease;
 }
 .leadingButton:hover {
-  background: var(--color-surface2);
+  filter: brightness(0.92);
 }
 /* 18px is fine for a mouse but under the touch-target floor on a phone —
    .gatesLabelSpacer must stay in lockstep (see its own comment) so the
    "Stage gates" row's label keeps lining up with every other lane name. */
 @media (max-width: 640px) {
-  .leadingButton,
+  .leadingButton {
+    width: 24px;
+    height: 24px;
+  }
   .gatesLabelSpacer {
     width: 24px;
   }
@@ -675,21 +687,39 @@
    Program page) — only rendered when the caller passes onLaneGanttClick.
    Sized down from the shared iconBtnSm (24px) — stacked with delete below
    it, the pair needs to fit the same row height a single 24px button used
-   to occupy alone. */
+   to occupy alone. Invisible (no border/fill) at rest so the row itself
+   stays quiet — an accent color only appears once you're actually
+   pointing at the button, not as a permanent fixture of every row. */
 .ganttButton {
-  composes: iconBtn iconBtnGhost from "../../app/buttons.module.css";
+  composes: iconBtn from "../../app/buttons.module.css";
   width: 16px;
   height: 16px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-fog);
+}
+.ganttButton:hover {
+  background: var(--color-iris);
+  border-color: var(--color-iris);
+  color: var(--color-surface);
 }
 /* Never rendered on the isProjectPlan anchor lane (see the .tsx) — deleting
    the project's own plan doesn't make sense the way deleting a team lane
-   does. Always the destructive color, same as ExplorerPanel's own
-   delete-lane button, not just on hover — a stray icon this consequential
-   should read as "dangerous" at rest, not only once you're already over it. */
+   does. Invisible at rest, same reasoning as .ganttButton above — the
+   destructive color only shows up on hover now, not as a standing warning
+   on every row. */
 .deleteLaneButton {
-  composes: iconBtn iconBtnDestructive from "../../app/buttons.module.css";
+  composes: iconBtn from "../../app/buttons.module.css";
   width: 16px;
   height: 16px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-fog);
+}
+.deleteLaneButton:hover {
+  background: var(--color-rose);
+  border-color: var(--color-rose);
+  color: var(--color-surface);
 }
 /* Replaces the Gantt/delete buttons once a delete is armed (see
    confirmDeleteLaneId in the .tsx) — cancel reads as a plain neutral

@@ -3,7 +3,7 @@
 import { useMemo, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
-import { deriveProgramLanes, findUnassignedPlanIssues, type Project, type StageCategoryDef } from "@/lib/portfolio";
+import { deriveProgramLanes, findLinkageIssues, findUnassignedPlanIssues, type Project, type StageCategoryDef } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
 import { ExecutiveSummary } from "./ExecutiveSummary";
@@ -48,9 +48,18 @@ function ProjectGanttPanel({
   // what the Gantt button next to a project name on the Program page is
   // for. Falls back to the lanes list for a project that doesn't have a
   // plan lane yet (shouldn't happen for anything created via the canvas's
-  // own "+" button, but older/imported data may not have one).
+  // own "+" button, but older/imported data may not have one), or that
+  // has team-lane linkage issues (an uncategorized/mismatched phase —
+  // exactly what shows up as its own amber warning bar on the Program
+  // page's summary row): those phases live outside the plan lane, so
+  // jumping straight to the plan lane's own phases would land on a list
+  // that's missing the very bars the user came here to find. The lanes
+  // list surfaces them (and a "Fix" link straight to their real lane) via
+  // its own linkage banner instead.
   const planLane = project.lanes.find((l) => l.isProjectPlan);
-  const initialView: ExplorerView = planLane ? { level: "phases", laneId: planLane.id } : { level: "lanes" };
+  const hasLinkageIssues = findLinkageIssues(project.lanes).length > 0;
+  const initialView: ExplorerView =
+    planLane && !hasLinkageIssues ? { level: "phases", laneId: planLane.id } : { level: "lanes" };
   const {
     explorer,
     setExplorer,
@@ -133,7 +142,10 @@ export default function ProgramPage() {
   const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
   const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
 
-  const lanes = useMemo(() => deriveProgramLanes(projects, stageCategories), [projects, stageCategories]);
+  const lanes = useMemo(
+    () => deriveProgramLanes(projects, stageCategories, settings.flagUncategorizedPhases),
+    [projects, stageCategories, settings.flagUncategorizedPhases],
+  );
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
 
   const anyPanelOpen = settingsOpen || importOpen || Boolean(ganttProject);
@@ -241,6 +253,8 @@ export default function ProgramPage() {
       onShowWeekendsChange={settings.setShowWeekends}
       showToday={settings.showToday}
       onShowTodayChange={settings.setShowToday}
+      flagUncategorizedPhases={settings.flagUncategorizedPhases}
+      onFlagUncategorizedPhasesChange={settings.setFlagUncategorizedPhases}
       stageCategories={stageCategories}
       onAddStageCategory={addStageCategory}
       onRenameStageCategory={renameStageCategory}

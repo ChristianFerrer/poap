@@ -109,14 +109,16 @@ export function projectOverallStatus(project: Project): PhaseStatus {
  *
  * Untagged phases (every phase straight from an Excel import starts this
  * way; nothing assigns a stage automatically) are passed through as-is
- * instead of being dropped or merged into a single stand-in bar — the
- * renderer itself (see PoapRenderer's Bar) is what actually flags a
- * categoryless phase (amber + a warning glyph), so a project missing its
- * category tags reads as "real work, needs attention" on the Program
- * page instead of either vanishing or looking indistinguishable from a
- * properly tagged one.
+ * instead of being dropped or merged into a single stand-in bar. When
+ * `flagUncategorized` is on (Settings' own toggle — see useAppSettings'
+ * flagUncategorizedPhases) each one is also tagged Phase.warning so the
+ * renderer flags it amber + a warning glyph instead of its normal status
+ * color, reading as "real work, needs attention" on the Program page
+ * rather than either vanishing or looking indistinguishable from a
+ * properly tagged one; off, they render with their ordinary status color
+ * like any other phase, just still shown individually.
  */
-export function deriveProjectSummary(project: Project, categories: StageCategoryDef[]): Phase[] {
+export function deriveProjectSummary(project: Project, categories: StageCategoryDef[], flagUncategorized: boolean): Phase[] {
   const byCategory = new Map<string, Phase[]>();
   const uncategorized: Phase[] = [];
   for (const lane of project.lanes) {
@@ -145,7 +147,7 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
       };
     });
 
-  return [...bars, ...uncategorized.map((p) => ({ ...p, warning: true }))];
+  return [...bars, ...uncategorized.map((p) => (flagUncategorized ? { ...p, warning: true } : p))];
 }
 
 /**
@@ -277,13 +279,13 @@ export function findUnassignedPlanIssues(lanes: Lane[], plansByLane: Record<stri
   return issues;
 }
 
-export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[]): Lane[] {
+export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[], flagUncategorized: boolean): Lane[] {
   return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((project) => ({
       id: project.id,
       name: project.name,
       sortOrder: project.sortOrder,
-      phases: deriveProjectSummary(project, categories),
+      phases: deriveProjectSummary(project, categories, flagUncategorized),
     }));
 }
