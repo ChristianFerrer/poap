@@ -4,7 +4,11 @@
 export const LABEL_COL_WIDTH = 176;
 export const BAR_HEIGHT = 17;
 export const ROW_GAP = 2;
-export const LANE_PADDING_Y = 5;
+// 9, not 5 — the label row now stacks the Gantt/delete buttons vertically
+// (see .laneRowActions) instead of side by side, so the minimum row height
+// needs enough headroom for two small stacked buttons (16px each + a 2px
+// gap = 34px), not just one bar.
+export const LANE_PADDING_Y = 9;
 export const BAR_RADIUS = 3;
 export const BAR_FONT_SIZE = 11;
 export const GATE_COLLISION_PX = 60;

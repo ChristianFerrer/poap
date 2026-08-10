@@ -648,12 +648,27 @@
 .laneNameButton:hover {
   background: var(--color-surface2);
 }
+/* The Gantt shortcut and delete stack vertically (delete right below
+   Gantt), not side by side — see LANE_PADDING_Y's own comment for why the
+   row's minimum height grew to fit this. */
+.laneRowActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
 /* Explicit "manage this row's swimlines" shortcut, distinct from clicking
    the name itself (onLaneClick, e.g. navigating into the project on the
-   Program page) — only rendered when the caller passes onLaneGanttClick. */
+   Program page) — only rendered when the caller passes onLaneGanttClick.
+   Sized down from the shared iconBtnSm (24px) — stacked with delete below
+   it, the pair needs to fit the same row height a single 24px button used
+   to occupy alone. */
 .ganttButton {
-  composes: iconBtn iconBtnSm iconBtnGhost from "../../app/buttons.module.css";
-  flex: 0 0 auto;
+  composes: iconBtn iconBtnGhost from "../../app/buttons.module.css";
+  width: 16px;
+  height: 16px;
 }
 /* Never rendered on the isProjectPlan anchor lane (see the .tsx) — deleting
    the project's own plan doesn't make sense the way deleting a team lane
@@ -661,8 +676,9 @@
    delete-lane button, not just on hover — a stray icon this consequential
    should read as "dangerous" at rest, not only once you're already over it. */
 .deleteLaneButton {
-  composes: iconBtn iconBtnSm iconBtnDestructive from "../../app/buttons.module.css";
-  flex: 0 0 auto;
+  composes: iconBtn iconBtnDestructive from "../../app/buttons.module.css";
+  width: 16px;
+  height: 16px;
 }
 /* Replaces the Gantt/delete buttons once a delete is armed (see
    confirmDeleteLaneId in the .tsx) — cancel reads as a plain neutral

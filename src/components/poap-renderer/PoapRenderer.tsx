@@ -839,7 +839,7 @@ export function PoapRenderer({
             </button>
           </span>
         ) : (
-          <>
+          <span className={styles.laneRowActions}>
             {onLaneGanttClick && (
               <button
                 type="button"
@@ -862,7 +862,7 @@ export function PoapRenderer({
                 <IconTrash />
               </button>
             )}
-          </>
+          </span>
         )}
       </div>
     );
