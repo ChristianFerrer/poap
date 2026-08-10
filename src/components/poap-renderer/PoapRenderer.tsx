@@ -456,9 +456,13 @@ export function PoapRenderer({
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [gateTooltip, setGateTooltip] = useState<GateTooltipState | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);
+  // A pending two-click track creation — see handleTrackClick. `rect` isn't
+  // cached here on purpose: the two clicks can be seconds apart (a scroll
+  // or resize in between would go stale), so every axis calculation
+  // re-reads the track's current bounding rect off the live DOM event
+  // instead.
   const [dragCreate, setDragCreate] = useState<{
     laneId: string;
-    rect: DOMRect;
     startAxis: number;
     currentAxis: number;
   } | null>(null);
@@ -628,17 +632,15 @@ export function PoapRenderer({
     );
   }
 
-  // Drag-to-create a track: mousedown on an expanded team/plan lane's empty
-  // track background (not on an existing bar — those still just navigate,
-  // see the `closest("button")` bail-out in the onMouseDown below) starts
-  // tracking a live axis range the same way Focus Cell resolves a click
-  // (daysToAxis over the row's own bounding rect, captured once at
-  // mousedown so a mousemove elsewhere on the page still resolves against
-  // the row it started in). A plain click (no real movement) never fires
-  // onCreatePhase — MIN_DRAG_AXIS keeps an accidental single-pixel jiggle
-  // from opening a same-day phase nobody meant to create.
-  const MIN_DRAG_AXIS = 0.05;
-
+  // Create a track with two clicks, not a held-down drag: click once on an
+  // expanded team/plan lane's empty track background (not on an existing
+  // bar/button — those still just navigate, see the `closest("button")`
+  // bail-out below) to drop the start date, move the mouse to preview the
+  // range live, then click again — same lane or not — to drop the end
+  // date and commit. Escape, or a click anywhere that isn't a creatable
+  // track (a button, a different panel, ...), cancels the pending start
+  // instead of leaving it stuck armed forever (see the outside-click
+  // effect below, same shape as confirmDeleteLaneId's own).
   function axisFromClientX(clientX: number, rect: DOMRect): number {
     const ratio = (clientX - rect.left) / rect.width;
     return daysToAxis(ratio * scale.totalDays, scale);
@@ -648,36 +650,43 @@ export function PoapRenderer({
     return Boolean(onCreatePhase) && (!isLaneCreatable || isLaneCreatable(laneId));
   }
 
-  function startDragCreate(e: ReactMouseEvent<HTMLDivElement>, laneId: string) {
+  function handleTrackClick(e: ReactMouseEvent<HTMLDivElement>, laneId: string) {
     if (!laneIsCreatable(laneId)) return;
     if ((e.target as HTMLElement).closest("button")) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const axis = axisFromClientX(e.clientX, rect);
-    setDragCreate({ laneId, rect, startAxis: axis, currentAxis: axis });
+    const axis = axisFromClientX(e.clientX, e.currentTarget.getBoundingClientRect());
+    if (!dragCreate || dragCreate.laneId !== laneId) {
+      // First click, or a click on a different lane than the one a
+      // pending start was on — (re)arm here, discarding any unfinished
+      // selection elsewhere rather than trying to span two lanes.
+      setDragCreate({ laneId, startAxis: axis, currentAxis: axis });
+      return;
+    }
+    // Second click on the same lane the start was dropped on — commit.
+    const { start, end } = snapAxisRange(dragCreate.startAxis, axis, zoomKey, startMonth);
+    onCreatePhase?.(laneId, start, end);
+    setDragCreate(null);
   }
 
+  // Cancels a pending start on Escape or a click outside any creatable
+  // track (see data-range-track below) — without this, clicking away
+  // after the first click would leave the preview line stuck on screen
+  // with no way to finish or abandon it.
   useEffect(() => {
     if (!dragCreate) return;
-    function onMove(e: globalThis.MouseEvent) {
-      setDragCreate((prev) => (prev ? { ...prev, currentAxis: axisFromClientX(e.clientX, prev.rect) } : prev));
+    function onPointerDown(e: MouseEvent) {
+      if ((e.target as HTMLElement).closest?.("[data-range-track]")) return;
+      setDragCreate(null);
     }
-    function onUp() {
-      setDragCreate((prev) => {
-        if (prev && onCreatePhase) {
-          const { start, end } = snapAxisRange(prev.startAxis, prev.currentAxis, zoomKey, startMonth);
-          if (Math.abs(prev.currentAxis - prev.startAxis) >= MIN_DRAG_AXIS) onCreatePhase(prev.laneId, start, end);
-        }
-        return null;
-      });
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setDragCreate(null);
     }
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragCreate !== null]);
+  }, [dragCreate]);
 
   // Animated hover highlight — a live preview of what dragging from here
   // would snap to (see snapAxisRange), shown continuously as the mouse
@@ -689,6 +698,13 @@ export function PoapRenderer({
     const rect = e.currentTarget.getBoundingClientRect();
     const axis = axisFromClientX(e.clientX, rect);
     setHoverCell({ laneId, ...hoverCellRange(axis, zoomKey, startMonth) });
+    // Also advances the pending two-click range's live end (see
+    // handleTrackClick) while the mouse moves over the lane the start was
+    // dropped on — this is what makes the preview line track the cursor
+    // between the two clicks instead of just sitting still.
+    if (dragCreate && dragCreate.laneId === laneId) {
+      setDragCreate((prev) => (prev ? { ...prev, currentAxis: axis } : prev));
+    }
   }
 
   // Dismisses an armed delete confirmation on Escape or a click anywhere
@@ -909,7 +925,8 @@ export function PoapRenderer({
         key={lane.id}
         className={`${trackClass} ${creatable ? styles.laneTrackCreatable : ""}`.trim()}
         style={{ height: laneRowHeight(rows.length) }}
-        onMouseDown={creatable ? (e) => startDragCreate(e, lane.id) : undefined}
+        data-range-track={creatable ? "true" : undefined}
+        onClick={creatable ? (e) => handleTrackClick(e, lane.id) : undefined}
         onMouseMove={creatable ? (e) => handleLaneHover(e, lane.id) : undefined}
         onMouseLeave={creatable ? () => setHoverCell(null) : undefined}
       >
