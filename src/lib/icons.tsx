@@ -18,8 +18,8 @@ import {
   ChevronRight,
   Diamond,
   Download,
-  GripVertical,
   Minus,
+  MoreVertical,
   Plus,
   Rows3,
   Search,
@@ -61,7 +61,9 @@ export const IconCheck = icon(Check, BUTTON_SIZE);
 export const IconSearch = icon(Search, BUTTON_SIZE);
 export const IconSort = icon(ArrowUpDown, BUTTON_SIZE);
 export const IconGantt = icon(ChartNoAxesGantt, BUTTON_SIZE);
-export const IconGrip = icon(GripVertical, BUTTON_SIZE);
+/* A single column of 3 dots (not GripVertical's 2x3 six-dot grid) — the
+   swimline row's own drag handle. */
+export const IconGrip = icon(MoreVertical, BUTTON_SIZE);
 export const IconWarning = icon(AlertTriangle, BUTTON_SIZE);
 
 export const IconGateDiamond = icon(Diamond, NAV_SIZE);

@@ -61,16 +61,51 @@
   flex: 0 0 auto;
 }
 
-/* "What am I looking at" — a single word for the current view's own
-   level (Programa/Proyecto/Equipo/Plan/Fase), not a clickable path chain
-   — a full ancestor breadcrumb here read as ambiguous about which level
-   was actually on screen (e.g. "Programa" alone, while looking at a
-   project, read as "this is the Program page"). Plain static text, same
-   slot/size every page already used for the Program page's own eyebrow. */
 .eyebrow {
   font-size: var(--text-2xs);
   color: var(--color-fog);
   margin: 0 0 4px;
+}
+
+/* "Where am I" — Programa / Proyecto / Equipo / Plan / Fase, one crumb per
+   ancestor level above (and including) whatever's currently on screen, so
+   the whole thing doubles as back-navigation: click any segment to jump
+   straight to that level, or "Programa" to leave the project entirely.
+   The project's own name (.breadcrumbCrumbLarge) renders larger than its
+   siblings — it's the one segment that's *always* present and is the
+   real anchor of every deeper level, so it reads as more than just
+   another equally-weighted path segment. */
+.breadcrumb {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 4px;
+}
+.breadcrumbCrumb {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--text-2xs);
+  color: var(--color-fog);
+  cursor: pointer;
+}
+.breadcrumbCrumb:hover {
+  color: var(--color-snow);
+  text-decoration: underline;
+}
+.breadcrumbCrumbLarge {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-snow);
+}
+.breadcrumbCrumbLarge:hover {
+  color: var(--color-lime);
+}
+.breadcrumbSep {
+  color: var(--color-mist);
+  font-size: var(--text-2xs);
 }
 
 .title {

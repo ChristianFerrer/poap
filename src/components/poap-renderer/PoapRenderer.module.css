@@ -617,39 +617,33 @@
 /* Was the old collapse/expand chevron's own slot — now the "add a new
    swimline right below this one" button, same width/position so
    .gatesLabelSpacer still lines the Stage-gates row up with every lane.
-   Always lime + a surface-color icon (not just on hover, unlike
-   .ganttButton/.deleteLaneButton below) — "add" is the one swimline-row
-   action that should read as an inviting, ready-to-use accent at rest,
-   the same way .btnPrimary is lime everywhere else in the app. A fixed
-   square (not the row's full height) so it centers on wrapped
-   multi-line labels via .laneLabel's own align-items instead of
-   stretching into a tall bar. */
+   Full row height (matches the track it sits beside, including a tall
+   wrapped-label row) and invisible at rest; lime + a surface-color icon
+   only on hover, same "quiet until you're pointing at it" treatment as
+   .ganttButton/.deleteLaneButton below. */
 .leadingButton {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 18px;
-  height: 18px;
-  background: var(--color-lime);
-  color: var(--color-surface);
+  height: 100%;
+  background: none;
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
   padding: 0;
-  transition: filter 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 .leadingButton:hover {
-  filter: brightness(0.92);
+  background: var(--color-lime);
+  color: var(--color-surface);
 }
 /* 18px is fine for a mouse but under the touch-target floor on a phone —
    .gatesLabelSpacer must stay in lockstep (see its own comment) so the
    "Stage gates" row's label keeps lining up with every other lane name. */
 @media (max-width: 640px) {
-  .leadingButton {
-    width: 24px;
-    height: 24px;
-  }
+  .leadingButton,
   .gatesLabelSpacer {
     width: 24px;
   }
@@ -673,7 +667,10 @@
 }
 /* The Gantt shortcut and delete stack vertically (delete right below
    Gantt), not side by side — see LANE_PADDING_Y's own comment for why the
-   row's minimum height grew to fit this. */
+   row's minimum height grew to fit this. A fixed-width zone (wider than
+   the 16px buttons themselves) with the pair centered inside it, rather
+   than the buttons just butting up against the label column's own right
+   edge. */
 .laneRowActions {
   display: flex;
   flex-direction: column;
@@ -681,6 +678,7 @@
   justify-content: center;
   gap: 2px;
   flex: 0 0 auto;
+  width: 32px;
 }
 /* Explicit "manage this row's swimlines" shortcut, distinct from clicking
    the name itself (onLaneClick, e.g. navigating into the project on the
