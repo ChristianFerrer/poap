@@ -136,6 +136,8 @@ const es = {
     title: "Desde un archivo Excel",
     success: (lanes: number, phases: number, statusLabel: string) =>
       `Se importaron ${lanes} swimlines con ${phases} fases (todas como "${statusLabel}"). Ya podés revisarlas y ajustarlas como cualquier otro swimline.`,
+    newProjectNameSection: "Nombre del proyecto nuevo",
+    newProjectNameHint: "Este archivo se importa como un proyecto nuevo — hace falta un nombre para poder confirmarlo.",
     chooseFilePlaceholder: "Elegir archivo .xlsx…",
     processing: "Procesando… los archivos grandes pueden tardar varios segundos.",
     errorTooLarge: "El archivo es demasiado grande para subir (máximo ~4.5 MB).",
@@ -393,6 +395,8 @@ const en: Translations = {
     title: "From an Excel file",
     success: (lanes, phases, statusLabel) =>
       `Imported ${lanes} swimlines with ${phases} phases (all as "${statusLabel}"). You can now review and adjust them like any other swimline.`,
+    newProjectNameSection: "New project name",
+    newProjectNameHint: "This file imports as a new project — a name is required before you can confirm.",
     chooseFilePlaceholder: "Choose .xlsx file…",
     processing: "Processing… large files can take a few seconds.",
     errorTooLarge: "The file is too large to upload (max ~4.5 MB).",

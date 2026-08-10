@@ -183,12 +183,15 @@ export const ImportPanel = forwardRef<
         <>
           {nameField && (
             <div className={styles.step}>
+              <p className={styles.sectionTitle}>{t.import.newProjectNameSection}</p>
               <input
                 className={explorerStyles.textInput}
                 placeholder={nameField.placeholder}
                 value={nameField.value}
                 onChange={(e) => nameField.onChange(e.target.value)}
+                aria-label={t.import.newProjectNameSection}
               />
+              <p className={explorerStyles.fieldHint}>{t.import.newProjectNameHint}</p>
             </div>
           )}
 
@@ -267,6 +270,9 @@ export const ImportPanel = forwardRef<
                     ))}
                   </div>
 
+                  {nameField && !nameField.value.trim() && (
+                    <p className={explorerStyles.fieldHint}>{t.import.newProjectNameHint}</p>
+                  )}
                   <div className={styles.actions}>
                     <button type="button" className={styles.secondaryButton} onClick={() => setResult(null)}>
                       {t.import.chooseAnotherSheet}
@@ -275,6 +281,7 @@ export const ImportPanel = forwardRef<
                       type="button"
                       className={styles.primaryButton}
                       disabled={Boolean(nameField) && !nameField!.value.trim()}
+                      title={nameField && !nameField.value.trim() ? t.import.newProjectNameHint : undefined}
                       onClick={confirmImport}
                     >
                       {t.import.importConfirm(result.lanes.length)}
