@@ -73,6 +73,12 @@
 
   --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
   --shadow-lime: 0 10px 40px -12px rgba(198, 242, 78, 0.4);
+  /* The two other shadow recipes actually reused across the app (found
+     independently re-typed, byte-for-byte identical, in ≥2 files each
+     during the design audit) — same "name it once, stop copy-pasting the
+     rgba" reasoning as the color tokens above. */
+  --shadow-pill-active: 0 1px 2px rgba(0, 0, 0, 0.08); /* the active segment inside a pill toggle (zoom level, Settings option) */
+  --shadow-badge: 0 1px 3px rgba(0, 0, 0, 0.3); /* a floating badge over the calendar (today/selected-column) */
 
   /* Radius scale — spec names (rounded-lg/xl/2xl/3xl), not this app's old
      xs/sm/md/lg, so a glance at a value here maps straight onto the spec
@@ -82,11 +88,17 @@
   --radius-2xl: 16px; /* panels, modals, section containers */
   --radius-3xl: 24px; /* the side panel */
   --radius-full: 999px;
+  /* The small status/legend dot glyphs (Legend, tooltips, activity rows)
+     all independently agreed on 2px without ever sharing a token — this
+     just names what they were already doing, so the next one doesn't have
+     to rediscover "2px" by eye. */
+  --radius-dot: 2px;
 
   /* Type scale — sizes updated to the spec's rows (§2.2); names kept as
      this app's original xs/sm/md/lg/xl so no call site needs touching.
      --text-sm moving 13→14 and --text-md 15→16 specifically closes the
      spec's "no mezclar 13px ni 15px" rule. */
+  --text-4xs: 8px; /* Día zoom's weekday-initial micro-label only — never use for anything that needs to stay legible at a glance */
   --text-3xs: 10px; /* etiqueta / rótulo de sección */
   --text-2xs: 11px; /* meta S */
   --text-xs: 12px; /* meta */
@@ -94,6 +106,29 @@
   --text-md: 16px; /* subtítulo */
   --text-lg: 20px; /* título 2 */
   --text-xl: 30px; /* display — título de página, escritorio */
+
+  /* Spacing scale — every padding/margin/gap value actually in use across
+     the app, named so a component reaches for a token instead of retyping
+     a bare px number. Deliberately not collapsed to a strict 4px grid:
+     6/10/14/30 are real, load-bearing values (dense controls like table
+     cells and compact buttons need finer steps than 4px jumps give them),
+     so this scale documents what's actually load-bearing rather than
+     forcing a grid the UI doesn't consistently want. The one thing this
+     DOES fix: components picking a slightly-off value for a role another
+     component already established (see e.g. ImportPanel's fileLabel,
+     which used to be 9px/14px next to buttons.module.css's own 8px/16px
+     for the exact same "button-ish padding" role). */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 6px;
+  --space-sm: 8px;
+  --space-ms: 10px;
+  --space-md: 12px;
+  --space-ml: 14px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;

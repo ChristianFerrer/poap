@@ -86,7 +86,7 @@
 .zoomButtonActive {
   background: var(--color-surface);
   color: var(--color-iris-ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-pill-active);
 }
 
 /* Below ~640px the toolbar's own two button groups (continuous zoom +
@@ -110,8 +110,12 @@
      instead, it doesn't open that panel. An earlier pass hid this icon
      on mobile on the assumption the name click was equivalent — it
      wasn't, so it's back. */
+  /* 166px keeps the same ratio to the desktop width (LABEL_COL_WIDTH,
+     constants.ts) this had before that constant was widened 176 -> 224px
+     for the same clipped-name reason — this was left at its old 130px
+     and started truncating names harder than desktop ever did again. */
   .labelsCol {
-    width: 130px !important;
+    width: 166px !important;
   }
 }
 
@@ -248,10 +252,10 @@
   transform: translateX(4px);
   background: var(--color-iris);
   color: var(--color-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-badge);
   font-size: var(--text-3xs);
   font-weight: 600;
-  padding: 2px 6px;
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-lg);
   white-space: nowrap;
 }
@@ -273,12 +277,12 @@
   transform: translateX(4px);
   background: var(--today-line);
   color: var(--accent-live-ink);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-badge);
   font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  padding: 2px 6px;
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-lg);
   white-space: nowrap;
 }
@@ -466,7 +470,7 @@
   line-height: 1.15;
 }
 .subCellDow {
-  font-size: 8px;
+  font-size: var(--text-4xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--color-fog);
@@ -509,7 +513,9 @@
   height: 10px;
   background: var(--color-fog);
   transform: translateX(-50%) rotate(45deg);
-  border-radius: 1.5px;
+  /* Was 1.5px — the app's every other status/legend dot agreed on 2px
+     without a shared token; this is the one that had drifted. */
+  border-radius: var(--radius-dot);
   flex: 0 0 auto;
   transition: background-color 0.1s ease;
 }
@@ -858,7 +864,7 @@
 .legendDot {
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-dot);
   flex: 0 0 auto;
 }
 
@@ -902,5 +908,5 @@
 .tooltipDot {
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-dot);
 }

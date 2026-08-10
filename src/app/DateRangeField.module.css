@@ -12,6 +12,9 @@
   color: var(--color-snow);
   cursor: pointer;
 }
+.trigger:hover:not(:disabled) {
+  border-color: var(--color-line2);
+}
 .trigger:focus-visible {
   border-color: var(--color-lime);
   outline: none;

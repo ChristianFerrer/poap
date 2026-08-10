@@ -12,6 +12,12 @@
   justify-content: flex-start;
   transition: background-color 0.12s ease, border-color 0.12s ease;
 }
+.track:hover {
+  border-color: var(--color-lime);
+}
+.track.trackOn:hover {
+  border-color: var(--color-lime-deep);
+}
 .thumb {
   width: 14px;
   height: 14px;
