@@ -34,9 +34,20 @@ import {
 const BUTTON_SIZE = 14; // inline in buttons, rows, form controls
 const NAV_SIZE = 20; // the sidebar's own destination icons
 
+// A larger icon at the same stroke width as a small one reads as bolder —
+// the stroke-to-size ratio goes up, not just the icon itself — which is
+// exactly why the sidebar's 20px destination icons looked heavier than
+// everything else even though every icon in the app used the same
+// strokeWidth={2}. REST is the one weight every icon renders at by
+// default now, regardless of size; ACTIVE is reserved for a genuinely
+// selected/current state (see Sidebar's own `active` prop below) — never
+// a static per-icon or per-size choice.
+const REST_STROKE = 1.75;
+const ACTIVE_STROKE = 2.25;
+
 function icon(Lucide: LucideIcon, size: number) {
-  return function Icon() {
-    return <Lucide size={size} strokeWidth={2} aria-hidden="true" />;
+  return function Icon({ active = false }: { active?: boolean } = {}) {
+    return <Lucide size={size} strokeWidth={active ? ACTIVE_STROKE : REST_STROKE} aria-hidden="true" />;
   };
 }
 

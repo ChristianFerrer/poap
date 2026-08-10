@@ -64,16 +64,20 @@ export function Sidebar({
   onToggleCollapsed: () => void;
 }) {
   const { t } = useLanguage();
+  // Every icon here renders at its normal (never bold) weight except the
+  // one matching `active` — that's the only "genuinely selected" icon in
+  // the rail, so it's the only one that gets the heavier stroke (see
+  // icons.tsx's REST_STROKE/ACTIVE_STROKE).
   const items: { key: SidebarActive; icon: ReactNode; ariaLabel: string; label: string; onClick: () => void }[] = [
-    { key: "home", icon: <IconHome />, ariaLabel: t.sidebar.homeAria, label: t.sidebar.homeLabel, onClick: onHome },
+    { key: "home", icon: <IconHome active={active === "home"} />, ariaLabel: t.sidebar.homeAria, label: t.sidebar.homeLabel, onClick: onHome },
     ...(onSwimlines
-      ? [{ key: "swimlines" as const, icon: <IconLanes />, ariaLabel: t.sidebar.swimlinesAria, label: t.sidebar.swimlinesLabel, onClick: onSwimlines }]
+      ? [{ key: "swimlines" as const, icon: <IconLanes active={active === "swimlines"} />, ariaLabel: t.sidebar.swimlinesAria, label: t.sidebar.swimlinesLabel, onClick: onSwimlines }]
       : []),
     ...(onGates
-      ? [{ key: "gates" as const, icon: <IconGateDiamond />, ariaLabel: t.sidebar.gatesAria, label: t.sidebar.gatesLabel, onClick: onGates }]
+      ? [{ key: "gates" as const, icon: <IconGateDiamond active={active === "gates"} />, ariaLabel: t.sidebar.gatesAria, label: t.sidebar.gatesLabel, onClick: onGates }]
       : []),
-    { key: "import" as const, icon: <IconImportNav />, ariaLabel: t.sidebar.importAria, label: t.sidebar.importLabel, onClick: onImport },
-    { key: "settings", icon: <IconSettings />, ariaLabel: t.sidebar.settingsAria, label: t.sidebar.settingsLabel, onClick: onSettings },
+    { key: "import" as const, icon: <IconImportNav active={active === "import"} />, ariaLabel: t.sidebar.importAria, label: t.sidebar.importLabel, onClick: onImport },
+    { key: "settings", icon: <IconSettings active={active === "settings"} />, ariaLabel: t.sidebar.settingsAria, label: t.sidebar.settingsLabel, onClick: onSettings },
   ];
 
   return (
