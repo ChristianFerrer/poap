@@ -133,10 +133,7 @@ export default function ProgramPage() {
   const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
   const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
 
-  const lanes = useMemo(
-    () => deriveProgramLanes(projects, stageCategories, t.explorer.categoryNone),
-    [projects, stageCategories, t.explorer.categoryNone],
-  );
+  const lanes = useMemo(() => deriveProgramLanes(projects, stageCategories), [projects, stageCategories]);
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
 
   const anyPanelOpen = settingsOpen || importOpen || Boolean(ganttProject);
@@ -196,10 +193,6 @@ export default function ProgramPage() {
     sidePanel.scrollToPanel();
   }
 
-  function goHome() {
-    closeAllPanels();
-  }
-
   function openProject(projectId: string) {
     router.push(`/project/${projectId}`);
   }
@@ -218,7 +211,7 @@ export default function ProgramPage() {
     addProjects(lanes.map((lane) => ({ name: lane.name, lanes: [{ ...lane, isProjectPlan: true }], gates: [] })));
   }
 
-  const sidebarActive: SidebarActive = settingsOpen ? "settings" : importOpen ? "import" : "home";
+  const sidebarActive: SidebarActive = settingsOpen ? "settings" : importOpen ? "import" : "none";
 
   const panelContent = ganttProject ? (
     <ProjectGanttPanel
@@ -264,7 +257,6 @@ export default function ProgramPage() {
     <>
       <Sidebar
         active={sidebarActive}
-        onHome={goHome}
         onImport={openImportPanel}
         onSettings={openSettingsPanel}
         collapsed={settings.sidebarCollapsed}
@@ -273,11 +265,11 @@ export default function ProgramPage() {
       <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
-            {/* The Program page is the top of the hierarchy — "Inicio" is
+            {/* The Program page is the top of the hierarchy — "Programa" is
                 the one crumb every deeper page's own breadcrumb starts
                 from (see project/[projectId]/page.tsx), shown here plain
                 since there's nowhere higher to link it to. */}
-            <p className={styles.eyebrow}>{t.header.levelHome}</p>
+            <p className={styles.eyebrow}>{t.header.levelProgram}</p>
             <h1 className={styles.title}>{program.name}</h1>
             <p className={styles.meta}>
               {projects.length} {t.header.projectsWord} · {program.months} {t.header.monthsWord} ·{" "}

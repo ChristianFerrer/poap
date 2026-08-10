@@ -6,7 +6,6 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconGateDiamond,
-  IconHome,
   IconImportNav,
   IconLanes,
   IconSettings,
@@ -14,21 +13,21 @@ import {
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
-export type SidebarActive = "home" | "swimlines" | "gates" | "import" | "settings";
+export type SidebarActive = "none" | "swimlines" | "gates" | "import" | "settings";
 
 /**
  * Left-anchored icon nav — the app's single entry point for the
- * management panels (swimlines, stage gates, settings) plus a "home"
- * action that just clears whatever's open.
+ * management panels (swimlines, stage gates, settings). Going back to the
+ * Program page is the breadcrumb's job now (its first crumb always links
+ * to "/"), not a dedicated rail button.
  *
  * onSwimlines/onGates are optional: the Program (portfolio) page has
  * neither concept — "teams" and "stage gates" only exist inside a single
- * project — so it only ever passes onHome/onSettings, and those two
+ * project — so it only ever passes onImport/onSettings, and those two
  * buttons simply don't render there instead of pointing at nothing.
  */
 export function Sidebar({
   active,
-  onHome,
   onSwimlines,
   onGates,
   onImport,
@@ -39,7 +38,6 @@ export function Sidebar({
   onToggleCollapsed,
 }: {
   active: SidebarActive;
-  onHome: () => void;
   onSwimlines?: () => void;
   onGates?: () => void;
   /** Opens the Excel-import flow — a first-class menu entry (not just a
@@ -69,7 +67,6 @@ export function Sidebar({
   // the rail, so it's the only one that gets the heavier stroke (see
   // icons.tsx's REST_STROKE/ACTIVE_STROKE).
   const items: { key: SidebarActive; icon: ReactNode; ariaLabel: string; label: string; onClick: () => void }[] = [
-    { key: "home", icon: <IconHome active={active === "home"} />, ariaLabel: t.sidebar.homeAria, label: t.sidebar.homeLabel, onClick: onHome },
     ...(onSwimlines
       ? [{ key: "swimlines" as const, icon: <IconLanes active={active === "swimlines"} />, ariaLabel: t.sidebar.swimlinesAria, label: t.sidebar.swimlinesLabel, onClick: onSwimlines }]
       : []),

@@ -187,30 +187,18 @@ function ProjectView({ project }: { project: Project }) {
     sidePanel.scrollToPanel();
   }
 
-  // "Home" always means "the top of this project" — clears the drill path
-  // back to Equipos as well as closing whatever panel was open.
-  function goHome() {
-    closeAllPanels();
-    setDrill(null);
-  }
-
   function submitNewPlan() {
     if (!drill || drill.level !== "equipo" || !newPlanName.trim()) return;
     addPlan(drill.laneId, newPlanName.trim());
     setNewPlanName("");
   }
 
-  // Every phase on the canvas only ever registers as something visible at
-  // the project's own top level through its Plan (see
-  // derivePlanAggregateBars, which silently skips any phase with no
-  // planId) — the same rule that makes the app require a Plan before a
-  // hand-created track can exist at all (see isLaneCreatable). Import
-  // used to skip that requirement entirely, leaving every imported phase
-  // invisible until someone drilled into its team lane and happened to
-  // notice the "Sin plan asignado" bucket. Minting one default Plan per
-  // imported lane up front — before the phases exist — fixes that the
-  // same way a hand-created track always already has a Plan by the time
-  // it's created.
+  // A hand-created track always already has a Plan by the time it exists
+  // (see isLaneCreatable) — import used to skip that requirement entirely,
+  // leaving every imported phase landing in the "Sin plan asignado" bucket
+  // the moment someone drilled into its team lane. Minting one default
+  // Plan per imported lane up front, before the phases exist, keeps
+  // imported work organized the same way hand-created work always is.
   function importLanes(result: ParseResult) {
     const newLanes = importedLanesToLanes(result, program.startMonth).map((lane) => {
       const planId = crypto.randomUUID();
@@ -265,9 +253,11 @@ function ProjectView({ project }: { project: Project }) {
 
   const canvasLanes: Lane[] = (() => {
     if (!drill) {
-      return lanes.map((lane) =>
-        lane.isProjectPlan ? lane : { ...lane, phases: derivePlanAggregateBars(lane, plansByLane[lane.id] ?? []) },
-      );
+      // Every lane — the anchor and every team lane alike — shows its own
+      // real, ungrouped phases at the project's top level; Plans only
+      // organize a team's phases one level deeper (see the "equipo" case
+      // below), they never collapse what's shown up here.
+      return lanes;
     }
     if (drill.level === "equipo") {
       const lane = lanes.find((l) => l.id === drill.laneId);
@@ -604,15 +594,14 @@ function ProjectView({ project }: { project: Project }) {
         ? "import"
         : explorer
           ? "swimlines"
-          : "home";
+          : "none";
 
   // "Where am I" — every ancestor level above whatever's shown as the
-  // page's own title below it (Inicio and Programa always first, then this
-  // project, then however deep the recursive canvas is currently drilled).
-  // The title itself is never repeated as its own crumb — that's exactly
-  // what makes it the title instead of just the last breadcrumb segment.
+  // page's own title below it (Programa always first, then this project,
+  // then however deep the recursive canvas is currently drilled). The
+  // title itself is never repeated as its own crumb — that's exactly what
+  // makes it the title instead of just the last breadcrumb segment.
   const breadcrumbCrumbs: { label: string; onClick: () => void }[] = [
-    { label: t.header.levelHome, onClick: () => router.push("/") },
     { label: t.header.levelProgram, onClick: () => router.push("/") },
   ];
   if (drill) {
@@ -709,7 +698,6 @@ function ProjectView({ project }: { project: Project }) {
     <>
       <Sidebar
         active={sidebarActive}
-        onHome={goHome}
         onSwimlines={() => openExplorer({ level: "lanes" })}
         onGates={openGatesPanel}
         onImport={openImportPanel}

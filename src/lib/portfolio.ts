@@ -96,31 +96,32 @@ export function projectOverallStatus(project: Project): PhaseStatus {
 
 /**
  * One aggregated bar per stage category actually tagged somewhere in the
- * project's team lanes (see Phase.category) — its span covers every
+ * project's team lanes (see Phase.category), plus every untagged phase
+ * shown on its own (not merged into anything) — its span covers every
  * tagged phase in that category across every team, so "UAT" on the
  * portfolio view always matches whatever the teams themselves entered as
  * their own UAT phases, with nobody maintaining a second copy by hand.
  * `categories` is the live, user-editable stage list (Settings → Fases de
  * proyecto) — it drives both which bars can appear at all and the
  * order/label they render with; a phase tagged with an id no longer in
- * that list (its stage got deleted) just stops contributing, same as any
- * other orphaned reference in this app.
+ * that list (its stage got deleted) just stops contributing to a category
+ * bar and falls back to rendering on its own, same as a never-tagged one.
  *
- * Untagged phases don't contribute to any *category* bar — but a project
- * whose phases are ALL untagged (every phase straight from an Excel
- * import starts this way; nothing assigns a stage automatically) still
- * gets exactly one fallback bar spanning all of them, labeled
- * `noCategoryLabel`, instead of being entirely invisible on the Program
- * page while its own detail view shows real, dated work. A project with
- * even one real category bar keeps the original behavior untouched —
- * this only kicks in when there'd otherwise be nothing to show at all.
+ * Untagged phases (every phase straight from an Excel import starts this
+ * way; nothing assigns a stage automatically) are passed through as-is
+ * instead of being dropped or merged into a single stand-in bar — the
+ * renderer itself (see PoapRenderer's Bar) is what actually flags a
+ * categoryless phase (amber + a warning glyph), so a project missing its
+ * category tags reads as "real work, needs attention" on the Program
+ * page instead of either vanishing or looking indistinguishable from a
+ * properly tagged one.
  */
-export function deriveProjectSummary(project: Project, categories: StageCategoryDef[], noCategoryLabel: string): Phase[] {
+export function deriveProjectSummary(project: Project, categories: StageCategoryDef[]): Phase[] {
   const byCategory = new Map<string, Phase[]>();
   const uncategorized: Phase[] = [];
   for (const lane of project.lanes) {
     for (const phase of lane.phases) {
-      if (!phase.category) {
+      if (!phase.category || !categories.some((c) => c.id === phase.category)) {
         uncategorized.push(phase);
         continue;
       }
@@ -144,17 +145,7 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
       };
     });
 
-  if (bars.length === 0 && uncategorized.length > 0) {
-    bars.push({
-      id: `${project.id}-uncategorized`,
-      title: noCategoryLabel,
-      start: Math.min(...uncategorized.map((p) => p.start)),
-      end: Math.max(...uncategorized.map((p) => p.end)),
-      status: worstStatus(uncategorized),
-    });
-  }
-
-  return bars;
+  return [...bars, ...uncategorized.map((p) => ({ ...p, warning: true }))];
 }
 
 /**
@@ -197,9 +188,10 @@ export function groupPhasesByPlan(lane: Lane, plans: Plan[], unassignedLabel: st
 
 /**
  * One aggregate bar per Plan that actually has phases — an Equipo's own
- * row in the recursive swimline canvas, one level up from groupPhasesByPlan
- * (which expands a Plan into its real phases; this collapses the other
- * direction, an Equipo into its Planes). Plan-less/unassigned phases don't
+ * "team overview" row in the recursive swimline canvas (see the anchor
+ * lane built from this in project/[projectId]/page.tsx's canvasLanes),
+ * complementary to groupPhasesByPlan's per-Plan rows below it: this is the
+ * summary, those are the real detail. Plan-less/unassigned phases don't
  * contribute a bar here — they still exist (see groupPhasesByPlan's
  * "__unassigned__" bucket) but an aggregate bar for "no plan" wouldn't mean
  * anything at this altitude.
@@ -285,13 +277,13 @@ export function findUnassignedPlanIssues(lanes: Lane[], plansByLane: Record<stri
   return issues;
 }
 
-export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[], noCategoryLabel: string): Lane[] {
+export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[]): Lane[] {
   return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((project) => ({
       id: project.id,
       name: project.name,
       sortOrder: project.sortOrder,
-      phases: deriveProjectSummary(project, categories, noCategoryLabel),
+      phases: deriveProjectSummary(project, categories),
     }));
 }

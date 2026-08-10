@@ -15,7 +15,7 @@ import {
   pluralForm,
   type Locale,
 } from "@/lib/i18n";
-import { IconCheck, IconClose, IconGantt, IconGrip, IconMinus, IconPlus, IconTrash } from "@/lib/icons";
+import { IconCheck, IconClose, IconGantt, IconGrip, IconMinus, IconPlus, IconTrash, IconWarning } from "@/lib/icons";
 import {
   BADGE_STRIP_HEIGHT,
   BAR_HEIGHT,
@@ -450,6 +450,15 @@ export function PoapRenderer({
   const strings = RENDERER_STRINGS[locale];
   const timelineRef = useRef<HTMLDivElement>(null);
   const labelsColRef = useRef<HTMLDivElement>(null);
+  // Wrapped lane-name text can need more vertical room than the row's own
+  // bar-packed height (laneRowHeight) provides — measured post-render (see
+  // the layout effect below) rather than estimated, since exact wrap
+  // height depends on the rendered font/column width. Keyed by lane id,
+  // read back into both renderLaneLabel and renderLaneTrack so the label
+  // and its matching track row always end up the same height.
+  const labelTextRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
+  const prevLabelHeightsRef = useRef<Record<string, number>>({});
+  const [labelHeights, setLabelHeights] = useState<Record<string, number>>({});
   const [trackWidth, setTrackWidth] = useState(0);
   const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("anio");
   const [zoomScale, setZoomScale] = useState(ZOOM_SCALE_DEFAULT);
@@ -578,6 +587,29 @@ export function PoapRenderer({
     () => orderedLanes.map((lane) => ({ lane, rows: packLane(lane.phases) })),
     [orderedLanes],
   );
+
+  useLayoutEffect(() => {
+    function measure() {
+      const next: Record<string, number> = {};
+      let changed = Object.keys(prevLabelHeightsRef.current).length !== packedLanes.length;
+      for (const { lane } of packedLanes) {
+        const el = labelTextRefs.current.get(lane.id);
+        const measured = el ? el.scrollHeight + LANE_PADDING_Y * 2 : 0;
+        next[lane.id] = measured;
+        if (measured !== prevLabelHeightsRef.current[lane.id]) changed = true;
+      }
+      if (changed) {
+        prevLabelHeightsRef.current = next;
+        setLabelHeights(next);
+      }
+    }
+    measure();
+    const el = labelsColRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [packedLanes, locale]);
   // The project-plan lane (if any) always renders above Stage gates, and
   // every other lane below it — pulled out of packedLanes' single sortOrder
   // sequence rather than relying on sortOrder alone to keep it first, since
@@ -809,7 +841,7 @@ export function PoapRenderer({
   // planPackedLanes/teamPackedLanes) so the two lane groups stay pixel- and
   // behavior-identical apart from the plan lane's own accent class.
   function renderLaneLabel({ lane, rows }: (typeof packedLanes)[number]) {
-    const height = laneRowHeight(rows.length);
+    const height = Math.max(laneRowHeight(rows.length), labelHeights[lane.id] ?? 0);
     const isAnchor = Boolean(lane.isProjectPlan);
     const manageable = isLaneManageable ? isLaneManageable(lane.id) : true;
     const isDraggable = !isAnchor && manageable && Boolean(onReorderLanes);
@@ -854,7 +886,15 @@ export function PoapRenderer({
           </button>
         )}
         <button type="button" className={styles.laneNameButton} onClick={() => onLaneClick?.(lane.id)}>
-          <span className={styles.laneLabelText}>{lane.name}</span>
+          <span
+            ref={(el) => {
+              if (el) labelTextRefs.current.set(lane.id, el);
+              else labelTextRefs.current.delete(lane.id);
+            }}
+            className={styles.laneLabelText}
+          >
+            {lane.name}
+          </span>
         </button>
         {isConfirmingDelete ? (
           <span className={styles.deleteConfirmGroup} data-delete-confirm={lane.id}>
@@ -912,6 +952,7 @@ export function PoapRenderer({
   }
 
   function renderLaneTrack({ lane, rows }: (typeof packedLanes)[number]) {
+    const height = Math.max(laneRowHeight(rows.length), labelHeights[lane.id] ?? 0);
     const trackClass = [
       styles.laneTrack,
       lane.isProjectPlan ? styles.planLaneTrack : "",
@@ -924,7 +965,7 @@ export function PoapRenderer({
       <div
         key={lane.id}
         className={`${trackClass} ${creatable ? styles.laneTrackCreatable : ""}`.trim()}
-        style={{ height: laneRowHeight(rows.length) }}
+        style={{ height }}
         data-range-track={creatable ? "true" : undefined}
         onClick={creatable ? (e) => handleTrackClick(e, lane.id) : undefined}
         onMouseMove={creatable ? (e) => handleLaneHover(e, lane.id) : undefined}
@@ -1274,7 +1315,7 @@ function Bar({
       type="button"
       className={[
         styles.bar,
-        STATUS_CLASS[phase.status],
+        phase.warning ? styles.statusWarning : STATUS_CLASS[phase.status],
         selected ? styles.barSelected : "",
         showText ? "" : styles.barNoText,
       ].join(" ").trim()}
@@ -1300,6 +1341,11 @@ function Bar({
       onBlur={onLeave}
     >
       {showText && <span className={styles.barLabel}>{phase.title}</span>}
+      {showText && phase.warning && (
+        <span className={styles.barWarningIcon} aria-hidden="true">
+          <IconWarning />
+        </span>
+      )}
     </button>
   );
 }

@@ -23,6 +23,15 @@ export interface Phase {
    * Undefined for the isProjectPlan anchor lane's own phases, which don't
    * have Planes of their own. */
   planId?: string;
+  /** Marks a bar the renderer itself should flag (amber fill + a warning
+   * glyph) instead of its normal status color — unlike category/planId,
+   * this one IS read by the renderer, since it's about how the bar looks,
+   * not what it means app-side. Currently only set by deriveProjectSummary
+   * for a project-summary phase missing its stage-category tag, so an
+   * Excel-imported project reads as "real work, needs a category" on the
+   * Program page instead of either vanishing or blending in with tagged
+   * work. */
+  warning?: boolean;
 }
 
 export interface Lane {

@@ -19,7 +19,6 @@ import {
   Diamond,
   Download,
   GripVertical,
-  Home,
   Minus,
   Plus,
   Rows3,
@@ -63,8 +62,8 @@ export const IconSearch = icon(Search, BUTTON_SIZE);
 export const IconSort = icon(ArrowUpDown, BUTTON_SIZE);
 export const IconGantt = icon(ChartNoAxesGantt, BUTTON_SIZE);
 export const IconGrip = icon(GripVertical, BUTTON_SIZE);
+export const IconWarning = icon(AlertTriangle, BUTTON_SIZE);
 
-export const IconHome = icon(Home, NAV_SIZE);
 export const IconGateDiamond = icon(Diamond, NAV_SIZE);
 export const IconLanes = icon(Rows3, NAV_SIZE);
 export const IconSettings = icon(SettingsIcon, NAV_SIZE);

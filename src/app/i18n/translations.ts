@@ -10,7 +10,6 @@ import type { Locale } from "@/lib/i18n";
 const es = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
-    levelHome: "Inicio",
     levelProgram: "Programa",
     projectTitle: (name: string) => `${name} — plan on a page`,
     projectsWord: "proyectos",
@@ -159,12 +158,10 @@ const es = {
     defaultImportedPlanName: "Importado desde Excel",
   },
   sidebar: {
-    homeAria: "Inicio",
     gatesAria: "Stage gates",
     swimlinesAria: "Swimlines",
     importAria: "Importar desde Excel",
     settingsAria: "Configuración",
-    homeLabel: "Inicio",
     gatesLabel: "Gates",
     swimlinesLabel: "Swimlines",
     importLabel: "Importar",
@@ -275,7 +272,6 @@ type Translations = typeof es;
 const en: Translations = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
-    levelHome: "Home",
     levelProgram: "Program",
     projectTitle: (name) => `${name} — plan on a page`,
     projectsWord: "projects",
@@ -421,12 +417,10 @@ const en: Translations = {
     defaultImportedPlanName: "Imported from Excel",
   },
   sidebar: {
-    homeAria: "Home",
     gatesAria: "Stage gates",
     swimlinesAria: "Swimlines",
     importAria: "Import from Excel",
     settingsAria: "Settings",
-    homeLabel: "Home",
     gatesLabel: "Gates",
     swimlinesLabel: "Swimlines",
     importLabel: "Import",
