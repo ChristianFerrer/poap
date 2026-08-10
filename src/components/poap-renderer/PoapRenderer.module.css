@@ -307,6 +307,9 @@
 .gatesLabelCell {
   gap: 2px;
 }
+.gatesLabelCell:hover {
+  background: color-mix(in srgb, var(--color-fog) 14%, transparent);
+}
 /* Matches .leadingButton's width so "Stage gates" starts at the exact same
    x-position as a lane name (which sits after its own leading button +
    gap, and the drag-handle slot before that when onReorderLanes is on —
@@ -333,9 +336,6 @@
   color: inherit;
   text-align: left;
   padding: 0 4px 0 0;
-}
-.gatesLabelButton:hover {
-  background: var(--color-surface2);
 }
 /* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
    equivalent spacer on the label-column side, so the two stay visually
@@ -568,6 +568,15 @@
   width: 100%;
   padding: 5px;
 }
+/* Whole-row hover cue — every part of the row (not just the name text)
+   signals "this is actionable" the instant the mouse enters it. 14% is
+   .hoverCellHighlight's own 10% fog tint bumped 40% more opaque, the
+   same tint family already used for hover feedback elsewhere on the
+   canvas, just stronger here since a whole row is a bigger click target
+   than a single day cell. */
+.laneLabel:hover {
+  background: color-mix(in srgb, var(--color-fog) 14%, transparent);
+}
 /* The one lane per project holding its high-level, cross-team plan (see
    Lane.isProjectPlan) — a soft brand-color wash instead of a plain label
    background, so it reads as "the plan" at a glance rather than just
@@ -634,7 +643,12 @@
   height: 100%;
   background: none;
   border: none;
-  border-radius: var(--radius-lg);
+  /* Same radius as .ganttButton/.deleteLaneButton (radius-dot, not the
+     app's usual radius-lg) — at half the row's height those two would
+     round into a pill if they used radius-lg, so radius-dot is the one
+     value all three of a row's buttons can share and still all read as
+     rectangles, not circles. */
+  border-radius: var(--radius-dot);
   cursor: pointer;
   padding: 0;
   transition: background-color 0.12s ease, color 0.12s ease;
@@ -667,9 +681,6 @@
   text-align: left;
   padding: 0 4px 0 0;
 }
-.laneNameButton:hover {
-  background: var(--color-surface2);
-}
 /* The Gantt shortcut and delete button together mirror .leadingButton's
    own silhouette — a rounded-rect column flush against the row's right
    edge, exactly as wide as .leadingButton and spanning the row's full
@@ -701,11 +712,8 @@
   align-items: center;
   justify-content: center;
   border: none;
-  /* Same rounded-rectangle shape as .leadingButton, not the same exact
-     radius — at half the row's height, .leadingButton's own radius-lg
-     rounds these all the way into a pill/circle, which is exactly what
-     this shape is meant to avoid. A smaller radius keeps the corners
-     visibly rounded while the button still reads as a rectangle. */
+  /* Same radius as .leadingButton (radius-dot) — all three of a row's
+     buttons (+, Gantt, delete) share one shape. */
   border-radius: var(--radius-dot);
   background: transparent;
   color: var(--color-fog);
@@ -727,7 +735,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-dot);
   background: transparent;
   color: var(--color-fog);
 }
