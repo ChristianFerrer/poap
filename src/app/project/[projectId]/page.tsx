@@ -11,6 +11,7 @@ import {
   findUnassignedPlanIssues,
   groupPhasesByPlan,
   UNASSIGNED_PLAN_ID,
+  type Plan,
   type Project,
 } from "@/lib/portfolio";
 import type { ActivitySeed } from "../../mock-data";
@@ -100,6 +101,7 @@ function ProjectView({ project }: { project: Project }) {
     setProjectGates,
     plansByLane,
     addPlan,
+    addPlans,
     addPlanBelow,
     renamePlan,
     deletePlan,
@@ -198,9 +200,31 @@ function ProjectView({ project }: { project: Project }) {
     setNewPlanName("");
   }
 
+  // Every phase on the canvas only ever registers as something visible at
+  // the project's own top level through its Plan (see
+  // derivePlanAggregateBars, which silently skips any phase with no
+  // planId) — the same rule that makes the app require a Plan before a
+  // hand-created track can exist at all (see isLaneCreatable). Import
+  // used to skip that requirement entirely, leaving every imported phase
+  // invisible until someone drilled into its team lane and happened to
+  // notice the "Sin plan asignado" bucket. Minting one default Plan per
+  // imported lane up front — before the phases exist — fixes that the
+  // same way a hand-created track always already has a Plan by the time
+  // it's created.
   function importLanes(result: ParseResult) {
-    const newLanes = importedLanesToLanes(result, program.startMonth);
-    setProjectLanes(project.id, (prev) => [...prev, ...newLanes.map((lane, i) => ({ ...lane, sortOrder: prev.length + i }))]);
+    const newLanes = importedLanesToLanes(result, program.startMonth).map((lane) => {
+      const planId = crypto.randomUUID();
+      return { lane: { ...lane, phases: lane.phases.map((p) => ({ ...p, planId })) }, planId };
+    });
+    setProjectLanes(project.id, (prev) => [
+      ...prev,
+      ...newLanes.map(({ lane }, i) => ({ ...lane, sortOrder: prev.length + i })),
+    ]);
+    addPlans(
+      newLanes.map(
+        ({ lane, planId }): Plan => ({ id: planId, laneId: lane.id, name: t.import.defaultImportedPlanName, sortOrder: 0 }),
+      ),
+    );
   }
 
   // Fixing a Plan-linkage issue (a Fase with no real Plan) means landing

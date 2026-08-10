@@ -153,6 +153,10 @@ const es = {
     chooseAnotherSheet: "Elegir otra hoja",
     importConfirm: (n: number) => `Importar ${n} ${n === 1 ? "swimline" : "swimlines"}`,
     importConfirmProjects: (n: number) => `Importar ${n} ${n === 1 ? "proyecto" : "proyectos"}`,
+    /** Every imported track needs a Plan to register as anything on the
+     * canvas (see derivePlanAggregateBars) — this is the one auto-created
+     * for it, same as any other Plan afterward: renameable, deletable. */
+    defaultImportedPlanName: "Importado desde Excel",
   },
   sidebar: {
     homeAria: "Inicio",
@@ -414,6 +418,7 @@ const en: Translations = {
     chooseAnotherSheet: "Choose another sheet",
     importConfirm: (n) => `Import ${n} ${n === 1 ? "swimline" : "swimlines"}`,
     importConfirmProjects: (n) => `Import ${n} ${n === 1 ? "project" : "projects"}`,
+    defaultImportedPlanName: "Imported from Excel",
   },
   sidebar: {
     homeAria: "Home",

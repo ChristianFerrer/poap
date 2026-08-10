@@ -83,6 +83,10 @@ interface ProjectsContextValue {
    * Phase.planId is what actually ties a phase to one. */
   plansByLane: Record<string, Plan[]>;
   addPlan: (laneId: string, name: string) => void;
+  /** Bulk sibling of addPlan for callers (Excel import) that need each
+   * Plan's id to exist before the provider ever sees it, so it can be
+   * embedded in a Phase's planId at creation time. */
+  addPlans: (plans: Plan[]) => void;
   /** The Equipo-drill canvas's own onAddLaneBelow target — see
    * addProjectBelow's doc comment for the same "insert in the middle,
    * renumber everyone after it" idea, one level down. */
@@ -423,6 +427,23 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     void insertPlan(plan);
   }
 
+  // Bulk sibling of addPlan, for callers that already minted their own
+  // Plan ids up front (see the Excel-import flow: it needs a phase's
+  // planId to point at a real Plan the moment the phase itself is
+  // created, so the id has to exist before any provider call happens —
+  // addPlan's own crypto.randomUUID() would be too late for that). Takes
+  // fully-formed Plan objects as-is, same "insert every already-built
+  // record and persist each" shape as addProjects.
+  function addPlans(newPlans: Plan[]) {
+    if (newPlans.length === 0) return;
+    setPlansByLane((prev) => {
+      const next = { ...prev };
+      for (const plan of newPlans) next[plan.laneId] = [...(next[plan.laneId] ?? []), plan];
+      return next;
+    });
+    newPlans.forEach((plan) => void insertPlan(plan));
+  }
+
   // Equipo-drill's own "+ add a plan below this one" (see PoapRenderer's
   // onAddLaneBelow) — same insert-after-and-renumber pattern as
   // addProjectBelow, just scoped to one team lane's own Planes instead of
@@ -550,6 +571,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         setProjectGates,
         plansByLane,
         addPlan,
+        addPlans,
         addPlanBelow,
         renamePlan,
         deletePlan,
