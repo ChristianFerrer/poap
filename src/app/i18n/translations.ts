@@ -11,6 +11,10 @@ const es = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
     levelProgram: "Programa",
+    levelProject: "Proyecto",
+    levelEquipo: "Equipo",
+    levelPlan: "Plan",
+    levelFase: "Fase",
     projectTitle: (name: string) => `${name} — plan on a page`,
     projectsWord: "proyectos",
     lanesWord: "carriles",
@@ -277,6 +281,10 @@ const en: Translations = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
     levelProgram: "Program",
+    levelProject: "Project",
+    levelEquipo: "Team",
+    levelPlan: "Plan",
+    levelFase: "Phase",
     projectTitle: (name) => `${name} — plan on a page`,
     projectsWord: "projects",
     lanesWord: "lanes",

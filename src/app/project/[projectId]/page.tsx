@@ -596,24 +596,29 @@ function ProjectView({ project }: { project: Project }) {
           ? "swimlines"
           : "none";
 
-  // "Where am I" — Programa always first, then this project (rendered
-  // large — see .breadcrumbCrumbLarge — since it's the one segment that's
-  // always present and everything deeper hangs off of), then however
-  // deep the recursive canvas is currently drilled. The current level
-  // itself is never repeated as its own crumb — that's exactly what makes
-  // it the title instead of just the last breadcrumb segment.
-  const breadcrumbCrumbs: { label: string; onClick: () => void; large?: boolean }[] = [
+  // "What level am I on" — a literal Programa/Proyecto/Equipo/Plan/Fase
+  // word per ancestor level, including the current one (unlike a typical
+  // breadcrumb, the current level's own crumb still renders — it's what
+  // tells you "this is a Fase view", not just the specific Fase's name,
+  // which is the H1 title's job below). Every crumb still navigates:
+  // clicking one jumps straight to that level, "Programa" leaves the
+  // project entirely.
+  const breadcrumbCrumbs: { label: string; onClick: () => void }[] = [
     { label: t.header.levelProgram, onClick: () => router.push("/") },
-    { label: project.name, onClick: () => setDrill(null), large: true },
+    { label: t.header.levelProject, onClick: () => setDrill(null) },
   ];
   if (drill) {
-    if (drill.level !== "equipo") {
-      breadcrumbCrumbs.push({ label: equipoName(drill.laneId), onClick: () => setDrill({ level: "equipo", laneId: drill.laneId }) });
+    breadcrumbCrumbs.push({ label: t.header.levelEquipo, onClick: () => setDrill({ level: "equipo", laneId: drill.laneId }) });
+    if (drill.level === "plan" || drill.level === "fase") {
+      breadcrumbCrumbs.push({
+        label: t.header.levelPlan,
+        onClick: () => setDrill({ level: "plan", laneId: drill.laneId, planId: drill.planId }),
+      });
     }
     if (drill.level === "fase") {
       breadcrumbCrumbs.push({
-        label: planName(drill.laneId, drill.planId),
-        onClick: () => setDrill({ level: "plan", laneId: drill.laneId, planId: drill.planId }),
+        label: t.header.levelFase,
+        onClick: () => setDrill({ level: "fase", laneId: drill.laneId, planId: drill.planId, phaseId: drill.phaseId }),
       });
     }
   }
@@ -716,11 +721,7 @@ function ProjectView({ project }: { project: Project }) {
             <nav className={styles.breadcrumb} aria-label={t.header.breadcrumbAria}>
               {breadcrumbCrumbs.map((crumb, i) => (
                 <span key={i}>
-                  <button
-                    type="button"
-                    className={`${styles.breadcrumbCrumb} ${crumb.large ? styles.breadcrumbCrumbLarge : ""}`}
-                    onClick={crumb.onClick}
-                  >
+                  <button type="button" className={styles.breadcrumbCrumb} onClick={crumb.onClick}>
                     {crumb.label}
                   </button>
                   {i < breadcrumbCrumbs.length - 1 && (

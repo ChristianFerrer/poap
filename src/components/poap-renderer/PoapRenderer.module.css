@@ -644,6 +644,7 @@
    "Stage gates" row's label keeps lining up with every other lane name. */
 @media (max-width: 640px) {
   .leadingButton,
+  .laneRowActions,
   .gatesLabelSpacer {
     width: 24px;
   }
@@ -665,58 +666,67 @@
 .laneNameButton:hover {
   background: var(--color-surface2);
 }
-/* The Gantt shortcut and delete stack vertically (delete right below
-   Gantt), not side by side — see LANE_PADDING_Y's own comment for why the
-   row's minimum height grew to fit this. A fixed-width zone (wider than
-   the 16px buttons themselves) with the pair centered inside it, rather
-   than the buttons just butting up against the label column's own right
-   edge. */
+/* The Gantt shortcut and delete button together mirror .leadingButton's
+   own silhouette — a rounded-rect column flush against the row's right
+   edge, exactly as wide as .leadingButton and spanning the row's full
+   height — except this column is split in half by function: Gantt fills
+   the top half, delete the bottom half, each its own independently
+   rounded rectangle rather than one shape sliced in two. */
 .laneRowActions {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
   flex: 0 0 auto;
-  width: 32px;
+  width: 18px;
+  height: 100%;
+  gap: 2px;
 }
 /* Explicit "manage this row's swimlines" shortcut, distinct from clicking
    the name itself (onLaneClick, e.g. navigating into the project on the
    Program page) — only rendered when the caller passes onLaneGanttClick.
-   Sized down from the shared iconBtnSm (24px) — stacked with delete below
-   it, the pair needs to fit the same row height a single 24px button used
-   to occupy alone. Invisible (no border/fill) at rest so the row itself
-   stays quiet — an accent color only appears once you're actually
-   pointing at the button, not as a permanent fixture of every row. */
+   Fills the top half of .laneRowActions (flex: 1 1 0 splits the column
+   evenly with .deleteLaneButton below); the icon centers within that
+   half via the same flex centering .leadingButton uses. Invisible (no
+   border/fill) at rest so the row itself stays quiet — an accent color
+   only appears once you're actually pointing at the button, not as a
+   permanent fixture of every row. */
 .ganttButton {
   composes: iconBtn from "../../app/buttons.module.css";
-  width: 16px;
-  height: 16px;
-  border: 1px solid transparent;
+  flex: 1 1 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  /* Half the row's own height needs a much smaller radius than
+     .leadingButton's radius-lg to still read as a rectangle rather than
+     rounding all the way into a pill/circle. */
+  border-radius: var(--radius-dot);
   background: transparent;
   color: var(--color-fog);
 }
 .ganttButton:hover {
   background: var(--color-iris);
-  border-color: var(--color-iris);
   color: var(--color-surface);
 }
 /* Never rendered on the isProjectPlan anchor lane (see the .tsx) — deleting
    the project's own plan doesn't make sense the way deleting a team lane
-   does. Invisible at rest, same reasoning as .ganttButton above — the
-   destructive color only shows up on hover now, not as a standing warning
-   on every row. */
+   does. Fills the bottom half of .laneRowActions, same reasoning as
+   .ganttButton above — the destructive color only shows up on hover now,
+   not as a standing warning on every row. */
 .deleteLaneButton {
   composes: iconBtn from "../../app/buttons.module.css";
-  width: 16px;
-  height: 16px;
-  border: 1px solid transparent;
+  flex: 1 1 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-dot);
   background: transparent;
   color: var(--color-fog);
 }
 .deleteLaneButton:hover {
   background: var(--color-rose);
-  border-color: var(--color-rose);
   color: var(--color-surface);
 }
 /* Replaces the Gantt/delete buttons once a delete is armed (see

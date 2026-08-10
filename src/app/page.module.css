@@ -67,27 +67,25 @@
   margin: 0 0 4px;
 }
 
-/* "Where am I" — Programa / Proyecto / Equipo / Plan / Fase, one crumb per
-   ancestor level above (and including) whatever's currently on screen, so
-   the whole thing doubles as back-navigation: click any segment to jump
-   straight to that level, or "Programa" to leave the project entirely.
-   The project's own name (.breadcrumbCrumbLarge) renders larger than its
-   siblings — it's the one segment that's *always* present and is the
-   real anchor of every deeper level, so it reads as more than just
-   another equally-weighted path segment. */
+/* "What level am I on" — a literal Programa/Proyecto/Equipo/Plan/Fase
+   word per ancestor level, including the current one, so the whole thing
+   doubles as back-navigation: click any segment to jump straight to that
+   level, or "Programa" to leave the project entirely. The specific
+   object's own name (this project, this team, this phase, …) is the H1
+   .title below, not repeated up here. */
 .breadcrumb {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
   gap: 4px;
   margin: 0 0 4px;
+  font-size: var(--text-2xs);
 }
 .breadcrumbCrumb {
   background: none;
   border: none;
   padding: 0;
   font: inherit;
-  font-size: var(--text-2xs);
   color: var(--color-fog);
   cursor: pointer;
 }
@@ -95,17 +93,8 @@
   color: var(--color-snow);
   text-decoration: underline;
 }
-.breadcrumbCrumbLarge {
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--color-snow);
-}
-.breadcrumbCrumbLarge:hover {
-  color: var(--color-lime);
-}
 .breadcrumbSep {
   color: var(--color-mist);
-  font-size: var(--text-2xs);
 }
 
 .title {
