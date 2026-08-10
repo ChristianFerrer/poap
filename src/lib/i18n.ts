@@ -102,19 +102,27 @@ export const RENDERER_STRINGS: Record<
     zoomIn: string;
     zoomLevel: string;
     stageGates: string;
-    expandLane: string;
-    collapseLane: string;
     weekOfPrefix: string; // "Semana del 12 ago" — prefix only, day/month appended by the caller
     phaseOne: string;
     phaseOther: string;
-    summaryLabel: string; // capitalized, leads the aggregate bar's own label: "Resumen — 4 fases"
-    summarySuffix: string; // lowercase, trails the lane name in a tooltip title: "Producto — resumen"
     start: string;
     end: string;
     involved: string;
     date: string;
     today: string;
     viewGanttAria: string;
+    /** Replaces the old collapse/expand chevron at the head of every lane
+     * row — adds a new lane immediately below whichever one it's clicked
+     * on, including the isProjectPlan anchor lane. */
+    addLaneBelowAria: string;
+    deleteLaneAria: (name: string) => string;
+    /** Short inline label shown once a delete is armed (see
+     * deleteLaneAria) — deliberately not the full lane name, there's only
+     * room for a couple words next to the confirm/cancel icons. */
+    confirmDeleteLabel: string;
+    cancelDeleteAria: string;
+    confirmDeleteAria: (name: string) => string;
+    dragLaneAria: (name: string) => string;
   }
 > = {
   es: {
@@ -123,19 +131,21 @@ export const RENDERER_STRINGS: Record<
     zoomIn: "Aumentar zoom",
     zoomLevel: "Nivel de zoom temporal",
     stageGates: "Stage gates",
-    expandLane: "Expandir carril",
-    collapseLane: "Colapsar carril",
     weekOfPrefix: "Semana del",
     phaseOne: "fase",
     phaseOther: "fases",
-    summaryLabel: "Resumen",
-    summarySuffix: "resumen",
     start: "Inicio",
     end: "Fin",
     involved: "Involucrados",
     date: "Fecha",
     today: "Hoy",
     viewGanttAria: "Ver swimlines",
+    addLaneBelowAria: "Agregar swimline debajo",
+    deleteLaneAria: (name) => `Eliminar swimline ${name}`,
+    confirmDeleteLabel: "¿Eliminar?",
+    cancelDeleteAria: "Cancelar",
+    confirmDeleteAria: (name) => `Confirmar eliminación de ${name}`,
+    dragLaneAria: (name) => `Reordenar swimline ${name} — arrastrar para mover`,
   },
   en: {
     continuousZoom: "Continuous zoom",
@@ -143,19 +153,21 @@ export const RENDERER_STRINGS: Record<
     zoomIn: "Zoom in",
     zoomLevel: "Time zoom level",
     stageGates: "Stage gates",
-    expandLane: "Expand lane",
-    collapseLane: "Collapse lane",
     weekOfPrefix: "Week of",
     phaseOne: "phase",
     phaseOther: "phases",
-    summaryLabel: "Summary",
-    summarySuffix: "summary",
     start: "Start",
     end: "End",
     involved: "Involved",
     date: "Date",
     today: "Today",
     viewGanttAria: "View swimlines",
+    addLaneBelowAria: "Add swimline below",
+    deleteLaneAria: (name) => `Delete swimline ${name}`,
+    confirmDeleteLabel: "Delete?",
+    cancelDeleteAria: "Cancel",
+    confirmDeleteAria: (name) => `Confirm deleting ${name}`,
+    dragLaneAria: (name) => `Reorder swimline ${name} — drag to move`,
   },
 };
 

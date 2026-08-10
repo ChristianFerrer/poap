@@ -101,6 +101,25 @@ export interface PoapRendererProps {
    * diamond) — same idea as onLaneClick, opens whatever management view
    * the app has for gates in general rather than one gate in particular. */
   onGatesLabelClick?: () => void;
+  /** Deletes a whole lane — a small trash button in its label row (never
+   * shown on the isProjectPlan anchor lane, which isn't deletable this
+   * way). The renderer itself only asks "are you sure?" inline before
+   * calling this; it has no idea what deleting a lane cascades into
+   * (phases, activities, ...) — that's the caller's own mutation. Omit to
+   * leave lanes non-deletable from the canvas. */
+  onDeleteLane?: (laneId: string) => void;
+  /** Creates a new lane immediately after `afterLaneId` — the button that
+   * replaced the old collapse/expand chevron at the head of every lane's
+   * row, including the anchor lane (whose "+" adds the first *regular*
+   * lane right below it). The renderer has no opinion on the new lane's
+   * name; the caller seeds a default and the user renames it same as any
+   * other lane. Omit to leave that button unrendered. */
+  onAddLaneBelow?: (afterLaneId: string) => void;
+  /** Fires once, on drop, with every *non-anchor* lane's id in its new
+   * order — the isProjectPlan anchor lane is never draggable and never
+   * appears in this list, so a caller can just remap sortOrder by index.
+   * Omit to leave lanes non-draggable. */
+  onReorderLanes?: (orderedLaneIds: string[]) => void;
   /** Whether Saturday/Sunday columns get a tinted background across the
    * whole calendar body. Purely visual — defaults on. */
   showWeekends?: boolean;

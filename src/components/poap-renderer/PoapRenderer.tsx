@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent } from "react";
 import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
 import type { Lane, Phase, PhaseStatus, PoapRendererProps } from "./types";
@@ -15,7 +15,7 @@ import {
   pluralForm,
   type Locale,
 } from "@/lib/i18n";
-import { IconChevronDown, IconGantt, IconMinus, IconPlus } from "@/lib/icons";
+import { IconCheck, IconClose, IconGantt, IconGrip, IconMinus, IconPlus, IconTrash } from "@/lib/icons";
 import {
   BADGE_STRIP_HEIGHT,
   BAR_HEIGHT,
@@ -44,13 +44,6 @@ const STATUS_CLASS: Record<PhaseStatus, string> = {
   in_progress: styles.statusInProgress!,
   at_risk: styles.statusAtRisk!,
   not_started: styles.statusNotStarted!,
-};
-
-const STATUS_RANK: Record<PhaseStatus, number> = {
-  at_risk: 3,
-  in_progress: 2,
-  not_started: 1,
-  done: 0,
 };
 
 interface DayScale {
@@ -356,34 +349,6 @@ function laneRowHeight(rowCount: number): number {
   return LANE_PADDING_Y * 2 + rows * BAR_HEIGHT + (rows - 1) * ROW_GAP;
 }
 
-interface LaneAggregate {
-  start: number;
-  end: number;
-  status: PhaseStatus;
-  owners: string[];
-  phaseCount: number;
-}
-
-function aggregateLane(lane: Lane): LaneAggregate {
-  const phases = lane.phases;
-  if (phases.length === 0) {
-    return { start: 0, end: 0, status: "not_started", owners: [], phaseCount: 0 };
-  }
-  const active = phases.filter((p) => p.status !== "done");
-  const pool = active.length ? active : phases;
-  let status = pool[0]!.status;
-  for (const p of pool) if (STATUS_RANK[p.status] > STATUS_RANK[status]) status = p.status;
-  if (!active.length) status = "done";
-
-  return {
-    start: Math.min(...phases.map((p) => p.start)),
-    end: Math.max(...phases.map((p) => p.end)),
-    status,
-    owners: Array.from(new Set(phases.flatMap((p) => p.owners ?? []))),
-    phaseCount: phases.length,
-  };
-}
-
 function formatAxisDate(position: number, startMonth: string, monthAbbr: string[]): string {
   const d = fromAxis(position, startMonth);
   return `${d.getUTCDate()} ${monthAbbr[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
@@ -413,13 +378,12 @@ interface GateTooltipState {
  * (src/components/poap-renderer/pack.ts); this component never decides how
  * phases get grouped into rows, only how a given row layout gets painted.
  *
- * Zoom, zoom-scale, Focus Cell and lane-collapse are internal UI state, not
- * props — all four are purely about how this data gets displayed, not what
- * the data is. Zoom (Año/Mes/Semana/Día) changes the ruler's structure —
- * what the third row divides into, if anything; zoomScale is a continuous
+ * Zoom, zoom-scale and Focus Cell are internal UI state, not props — all
+ * three are purely about how this data gets displayed, not what the data
+ * is. Zoom (Año/Mes/Semana/Día) changes the ruler's structure — what the
+ * third row divides into, if anything; zoomScale is a continuous
  * multiplier on top of that (Excel-style +/- stepper) that only changes
- * column width, not structure. Collapsing a lane swaps its packed rows for
- * one aggregate summary bar (aggregateLane).
+ * column width, not structure.
  *
  * All horizontal placement goes through a DayScale (buildDayScale) so every
  * calendar day gets the same pixel width regardless of which month it's
@@ -448,6 +412,9 @@ export function PoapRenderer({
   onGatesLabelClick,
   onCreatePhase,
   isLaneCreatable,
+  onDeleteLane,
+  onAddLaneBelow,
+  onReorderLanes,
   showWeekends = true,
   showToday = true,
 }: PoapRendererProps) {
@@ -459,7 +426,6 @@ export function PoapRenderer({
   const [trackWidth, setTrackWidth] = useState(0);
   const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("anio");
   const [zoomScale, setZoomScale] = useState(ZOOM_SCALE_DEFAULT);
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [gateTooltip, setGateTooltip] = useState<GateTooltipState | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);
@@ -469,7 +435,24 @@ export function PoapRenderer({
     startAxis: number;
     currentAxis: number;
   } | null>(null);
-  const [hoverColumn, setHoverColumn] = useState<{ start: number; end: number } | null>(null);
+  // Per-cell hover preview (see handleLaneHover) — keyed by which lane's
+  // own track the mouse is over, not just an x-position, so the highlight
+  // it drives can be painted inside just that one lane's row (renderLaneTrack)
+  // instead of the old full-height column overlay.
+  const [hoverCell, setHoverCell] = useState<{ laneId: string; start: number; end: number } | null>(null);
+  // Delete confirmation is armed for at most one lane at a time — clicking
+  // the trash icon swaps that row's Gantt/delete buttons for a compact
+  // cancel/confirm pair instead of deleting immediately (see
+  // renderLaneLabel); clicking anywhere else, or Escape, disarms it.
+  const [confirmDeleteLaneId, setConfirmDeleteLaneId] = useState<string | null>(null);
+  // Drag-and-drop reordering — team lanes only (see onReorderLanes). Native
+  // HTML5 DnD rather than a custom mouse-tracked drag (unlike dragCreate
+  // above): reordering a short list is exactly what it's built for, and it
+  // comes with a free ghost image and drop-target semantics a mouse-event
+  // reimplementation would just have to rebuild.
+  const [dragLaneId, setDragLaneId] = useState<string | null>(null);
+  const [dragOverLaneId, setDragOverLaneId] = useState<string | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<"before" | "after">("before");
   const activeGateIds = useMemo(() => new Set(activeGateIdsProp), [activeGateIdsProp]);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
@@ -561,12 +544,8 @@ export function PoapRenderer({
     [lanes],
   );
   const packedLanes = useMemo(
-    () =>
-      orderedLanes.map((lane) => ({
-        lane,
-        rows: collapsed.has(lane.id) ? null : packLane(lane.phases),
-      })),
-    [orderedLanes, collapsed],
+    () => orderedLanes.map((lane) => ({ lane, rows: packLane(lane.phases) })),
+    [orderedLanes],
   );
   // The project-plan lane (if any) always renders above Stage gates, and
   // every other lane below it — pulled out of packedLanes' single sortOrder
@@ -580,9 +559,7 @@ export function PoapRenderer({
   const rulerHeight = YEAR_ROW_HEIGHT + MONTH_ROW_HEIGHT + (zoom.subRowGranularity !== "none" ? SUB_ROW_HEIGHT : 0);
 
   // A phase "touches" the focused column if their ranges overlap at all —
-  // counted against every phase in the program, regardless of whether its
-  // lane is currently collapsed, since the count describes the underlying
-  // plan, not what's currently on screen.
+  // counted against every phase in the program.
   const touchedCount = useMemo(() => {
     if (selectedColumn === null) return 0;
     const { range } = selectedColumn;
@@ -590,15 +567,6 @@ export function PoapRenderer({
       .flatMap((l) => l.phases)
       .filter((p) => p.start < range.end && p.end > range.start).length;
   }, [orderedLanes, selectedColumn]);
-
-  function toggleLane(laneId: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(laneId)) next.delete(laneId);
-      else next.add(laneId);
-      return next;
-    });
-  }
 
   function selectZoom(key: ZoomLevel["key"]) {
     setZoomKey(key);
@@ -685,13 +653,89 @@ export function PoapRenderer({
 
   // Animated hover highlight — a live preview of what dragging from here
   // would snap to (see snapAxisRange), shown continuously as the mouse
-  // moves across the calendar, not just while actually dragging. Only
-  // meaningful where track-creation exists at all.
-  function handleTimelineHover(e: ReactMouseEvent<HTMLDivElement>) {
-    if (!onCreatePhase) return;
+  // moves over a creatable lane's own track, not just while actually
+  // dragging. Scoped to one lane at a time (see hoverCell/renderLaneTrack)
+  // so the highlight paints inside just that row instead of spanning every
+  // lane the way a single canvas-wide hover tracker would.
+  function handleLaneHover(e: ReactMouseEvent<HTMLDivElement>, laneId: string) {
     const rect = e.currentTarget.getBoundingClientRect();
     const axis = axisFromClientX(e.clientX, rect);
-    setHoverColumn(hoverCellRange(axis, zoomKey, startMonth));
+    setHoverCell({ laneId, ...hoverCellRange(axis, zoomKey, startMonth) });
+  }
+
+  // Dismisses an armed delete confirmation on Escape or a click anywhere
+  // outside that row's own cancel/confirm buttons — same "arm, then
+  // require a deliberate follow-up or it quietly goes away" shape as
+  // useSidePanel's click-outside-to-close, just scoped to this one small
+  // inline popover instead of a whole panel.
+  useEffect(() => {
+    if (!confirmDeleteLaneId) return;
+    function onPointerDown(e: MouseEvent) {
+      if ((e.target as HTMLElement).closest?.("[data-delete-confirm]")) return;
+      setConfirmDeleteLaneId(null);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setConfirmDeleteLaneId(null);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [confirmDeleteLaneId]);
+
+  // Drag-and-drop reordering — team lanes only, see onReorderLanes'
+  // own doc comment. `isDraggable` gates whether this particular row can
+  // ever be picked up (never the isProjectPlan anchor lane); dragging that
+  // starts on one of the row's own buttons (name/gantt/delete/add-below)
+  // is left alone so those clicks keep working normally — only a real drag
+  // gesture starting on genuinely empty row space (or the grip icon) ever
+  // fires dragstart in the first place.
+  function handleLaneDragStart(e: ReactDragEvent<HTMLDivElement>, laneId: string, isDraggable: boolean) {
+    if (!isDraggable || (e.target as HTMLElement).closest("button")) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", laneId);
+    setDragLaneId(laneId);
+  }
+
+  // A drop is only ever valid on another *team* lane's row — dragging over
+  // the anchor lane (or anywhere dragover isn't explicitly allowed via
+  // preventDefault) just never becomes a drop target.
+  function handleLaneDragOver(e: ReactDragEvent<HTMLDivElement>, laneId: string) {
+    if (!dragLaneId || laneId === dragLaneId) return;
+    if (!teamPackedLanes.some((pl) => pl.lane.id === laneId)) return;
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragOverLaneId(laneId);
+    setDragOverPosition(e.clientY - rect.top < rect.height / 2 ? "before" : "after");
+  }
+
+  function handleLaneDrop(e: ReactDragEvent<HTMLDivElement>, laneId: string) {
+    e.preventDefault();
+    const sourceId = dragLaneId;
+    const position = dragOverPosition;
+    setDragLaneId(null);
+    setDragOverLaneId(null);
+    if (!sourceId || !onReorderLanes || sourceId === laneId) return;
+    const ids = teamPackedLanes.map((pl) => pl.lane.id);
+    const from = ids.indexOf(sourceId);
+    if (from === -1 || !ids.includes(laneId)) return;
+    const next = [...ids];
+    next.splice(from, 1);
+    let insertAt = next.indexOf(laneId);
+    if (insertAt === -1) return;
+    if (position === "after") insertAt += 1;
+    next.splice(insertAt, 0, sourceId);
+    onReorderLanes(next);
+  }
+
+  function handleLaneDragEnd() {
+    setDragLaneId(null);
+    setDragOverLaneId(null);
   }
 
   function showTooltip(e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) {
@@ -721,55 +765,115 @@ export function PoapRenderer({
   // planPackedLanes/teamPackedLanes) so the two lane groups stay pixel- and
   // behavior-identical apart from the plan lane's own accent class.
   function renderLaneLabel({ lane, rows }: (typeof packedLanes)[number]) {
-    const isCollapsed = rows === null;
-    const height = laneRowHeight(isCollapsed ? 1 : rows.length);
+    const height = laneRowHeight(rows.length);
+    const isAnchor = Boolean(lane.isProjectPlan);
+    const isDraggable = !isAnchor && Boolean(onReorderLanes);
+    const isConfirmingDelete = confirmDeleteLaneId === lane.id;
+    const isDropTarget = dragOverLaneId === lane.id;
     return (
       <div
         key={lane.id}
-        className={[styles.labelCell, styles.laneLabel, lane.isProjectPlan ? styles.planLaneLabel : ""].join(" ").trim()}
+        className={[
+          styles.labelCell,
+          styles.laneLabel,
+          lane.isProjectPlan ? styles.planLaneLabel : "",
+          dragLaneId === lane.id ? styles.laneLabelDragging : "",
+          isDropTarget ? (dragOverPosition === "before" ? styles.laneLabelDropBefore : styles.laneLabelDropAfter) : "",
+        ]
+          .join(" ")
+          .trim()}
         style={{ height }}
+        draggable={isDraggable}
+        onDragStart={(e) => handleLaneDragStart(e, lane.id, isDraggable)}
+        onDragOver={onReorderLanes ? (e) => handleLaneDragOver(e, lane.id) : undefined}
+        onDrop={onReorderLanes ? (e) => handleLaneDrop(e, lane.id) : undefined}
+        onDragEnd={onReorderLanes ? handleLaneDragEnd : undefined}
       >
-        <button
-          type="button"
-          className={styles.chevronButton}
-          onClick={() => toggleLane(lane.id)}
-          aria-expanded={!isCollapsed}
-          aria-label={isCollapsed ? strings.expandLane : strings.collapseLane}
-        >
-          <span className={`${styles.chevron} ${isCollapsed ? styles.chevronCollapsed : ""}`} aria-hidden="true">
-            <IconChevronDown />
-          </span>
-        </button>
+        {onReorderLanes &&
+          (isDraggable ? (
+            <span className={styles.dragHandle} aria-hidden="true" title={strings.dragLaneAria(lane.name)}>
+              <IconGrip />
+            </span>
+          ) : (
+            <span className={styles.dragHandleSpacer} aria-hidden="true" />
+          ))}
+        {onAddLaneBelow && (
+          <button
+            type="button"
+            className={styles.leadingButton}
+            onClick={() => onAddLaneBelow(lane.id)}
+            aria-label={strings.addLaneBelowAria}
+            title={strings.addLaneBelowAria}
+          >
+            <IconPlus />
+          </button>
+        )}
         <button type="button" className={styles.laneNameButton} onClick={() => onLaneClick?.(lane.id)}>
           <span className={styles.laneLabelText}>{lane.name}</span>
         </button>
-        {onLaneGanttClick && (
-          <button
-            type="button"
-            className={styles.ganttButton}
-            onClick={() => onLaneGanttClick(lane.id)}
-            aria-label={strings.viewGanttAria}
-            title={strings.viewGanttAria}
-          >
-            <IconGantt />
-          </button>
+        {isConfirmingDelete ? (
+          <span className={styles.deleteConfirmGroup} data-delete-confirm={lane.id}>
+            <span className={styles.confirmDeleteLabel}>{strings.confirmDeleteLabel}</span>
+            <button
+              type="button"
+              className={styles.confirmCancelButton}
+              onClick={() => setConfirmDeleteLaneId(null)}
+              aria-label={strings.cancelDeleteAria}
+              title={strings.cancelDeleteAria}
+            >
+              <IconClose />
+            </button>
+            <button
+              type="button"
+              className={styles.confirmDeleteButton}
+              onClick={() => {
+                onDeleteLane?.(lane.id);
+                setConfirmDeleteLaneId(null);
+              }}
+              aria-label={strings.confirmDeleteAria(lane.name)}
+              title={strings.confirmDeleteAria(lane.name)}
+            >
+              <IconCheck />
+            </button>
+          </span>
+        ) : (
+          <>
+            {onLaneGanttClick && (
+              <button
+                type="button"
+                className={styles.ganttButton}
+                onClick={() => onLaneGanttClick(lane.id)}
+                aria-label={strings.viewGanttAria}
+                title={strings.viewGanttAria}
+              >
+                <IconGantt />
+              </button>
+            )}
+            {onDeleteLane && !isAnchor && (
+              <button
+                type="button"
+                className={styles.deleteLaneButton}
+                onClick={() => setConfirmDeleteLaneId(lane.id)}
+                aria-label={strings.deleteLaneAria(lane.name)}
+                title={strings.deleteLaneAria(lane.name)}
+              >
+                <IconTrash />
+              </button>
+            )}
+          </>
         )}
       </div>
     );
   }
 
   function renderLaneTrack({ lane, rows }: (typeof packedLanes)[number]) {
-    const trackClass = [styles.laneTrack, lane.isProjectPlan ? styles.planLaneTrack : ""].join(" ").trim();
-    if (rows === null) {
-      const agg = aggregateLane(lane);
-      return (
-        <div key={lane.id} className={trackClass} style={{ height: laneRowHeight(1) }}>
-          <div className={styles.laneRow}>
-            <AggregateBar agg={agg} laneName={lane.name} scale={scale} onHover={showTooltip} onLeave={() => setTooltip(null)} strings={strings} />
-          </div>
-        </div>
-      );
-    }
+    const trackClass = [
+      styles.laneTrack,
+      lane.isProjectPlan ? styles.planLaneTrack : "",
+      dragLaneId === lane.id ? styles.laneTrackDragging : "",
+    ]
+      .join(" ")
+      .trim();
     const creatable = laneIsCreatable(lane.id);
     return (
       <div
@@ -777,6 +881,8 @@ export function PoapRenderer({
         className={`${trackClass} ${creatable ? styles.laneTrackCreatable : ""}`.trim()}
         style={{ height: laneRowHeight(rows.length) }}
         onMouseDown={creatable ? (e) => startDragCreate(e, lane.id) : undefined}
+        onMouseMove={creatable ? (e) => handleLaneHover(e, lane.id) : undefined}
+        onMouseLeave={creatable ? () => setHoverCell(null) : undefined}
       >
         {rows.map((row, r) => (
           <div key={r} className={styles.laneRow}>
@@ -794,6 +900,12 @@ export function PoapRenderer({
             ))}
           </div>
         ))}
+        {hoverCell && hoverCell.laneId === lane.id && !dragCreate && (
+          <div
+            className={styles.hoverCellHighlight}
+            style={{ left: pct(hoverCell.start, scale), width: pctSpan(hoverCell.start, hoverCell.end, scale) }}
+          />
+        )}
         {dragCreate &&
           dragCreate.laneId === lane.id &&
           (() => {
@@ -866,18 +978,21 @@ export function PoapRenderer({
             className={`${styles.labelCell} ${styles.gatesLabelCell}`}
             style={{ height: gateRowHeight }}
           >
-            {/* Same left indent as a lane row's chevron+gap, and the same
-                laneLabelText styling, so "Stage gates" reads as one more
-                row in the same list rather than a visually distinct
-                heading. */}
+            {/* Same left indent as a lane row's own leading elements (drag
+                handle + add-below button, whichever the caller actually
+                renders) and the same laneLabelText styling, so "Stage
+                gates" reads as one more row in the same list rather than a
+                visually distinct heading. */}
             {onGatesLabelClick ? (
               <button type="button" className={styles.gatesLabelButton} onClick={onGatesLabelClick}>
-                <span className={styles.gatesLabelSpacer} aria-hidden="true" />
+                {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
+                {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
                 <span className={styles.laneLabelText}>{strings.stageGates}</span>
               </button>
             ) : (
               <>
-                <span className={styles.gatesLabelSpacer} aria-hidden="true" />
+                {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
+                {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
                 <span className={styles.laneLabelText}>{strings.stageGates}</span>
               </>
             )}
@@ -890,12 +1005,7 @@ export function PoapRenderer({
           className={styles.timelineScroll}
           onScroll={(e) => syncScroll(e.currentTarget, labelsColRef.current)}
         >
-          <div
-            className={styles.timelineInner}
-            style={{ minWidth: timelineMinWidth }}
-            onMouseMove={onCreatePhase ? handleTimelineHover : undefined}
-            onMouseLeave={onCreatePhase ? () => setHoverColumn(null) : undefined}
-          >
+          <div className={styles.timelineInner} style={{ minWidth: timelineMinWidth }}>
             <div className={styles.bandsOverlay} aria-hidden="true">
               {bands.map((band) => (
                 <div
@@ -916,16 +1026,6 @@ export function PoapRenderer({
                   style={{ left: pct(range.start, scale), width: pctSpan(range.start, range.end, scale) }}
                 />
               ))}
-              {/* Animated hover highlight — glides between snapped units
-                  (day/week/month, per zoom) as the mouse moves, not tied to
-                  any one lane, so it reads as "this is what dragging here
-                  would create" before the user even starts dragging. */}
-              {hoverColumn && !dragCreate && (
-                <div
-                  className={styles.hoverColumnHighlight}
-                  style={{ left: pct(hoverColumn.start, scale), width: pctSpan(hoverColumn.start, hoverColumn.end, scale) }}
-                />
-              )}
               {/* Month lines only cross the year row at an actual year
                   change (top: BADGE_STRIP_HEIGHT, i.e. right at the ruler's
                   own top) — everywhere else they start below it, at the
@@ -1155,43 +1255,6 @@ function Bar({
     >
       {showText && <span className={styles.barLabel}>{phase.title}</span>}
     </button>
-  );
-}
-
-function AggregateBar({
-  agg,
-  laneName,
-  scale,
-  onHover,
-  onLeave,
-  strings,
-}: {
-  agg: LaneAggregate;
-  laneName: string;
-  scale: DayScale;
-  onHover: (e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) => void;
-  onLeave: () => void;
-  strings: (typeof RENDERER_STRINGS)[Locale];
-}) {
-  return (
-    <div
-      className={`${styles.bar} ${STATUS_CLASS[agg.status]}`}
-      style={{ left: pct(agg.start, scale), width: pctSpan(agg.start, agg.end, scale), cursor: "default" }}
-      onMouseMove={(e) =>
-        onHover(e, {
-          title: `${laneName} — ${strings.summarySuffix}`,
-          start: agg.start,
-          end: agg.end,
-          owners: agg.owners,
-          status: agg.status,
-        })
-      }
-      onMouseLeave={onLeave}
-    >
-      <span className={styles.barLabel}>
-        {strings.summaryLabel} — {agg.phaseCount} {strings.phaseOther}
-      </span>
-    </div>
   );
 }
 

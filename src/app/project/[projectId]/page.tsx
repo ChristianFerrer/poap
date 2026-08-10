@@ -114,7 +114,9 @@ function ProjectView({ project }: { project: Project }) {
     setExplorer,
     getActivities,
     addLane,
+    addLaneBelow,
     renameLane,
+    reorderLanes,
     updatePhase,
     addPhase,
     deleteLane,
@@ -716,6 +718,15 @@ function ProjectView({ project }: { project: Project }) {
               onLaneGanttClick={handleLaneGanttClick}
               onCreatePhase={handleCreatePhase}
               isLaneCreatable={isLaneCreatable}
+              // Delete/reorder/add-below only make sense against real,
+              // persisted lanes — the top-level canvas (!drill). Drilled
+              // into an Equipo/Plan/Fase, canvasLanes is a synthetic view
+              // (Planes or Fases standing in as "lanes"), so these three
+              // stay unset there and the buttons they'd render just don't
+              // show up (see renderLaneLabel's own `{onX && (...)}` gates).
+              onDeleteLane={!drill ? deleteLane : undefined}
+              onAddLaneBelow={!drill ? addLaneBelow : undefined}
+              onReorderLanes={!drill ? reorderLanes : undefined}
               onGatesLabelClick={openGatesPanel}
               locale={locale}
               showWeekends={settings.showWeekends}

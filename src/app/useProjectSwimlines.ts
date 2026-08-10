@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Phase } from "@/components/poap-renderer/types";
+import type { Lane, Phase } from "@/components/poap-renderer/types";
 import type { Project } from "@/lib/portfolio";
 import { activitiesFor, type ActivitySeed } from "./mock-data";
 import { useProjects } from "./ProjectsProvider";
@@ -35,6 +35,36 @@ export function useProjectSwimlines(project: Project, initialView: ExplorerView 
 
   function renameLane(laneId: string, name: string) {
     setProjectLanes(project.id, (prev) => prev.map((lane) => (lane.id === laneId ? { ...lane, name } : lane)));
+  }
+
+  // The canvas's own "+" button (replacing the old collapse chevron, see
+  // PoapRenderer) — inserts a fresh, still-unnamed lane right after
+  // `afterLaneId` among the *team* lanes, whether that's the isProjectPlan
+  // anchor lane itself (the new lane becomes the first team lane) or a
+  // regular one. Every team lane's sortOrder gets recomputed from its new
+  // position rather than trying to slot a fractional value in between —
+  // same "just renumber everything" approach reorderLanes below uses.
+  function addLaneBelow(afterLaneId: string) {
+    setProjectLanes(project.id, (prev) => {
+      const planLane = prev.find((l) => l.isProjectPlan);
+      const teamLanes = prev.filter((l) => !l.isProjectPlan);
+      const newLane: Lane = { id: crypto.randomUUID(), name: t.explorer.newLaneName, sortOrder: 0, phases: [] };
+      const insertAt = afterLaneId === planLane?.id ? 0 : teamLanes.findIndex((l) => l.id === afterLaneId) + 1;
+      const nextTeamLanes = [...teamLanes];
+      nextTeamLanes.splice(insertAt, 0, newLane);
+      return [...(planLane ? [planLane] : []), ...nextTeamLanes.map((l, i) => ({ ...l, sortOrder: i }))];
+    });
+  }
+
+  // Drag-and-drop reordering (see PoapRenderer's onReorderLanes) — only
+  // ever touches team lanes; the isProjectPlan anchor lane isn't
+  // draggable, so it's simply absent from `orderedLaneIds` and its own
+  // sortOrder is left exactly as it was.
+  function reorderLanes(orderedLaneIds: string[]) {
+    setProjectLanes(project.id, (prev) => {
+      const orderIndex = new Map(orderedLaneIds.map((id, i) => [id, i]));
+      return prev.map((lane) => (orderIndex.has(lane.id) ? { ...lane, sortOrder: orderIndex.get(lane.id)! } : lane));
+    });
   }
 
   function updatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category" | "planId">>) {
@@ -137,7 +167,9 @@ export function useProjectSwimlines(project: Project, initialView: ExplorerView 
     setExplorer,
     getActivities,
     addLane,
+    addLaneBelow,
     renameLane,
+    reorderLanes,
     updatePhase,
     addPhase,
     deleteLane,

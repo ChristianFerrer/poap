@@ -298,10 +298,11 @@
 .gatesLabelCell {
   gap: 2px;
 }
-/* Matches .chevronButton's width so "Stage gates" starts at the exact same
-   x-position as a lane name (which sits after its own chevron+gap) —
-   without this the row reads as indented differently from every other
-   swimlane label. */
+/* Matches .leadingButton's width so "Stage gates" starts at the exact same
+   x-position as a lane name (which sits after its own leading button +
+   gap, and the drag-handle slot before that when onReorderLanes is on —
+   see the .tsx) — without this the row reads as indented differently from
+   every other swimlane label. */
 .gatesLabelSpacer {
   flex: 0 0 auto;
   width: 18px;
@@ -544,8 +545,9 @@
   border-left: 1.5px solid var(--color-cyan);
 }
 
-/* Two independent buttons, not one — collapsing a lane and opening its
-   management view are different actions and shouldn't fire together. */
+/* One row, several independent controls — drag handle, add-below,
+   name, and (Gantt shortcut | delete-confirm) never fire together since
+   each is its own element. */
 .laneLabel {
   align-items: center;
   gap: 2px;
@@ -562,7 +564,49 @@
 .planLaneTrack {
   background: color-mix(in srgb, var(--color-lime) 5%, transparent);
 }
-.chevronButton {
+/* Dragged row (label side) and its matching track row both dim in place —
+   the drop itself is decided by whichever *other* row's onDrop fires (see
+   .laneLabelDropBefore/After below), this just marks "this is the one
+   being moved". */
+.laneLabelDragging,
+.laneTrackDragging {
+  opacity: 0.4;
+}
+/* Insertion cue on the row currently under a dragged lane — an inset
+   border on whichever edge (top/bottom) the drop would land, rather than
+   a separate placeholder element, so it never shifts the row heights
+   around while dragging. */
+.laneLabelDropBefore {
+  box-shadow: inset 0 2px 0 0 var(--color-iris);
+}
+.laneLabelDropAfter {
+  box-shadow: inset 0 -2px 0 0 var(--color-iris);
+}
+/* Purely a visual affordance — the actual `draggable` attribute lives on
+   the whole .laneLabel row (see the .tsx), not on this icon specifically.
+   A plain span, not a button, so a drag gesture starting here is never
+   mistaken for a click on one of the row's real buttons. */
+.dragHandle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 100%;
+  color: var(--color-fog);
+  cursor: grab;
+}
+/* Reserves the same width on a non-draggable (anchor) row so every lane's
+   name still starts at the same x-position, same idea as
+   .gatesLabelSpacer below. */
+.dragHandleSpacer {
+  flex: 0 0 auto;
+  width: 14px;
+}
+/* Was the old collapse/expand chevron's own slot — now the "add a new
+   swimline right below this one" button, same width/position so
+   .gatesLabelSpacer still lines the Stage-gates row up with every lane. */
+.leadingButton {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -575,14 +619,14 @@
   cursor: pointer;
   padding: 0;
 }
-.chevronButton:hover {
+.leadingButton:hover {
   background: var(--color-surface2);
 }
 /* 18px is fine for a mouse but under the touch-target floor on a phone —
    .gatesLabelSpacer must stay in lockstep (see its own comment) so the
    "Stage gates" row's label keeps lining up with every other lane name. */
 @media (max-width: 640px) {
-  .chevronButton,
+  .leadingButton,
   .gatesLabelSpacer {
     width: 24px;
   }
@@ -611,14 +655,36 @@
   composes: iconBtn iconBtnSm iconBtnGhost from "../../app/buttons.module.css";
   flex: 0 0 auto;
 }
-.chevron {
+/* Never rendered on the isProjectPlan anchor lane (see the .tsx) — deleting
+   the project's own plan doesn't make sense the way deleting a team lane
+   does. Always the destructive color, same as ExplorerPanel's own
+   delete-lane button, not just on hover — a stray icon this consequential
+   should read as "dangerous" at rest, not only once you're already over it. */
+.deleteLaneButton {
+  composes: iconBtn iconBtnSm iconBtnDestructive from "../../app/buttons.module.css";
   flex: 0 0 auto;
-  display: inline-flex;
-  color: var(--color-fog);
-  transition: transform 0.15s ease;
 }
-.chevronCollapsed {
-  transform: rotate(-90deg);
+/* Replaces the Gantt/delete buttons once a delete is armed (see
+   confirmDeleteLaneId in the .tsx) — cancel reads as a plain neutral
+   action, confirm keeps the same destructive color the trash icon it
+   replaced had, so the "this is still the dangerous one" cue doesn't
+   disappear just because the icon changed to a checkmark. */
+.deleteConfirmGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.confirmDeleteLabel {
+  font-size: var(--text-3xs);
+  color: var(--color-fog);
+  white-space: nowrap;
+}
+.confirmCancelButton {
+  composes: iconBtn iconBtnSm iconBtnGhost from "../../app/buttons.module.css";
+}
+.confirmDeleteButton {
+  composes: iconBtn iconBtnSm iconBtnDestructive from "../../app/buttons.module.css";
 }
 .laneLabelText {
   overflow: hidden;
@@ -645,11 +711,12 @@
   cursor: crosshair;
 }
 
-/* Passive hover cue — glides between cells as the mouse moves (see
-   hoverCellRange), full lane-stack height, always behind bars/gates since
-   it lives in bandsOverlay. The eased left/width transition is what reads
-   as "gliding" instead of jumping between cells. */
-.hoverColumnHighlight {
+/* Passive hover cue — glides between cells as the mouse moves within one
+   lane's own track (see hoverCellRange/handleLaneHover), spanning just
+   that lane's height since it now lives inside .laneTrack (position:
+   relative) instead of a canvas-wide overlay. The eased left/width
+   transition is what reads as "gliding" instead of jumping between cells. */
+.hoverCellHighlight {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -660,7 +727,7 @@
   transition: left 0.1s ease-out, width 0.1s ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
-  .hoverColumnHighlight {
+  .hoverCellHighlight {
     transition: none;
   }
 }

@@ -14,10 +14,10 @@ import {
   ArrowUpDown,
   ChartNoAxesGantt,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Diamond,
+  GripVertical,
   Home,
   Minus,
   Plus,
@@ -46,11 +46,11 @@ export const IconMinus = icon(Minus, BUTTON_SIZE);
 export const IconUpload = icon(Upload, BUTTON_SIZE);
 export const IconChevronRight = icon(ChevronRight, BUTTON_SIZE);
 export const IconChevronLeft = icon(ChevronLeft, BUTTON_SIZE);
-export const IconChevronDown = icon(ChevronDown, BUTTON_SIZE);
 export const IconCheck = icon(Check, BUTTON_SIZE);
 export const IconSearch = icon(Search, BUTTON_SIZE);
 export const IconSort = icon(ArrowUpDown, BUTTON_SIZE);
 export const IconGantt = icon(ChartNoAxesGantt, BUTTON_SIZE);
+export const IconGrip = icon(GripVertical, BUTTON_SIZE);
 
 export const IconHome = icon(Home, NAV_SIZE);
 export const IconGateDiamond = icon(Diamond, NAV_SIZE);
