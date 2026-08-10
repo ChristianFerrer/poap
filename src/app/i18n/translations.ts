@@ -189,11 +189,17 @@ const es = {
     todaySection: "Hoy",
     todayToggleLabel: "Mostrar la línea de “Hoy”",
     todayToggleHint: "Muestra la línea y la etiqueta del día actual sobre el calendario.",
+    calendarRangeSection: "Rango del calendario",
+    calendarRangeHint: "Mes de inicio y duración del calendario compartido por todos los proyectos del programa — hasta 5 años (60 meses).",
+    calendarRangeYears: (months: number) => {
+      const years = Math.round((months / 12) * 10) / 10;
+      return `≈ ${years} ${years === 1 ? "año" : "años"}`;
+    },
     programSection: "Programa",
-    programHint: "Nombre y calendario compartido por todos los proyectos del programa.",
+    programHint: "Nombre del programa, compartido por todos sus proyectos.",
     programNameAria: "Nombre del programa",
-    programStartAria: "Mes de inicio del programa",
-    programMonthsAria: "Duración en meses",
+    programStartAria: "Mes de inicio del calendario",
+    programMonthsAria: "Duración en meses (máx. 60)",
     stagesSection: "Fases de proyecto",
     stagesHint: "La lista de etapas que ofrece el selector de fase y el formulario de nuevo proyecto. Renombrar una etapa actualiza todo lo que ya la usa.",
     stageNameAria: "Nombre de la etapa",
@@ -440,11 +446,17 @@ const en: Translations = {
     todaySection: "Today",
     todayToggleLabel: "Show the “Today” line",
     todayToggleHint: "Shows the current-day line and badge over the calendar.",
+    calendarRangeSection: "Calendar range",
+    calendarRangeHint: "Start month and duration of the calendar every project in the program renders against — up to 5 years (60 months).",
+    calendarRangeYears: (months: number) => {
+      const years = Math.round((months / 12) * 10) / 10;
+      return `≈ ${years} ${years === 1 ? "year" : "years"}`;
+    },
     programSection: "Program",
-    programHint: "The name and shared timeline every project in the program renders against.",
+    programHint: "The program's own name, shared by every project in it.",
     programNameAria: "Program name",
-    programStartAria: "Program start month",
-    programMonthsAria: "Duration in months",
+    programStartAria: "Calendar start month",
+    programMonthsAria: "Duration in months (max 60)",
     stagesSection: "Project stages",
     stagesHint: "The list the phase-category picker and the new-project form offer. Renaming a stage updates everywhere it's already used.",
     stageNameAria: "Stage name",

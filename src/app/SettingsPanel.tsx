@@ -10,6 +10,13 @@ import { SwitchToggle } from "./SwitchToggle";
 import styles from "./SettingsPanel.module.css";
 import explorerStyles from "./ExplorerPanel.module.css";
 
+// The calendar's own duration cap — every renderer loop (month/day columns,
+// zoom-level scaling) already handles this fine structurally, but nothing
+// stops someone from typing an enormous number of months by hand. Keeping
+// the timeline to a bounded, human-scale range (five years) is the actual
+// requirement, not a rendering limitation.
+const MAX_CALENDAR_MONTHS = 60;
+
 /**
  * App-level display preferences plus the two pieces of "app-wide"
  * management that don't belong to any one project — the stage lifecycle
@@ -139,6 +146,33 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
               hint={t.settings.todayToggleHint}
             />
           </div>
+
+          <div className={styles.group}>
+            <p className={styles.sectionTitle}>{t.settings.calendarRangeSection}</p>
+            <p className={styles.optionHint}>{t.settings.calendarRangeHint}</p>
+            <div className={explorerStyles.addRow}>
+              <input
+                type="month"
+                className={explorerStyles.statusSelect}
+                value={program.startMonth}
+                onChange={(e) => e.target.value && onUpdateProgram({ startMonth: e.target.value })}
+                aria-label={t.settings.programStartAria}
+              />
+              <input
+                type="number"
+                min={1}
+                max={MAX_CALENDAR_MONTHS}
+                className={explorerStyles.statusSelect}
+                value={program.months}
+                onChange={(e) => {
+                  const n = Math.round(Number(e.target.value));
+                  if (Number.isFinite(n) && n >= 1) onUpdateProgram({ months: Math.min(n, MAX_CALENDAR_MONTHS) });
+                }}
+                aria-label={t.settings.programMonthsAria}
+              />
+            </div>
+            <p className={styles.optionHint}>{t.settings.calendarRangeYears(program.months)}</p>
+          </div>
         </>
       )}
 
@@ -153,25 +187,6 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
                 value={program.name}
                 onChange={(e) => onUpdateProgram({ name: e.target.value })}
                 aria-label={t.settings.programNameAria}
-              />
-              <input
-                type="month"
-                className={explorerStyles.statusSelect}
-                value={program.startMonth}
-                onChange={(e) => e.target.value && onUpdateProgram({ startMonth: e.target.value })}
-                aria-label={t.settings.programStartAria}
-              />
-              <input
-                type="number"
-                min={1}
-                max={60}
-                className={explorerStyles.statusSelect}
-                value={program.months}
-                onChange={(e) => {
-                  const n = Number(e.target.value);
-                  if (n >= 1) onUpdateProgram({ months: n });
-                }}
-                aria-label={t.settings.programMonthsAria}
               />
             </div>
           </div>
