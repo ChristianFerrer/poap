@@ -62,7 +62,7 @@
   align-items: center;
   gap: var(--space-sm);
   border: 1px dashed var(--color-line2);
-  border-radius: 0;
+  border-radius: var(--radius-2xl);
   /* Was 9px 14px — its own one-off "button-ish" padding, next to
      buttons.module.css's real 8px/16px standard for the exact same role. */
   padding: var(--space-sm) var(--space-lg);

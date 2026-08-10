@@ -76,7 +76,7 @@
   font-weight: 600;
   padding: 7px 12px;
   min-height: 24px;
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-family: inherit;
 }
@@ -327,7 +327,7 @@
   gap: 2px;
   background: none;
   border: none;
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -626,7 +626,7 @@
   height: 100%;
   background: none;
   border: none;
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   padding: 0;
 }
@@ -650,7 +650,7 @@
   height: 100%;
   background: none;
   border: none;
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-family: inherit;
   text-align: left;
