@@ -149,18 +149,19 @@ function yearSegments(startMonth: string, months: number): YearSegment[] {
 interface SubCell {
   start: number;
   end: number;
-  label: number;
+  label: number | string;
   /** Date#getUTCDay() of the cell's start day (0=Sun…6=Sat) — used to show
    * the weekday initial above the day number at the Día zoom, and to know
-   * which sub-row cells fall on a weekend. */
+   * which sub-row cells fall on a weekend. Unused (0) for quarter cells. */
   dow: number;
 }
 
 /**
- * Cells for the ruler's third row — one per week (a 7-day bucket from the
- * 1st of startMonth, not calendar-aligned to Mondays) or one per calendar
- * day, matching the grid Excel drew: divisions at each cell's start/end,
- * the label centered inside the cell rather than pinned to an edge.
+ * Cells for the ruler's third row — one per calendar quarter, week (a
+ * 7-day bucket from the 1st of startMonth, not calendar-aligned to
+ * Mondays), or calendar day, matching the grid Excel drew: divisions at
+ * each cell's start/end, the label centered inside the cell rather than
+ * pinned to an edge.
  */
 function subCells(startMonth: string, months: number, granularity: SubRowGranularity): SubCell[] {
   if (granularity === "none") return [];
@@ -169,8 +170,23 @@ function subCells(startMonth: string, months: number, granularity: SubRowGranula
   const m = parts[1] ?? 1;
   const rangeStart = new Date(Date.UTC(y, m - 1, 1));
   const rangeEnd = new Date(Date.UTC(y, m - 1 + months, 1));
-  const stepDays = granularity === "day" ? 1 : 7;
 
+  if (granularity === "quarter") {
+    // Calendar-aligned (Jan-Mar = Q1, ...), not aligned to startMonth — a
+    // plan starting mid-quarter gets a shorter first cell, same idea as
+    // .yearRow's own segments not all being 12 months wide.
+    const cells: SubCell[] = [];
+    for (let d = rangeStart; d < rangeEnd; ) {
+      const quarterIndex = Math.floor(d.getUTCMonth() / 3);
+      const boundary = new Date(Date.UTC(d.getUTCFullYear(), (quarterIndex + 1) * 3, 1));
+      const next = boundary < rangeEnd ? boundary : rangeEnd;
+      cells.push({ start: toAxis(d, startMonth), end: toAxis(next, startMonth), label: `Q${quarterIndex + 1}`, dow: 0 });
+      d = next;
+    }
+    return cells;
+  }
+
+  const stepDays = granularity === "day" ? 1 : 7;
   const cells: SubCell[] = [];
   for (
     let d = rangeStart;
@@ -213,7 +229,7 @@ function weekendRanges(startMonth: string, months: number): DayRange[] {
   return ranges;
 }
 
-type ColumnUnit = "day" | "week" | "month";
+type ColumnUnit = "day" | "week" | "month" | "quarter";
 
 interface ColumnRange {
   start: number;
@@ -245,6 +261,13 @@ function columnRange(rawPosition: number, unit: ColumnUnit, startMonth: string):
     const bucketEnd = new Date(bucketStart.getTime() + 7 * 86_400_000);
     return { start: toAxis(bucketStart, startMonth), end: toAxis(bucketEnd, startMonth) };
   }
+  if (unit === "quarter") {
+    const date = fromAxis(rawPosition, startMonth);
+    const quarterIndex = Math.floor(date.getUTCMonth() / 3);
+    const qStart = new Date(Date.UTC(date.getUTCFullYear(), quarterIndex * 3, 1));
+    const qEnd = new Date(Date.UTC(date.getUTCFullYear(), (quarterIndex + 1) * 3, 1));
+    return { start: toAxis(qStart, startMonth), end: toAxis(qEnd, startMonth) };
+  }
   // month
   const start = Math.floor(rawPosition);
   return { start, end: start + 1 };
@@ -263,6 +286,9 @@ function formatColumnLabel(
   }
   if (unit === "week") {
     return `${weekOfPrefix} ${start.getUTCDate()} ${monthAbbr[start.getUTCMonth()]}`;
+  }
+  if (unit === "quarter") {
+    return `Q${Math.floor(start.getUTCMonth() / 3) + 1} ${start.getUTCFullYear()}`;
   }
   return `${monthAbbr[start.getUTCMonth()]!.charAt(0).toUpperCase()}${monthAbbr[start.getUTCMonth()]!.slice(1)} ${start.getUTCFullYear()}`;
 }
@@ -579,7 +605,8 @@ export function PoapRenderer({
   }
 
   function nudgeZoomScale(delta: number) {
-    setZoomScale((prev) => Math.round(Math.min(ZOOM_SCALE_MAX, Math.max(ZOOM_SCALE_MIN, prev + delta)) * 100) / 100);
+    const min = zoom.minScale ?? ZOOM_SCALE_MIN;
+    setZoomScale((prev) => Math.round(Math.min(ZOOM_SCALE_MAX, Math.max(min, prev + delta)) * 100) / 100);
   }
 
   // Focus Cell: which unit a click resolves to depends on which ruler row
@@ -933,7 +960,7 @@ export function PoapRenderer({
               type="button"
               className={styles.scaleButton}
               onClick={() => nudgeZoomScale(-ZOOM_SCALE_STEP)}
-              disabled={zoomScale <= ZOOM_SCALE_MIN}
+              disabled={zoomScale <= (zoom.minScale ?? ZOOM_SCALE_MIN)}
               aria-label={strings.zoomOut}
             >
               <IconMinus />

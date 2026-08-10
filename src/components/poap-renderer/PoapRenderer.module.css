@@ -232,6 +232,11 @@
   top: 0;
   z-index: 5;
   pointer-events: none;
+  /* Was transparent — fine at rest, but scrolling the track vertically let
+     bars/gate content show through underneath the "Hoy"/selected-column
+     badges. Matches .labelHeaderCell's own opaque background on the label
+     side of the same row, so the whole strip reads as one solid band. */
+  background: var(--color-surface);
 }
 
 /* Small on purpose — just legible, not a shout. A soft shadow gives it

@@ -1,7 +1,8 @@
 /** Wide enough for real Spanish team names ("Cambio y Formación") without
- * truncating — full lane names must stay legible, so this isn't the old
- * 88px reference-width value anymore. */
-export const LABEL_COL_WIDTH = 176;
+ * truncating even with every row control present (drag handle, "+", name,
+ * Gantt/delete stack) — 176 still clipped ordinary names once those
+ * controls ate into it. */
+export const LABEL_COL_WIDTH = 224;
 export const BAR_HEIGHT = 17;
 export const ROW_GAP = 2;
 // 9, not 5 — the label row now stacks the Gantt/delete buttons vertically
@@ -27,7 +28,7 @@ export const GATES_ROW_BASE_HEIGHT = 22;
  * the calendar's internal scroll alongside it. */
 export const BADGE_STRIP_HEIGHT = 20;
 
-export type SubRowGranularity = "none" | "week" | "day";
+export type SubRowGranularity = "none" | "quarter" | "week" | "day";
 
 export interface ZoomLevel {
   key: "anio" | "mes" | "semana" | "dia";
@@ -38,18 +39,27 @@ export interface ZoomLevel {
    * compressing further. */
   pxPerMonth: number;
   /** What the third ruler row (and Focus Cell, when that row is clicked)
-   * divides the timeline into. "none" at Año — there's nothing finer than
-   * a month drawn at that zoom. */
+   * divides the timeline into. */
   subRowGranularity: SubRowGranularity;
+  /** Floor for the continuous zoom stepper at this level — overrides
+   * ZOOM_SCALE_MIN when set. Semana's own 430px/month base is dense enough
+   * that the shared 0.5 floor (215px/month) still couldn't compress it
+   * down to where Mes-level overviews live; every other level keeps the
+   * shared floor. */
+  minScale?: number;
 }
 
 // Display labels ("Año"/"Year", ...) live in src/lib/i18n's ZOOM_LABELS,
 // keyed by the same `key` values below — this array only carries the
 // locale-independent layout data.
 export const ZOOM_LEVELS: ZoomLevel[] = [
-  { key: "anio", pxPerMonth: 60, subRowGranularity: "none" },
-  { key: "mes", pxPerMonth: 170, subRowGranularity: "week" },
-  { key: "semana", pxPerMonth: 430, subRowGranularity: "week" },
+  // Año's third row divides each year into calendar quarters (Q1-Q4)
+  // instead of showing nothing finer than a month.
+  { key: "anio", pxPerMonth: 60, subRowGranularity: "quarter" },
+  // Mes shows only year/month — a week sub-row was redundant with Semana's
+  // own zoom level right next to it.
+  { key: "mes", pxPerMonth: 170, subRowGranularity: "none" },
+  { key: "semana", pxPerMonth: 430, subRowGranularity: "week", minScale: 0.2 },
   { key: "dia", pxPerMonth: 1000, subRowGranularity: "day" },
 ];
 
