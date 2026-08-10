@@ -306,9 +306,10 @@
 }
 .gatesLabelCell {
   gap: 2px;
+  background: var(--color-surface2);
 }
 .gatesLabelCell:hover {
-  background: color-mix(in srgb, var(--color-fog) 14%, transparent);
+  background: color-mix(in srgb, var(--color-surface2) 86%, var(--color-fog) 14%);
 }
 /* Matches .leadingButton's width so "Stage gates" starts at the exact same
    x-position as a lane name (which sits after its own leading button +
@@ -567,15 +568,17 @@
   gap: 2px;
   width: 100%;
   padding: 5px;
+  background: var(--color-surface2);
 }
 /* Whole-row hover cue — every part of the row (not just the name text)
-   signals "this is actionable" the instant the mouse enters it. 14% is
-   .hoverCellHighlight's own 10% fog tint bumped 40% more opaque, the
-   same tint family already used for hover feedback elsewhere on the
-   canvas, just stronger here since a whole row is a bigger click target
-   than a single day cell. */
+   darkens the instant the mouse enters it, signaling "this is
+   actionable". 14% fog mixed into the row's own resting surface2 is
+   .hoverCellHighlight's 10% tint bumped 40% more opaque, the same tint
+   family already used for hover feedback elsewhere on the canvas, just
+   stronger here since a whole row is a bigger click target than a
+   single day cell. */
 .laneLabel:hover {
-  background: color-mix(in srgb, var(--color-fog) 14%, transparent);
+  background: color-mix(in srgb, var(--color-surface2) 86%, var(--color-fog) 14%);
 }
 /* The one lane per project holding its high-level, cross-team plan (see
    Lane.isProjectPlan) — a soft brand-color wash instead of a plain label
@@ -617,6 +620,9 @@
   justify-content: center;
   width: 14px;
   height: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-dot);
   color: var(--color-fog);
   cursor: grab;
 }
@@ -631,9 +637,9 @@
    swimline right below this one" button, same width/position so
    .gatesLabelSpacer still lines the Stage-gates row up with every lane.
    Full row height (matches the track it sits beside, including a tall
-   wrapped-label row) and invisible at rest; lime + a surface-color icon
-   only on hover, same "quiet until you're pointing at it" treatment as
-   .ganttButton/.deleteLaneButton below. */
+   wrapped-label row) — a visible neutral chip at rest, same treatment as
+   .dragHandle/.ganttButton/.deleteLaneButton, that turns lime with a
+   white icon on hover. */
 .leadingButton {
   flex: 0 0 auto;
   display: inline-flex;
@@ -641,20 +647,22 @@
   justify-content: center;
   width: 18px;
   height: 100%;
-  background: none;
-  border: none;
-  /* Same radius as .ganttButton/.deleteLaneButton (radius-dot, not the
-     app's usual radius-lg) — at half the row's height those two would
-     round into a pill if they used radius-lg, so radius-dot is the one
-     value all three of a row's buttons can share and still all read as
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  /* Same radius as .dragHandle/.ganttButton/.deleteLaneButton (radius-dot,
+     not the app's usual radius-lg) — at half the row's height the latter
+     two would round into a pill if they used radius-lg, so radius-dot is
+     the one value all of a row's controls can share and still read as
      rectangles, not circles. */
   border-radius: var(--radius-dot);
+  color: var(--color-fog);
   cursor: pointer;
   padding: 0;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 .leadingButton:hover {
   background: var(--color-lime);
+  border-color: var(--color-lime);
   color: var(--color-surface);
 }
 /* 18px is fine for a mouse but under the touch-target floor on a phone —
@@ -700,10 +708,9 @@
    Program page) — only rendered when the caller passes onLaneGanttClick.
    Fills the top half of .laneRowActions (flex: 1 1 0 splits the column
    evenly with .deleteLaneButton below); the icon centers within that
-   half via the same flex centering .leadingButton uses. Invisible (no
-   border/fill) at rest so the row itself stays quiet — an accent color
-   only appears once you're actually pointing at the button, not as a
-   permanent fixture of every row. */
+   half via the same flex centering .leadingButton uses. Same neutral
+   chip at rest as .dragHandle/.leadingButton, turning solid blue with a
+   white icon on hover. */
 .ganttButton {
   composes: iconBtn from "../../app/buttons.module.css";
   flex: 1 1 0;
@@ -711,22 +718,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  /* Same radius as .leadingButton (radius-dot) — all three of a row's
-     buttons (+, Gantt, delete) share one shape. */
+  border: 1px solid var(--color-line);
+  /* Same radius as .dragHandle/.leadingButton (radius-dot) — every
+     control on a row (+, Gantt, delete) shares one shape. */
   border-radius: var(--radius-dot);
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-fog);
 }
 .ganttButton:hover {
   background: var(--color-iris);
+  border-color: var(--color-iris);
   color: var(--color-surface);
 }
 /* Never rendered on the isProjectPlan anchor lane (see the .tsx) — deleting
    the project's own plan doesn't make sense the way deleting a team lane
    does. Fills the bottom half of .laneRowActions, same reasoning as
-   .ganttButton above — the destructive color only shows up on hover now,
-   not as a standing warning on every row. */
+   .ganttButton above — solid red with a white icon only appears on
+   hover, not as a standing warning on every row. */
 .deleteLaneButton {
   composes: iconBtn from "../../app/buttons.module.css";
   flex: 1 1 0;
@@ -734,13 +742,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-dot);
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-fog);
 }
 .deleteLaneButton:hover {
   background: var(--color-rose);
+  border-color: var(--color-rose);
   color: var(--color-surface);
 }
 /* Replaces the Gantt/delete buttons once a delete is armed (see
