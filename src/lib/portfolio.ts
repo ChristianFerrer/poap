@@ -100,26 +100,37 @@ export function projectOverallStatus(project: Project): PhaseStatus {
  * tagged phase in that category across every team, so "UAT" on the
  * portfolio view always matches whatever the teams themselves entered as
  * their own UAT phases, with nobody maintaining a second copy by hand.
- * Untagged phases don't contribute to anything here; a project with no
- * tagged phases at all simply gets no summary bars rather than a
- * placeholder one. `categories` is the live, user-editable stage list
- * (Settings → Fases de proyecto) — it drives both which bars can appear
- * at all and the order/label they render with; a phase tagged with an id
- * no longer in that list (its stage got deleted) just stops contributing,
- * same as any other orphaned reference in this app.
+ * `categories` is the live, user-editable stage list (Settings → Fases de
+ * proyecto) — it drives both which bars can appear at all and the
+ * order/label they render with; a phase tagged with an id no longer in
+ * that list (its stage got deleted) just stops contributing, same as any
+ * other orphaned reference in this app.
+ *
+ * Untagged phases don't contribute to any *category* bar — but a project
+ * whose phases are ALL untagged (every phase straight from an Excel
+ * import starts this way; nothing assigns a stage automatically) still
+ * gets exactly one fallback bar spanning all of them, labeled
+ * `noCategoryLabel`, instead of being entirely invisible on the Program
+ * page while its own detail view shows real, dated work. A project with
+ * even one real category bar keeps the original behavior untouched —
+ * this only kicks in when there'd otherwise be nothing to show at all.
  */
-export function deriveProjectSummary(project: Project, categories: StageCategoryDef[]): Phase[] {
+export function deriveProjectSummary(project: Project, categories: StageCategoryDef[], noCategoryLabel: string): Phase[] {
   const byCategory = new Map<string, Phase[]>();
+  const uncategorized: Phase[] = [];
   for (const lane of project.lanes) {
     for (const phase of lane.phases) {
-      if (!phase.category) continue;
+      if (!phase.category) {
+        uncategorized.push(phase);
+        continue;
+      }
       const group = byCategory.get(phase.category) ?? [];
       group.push(phase);
       byCategory.set(phase.category, group);
     }
   }
 
-  return categories
+  const bars: Phase[] = categories
     .filter((c) => byCategory.has(c.id))
     .map((c) => {
       const phases = byCategory.get(c.id)!;
@@ -132,6 +143,18 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
         category: c.id,
       };
     });
+
+  if (bars.length === 0 && uncategorized.length > 0) {
+    bars.push({
+      id: `${project.id}-uncategorized`,
+      title: noCategoryLabel,
+      start: Math.min(...uncategorized.map((p) => p.start)),
+      end: Math.max(...uncategorized.map((p) => p.end)),
+      status: worstStatus(uncategorized),
+    });
+  }
+
+  return bars;
 }
 
 /**
@@ -262,13 +285,13 @@ export function findUnassignedPlanIssues(lanes: Lane[], plansByLane: Record<stri
   return issues;
 }
 
-export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[]): Lane[] {
+export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[], noCategoryLabel: string): Lane[] {
   return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((project) => ({
       id: project.id,
       name: project.name,
       sortOrder: project.sortOrder,
-      phases: deriveProjectSummary(project, categories),
+      phases: deriveProjectSummary(project, categories, noCategoryLabel),
     }));
 }

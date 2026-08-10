@@ -133,7 +133,10 @@ export default function ProgramPage() {
   const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
   const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
 
-  const lanes = useMemo(() => deriveProgramLanes(projects, stageCategories), [projects, stageCategories]);
+  const lanes = useMemo(
+    () => deriveProgramLanes(projects, stageCategories, t.explorer.categoryNone),
+    [projects, stageCategories, t.explorer.categoryNone],
+  );
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
 
   const anyPanelOpen = settingsOpen || importOpen || Boolean(ganttProject);
