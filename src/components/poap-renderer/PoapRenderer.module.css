@@ -558,11 +558,15 @@
 
 /* One row, several independent controls — drag handle, add-below,
    name, and (Gantt shortcut | delete-confirm) never fire together since
-   each is its own element. */
+   each is its own element. Its own 5px padding insets every one of
+   those controls from the row's outer edge (the label column's own
+   border-box sizing keeps the row's overall height, set inline from
+   laneRowHeight, unaffected — only the content area shrinks). */
 .laneLabel {
   align-items: center;
   gap: 2px;
   width: 100%;
+  padding: 5px;
 }
 /* The one lane per project holding its high-level, cross-team plan (see
    Lane.isProjectPlan) — a soft brand-color wash instead of a plain label
@@ -697,9 +701,11 @@
   align-items: center;
   justify-content: center;
   border: none;
-  /* Half the row's own height needs a much smaller radius than
-     .leadingButton's radius-lg to still read as a rectangle rather than
-     rounding all the way into a pill/circle. */
+  /* Same rounded-rectangle shape as .leadingButton, not the same exact
+     radius — at half the row's height, .leadingButton's own radius-lg
+     rounds these all the way into a pill/circle, which is exactly what
+     this shape is meant to avoid. A smaller radius keeps the corners
+     visibly rounded while the button still reads as a rectangle. */
   border-radius: var(--radius-dot);
   background: transparent;
   color: var(--color-fog);
@@ -721,7 +727,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--radius-dot);
+  border-radius: var(--radius-lg);
   background: transparent;
   color: var(--color-fog);
 }
