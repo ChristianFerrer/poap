@@ -100,7 +100,10 @@ function ProjectView({ project }: { project: Project }) {
     setProjectGates,
     plansByLane,
     addPlan,
+    addPlanBelow,
     renamePlan,
+    deletePlan,
+    reorderPlans,
     commentsByActivity,
     addComment,
     stageCategories,
@@ -384,6 +387,42 @@ function ProjectView({ project }: { project: Project }) {
     if (drill.level === "plan") return laneId === drill.planId && drill.planId !== UNASSIGNED_PLAN_ID;
     return false;
   }
+
+  // Canvas-wide delete/reorder/add-below dispatch — per CLAUDE.md's "same
+  // capability, every screen" rule, every drill level that has real
+  // non-anchor lane rows gets these, routed to whatever record that
+  // level's synthetic laneId actually stands for:
+  //  - top (!drill): real team Lanes
+  //  - equipo: real Plans (plus the synthetic "Sin plan asignado" bucket,
+  //    excluded via isLaneManageable — it isn't a Plan, so deleting or
+  //    reordering it wouldn't mean anything)
+  //  - plan: real Fases get delete only — a Phase has no sortOrder of its
+  //    own (position comes purely from start/end, see canvasLanes) and
+  //    needs real dates to exist at creation, so reorder/add-below have
+  //    no meaningful target; ExplorerPanel's own add-phase form (which
+  //    requires dates) is the only way to create one
+  //  - fase: no non-anchor rows exist at all (an Actividad is a bar on the
+  //    anchor's own track, not a lane), so nothing to wire
+  const canvasOnDeleteLane = !drill
+    ? deleteLane
+    : drill.level === "equipo"
+      ? (laneId: string) => {
+          if (laneId !== UNASSIGNED_PLAN_ID) deletePlan(laneId);
+        }
+      : drill.level === "plan"
+        ? (laneId: string) => deletePhase(drill.laneId, laneId)
+        : undefined;
+  const canvasOnAddLaneBelow = !drill
+    ? addLaneBelow
+    : drill.level === "equipo"
+      ? (afterLaneId: string) => addPlanBelow(drill.laneId, afterLaneId)
+      : undefined;
+  const canvasOnReorderLanes = !drill
+    ? reorderLanes
+    : drill.level === "equipo"
+      ? (orderedLaneIds: string[]) => reorderPlans(drill.laneId, orderedLaneIds.filter((id) => id !== UNASSIGNED_PLAN_ID))
+      : undefined;
+  const canvasIsLaneManageable = drill?.level === "equipo" ? (laneId: string) => laneId !== UNASSIGNED_PLAN_ID : undefined;
 
   function handleCreatePhase(laneId: string, start: number, end: number) {
     if (!isLaneCreatable(laneId)) return;
@@ -718,15 +757,10 @@ function ProjectView({ project }: { project: Project }) {
               onLaneGanttClick={handleLaneGanttClick}
               onCreatePhase={handleCreatePhase}
               isLaneCreatable={isLaneCreatable}
-              // Delete/reorder/add-below only make sense against real,
-              // persisted lanes — the top-level canvas (!drill). Drilled
-              // into an Equipo/Plan/Fase, canvasLanes is a synthetic view
-              // (Planes or Fases standing in as "lanes"), so these three
-              // stay unset there and the buttons they'd render just don't
-              // show up (see renderLaneLabel's own `{onX && (...)}` gates).
-              onDeleteLane={!drill ? deleteLane : undefined}
-              onAddLaneBelow={!drill ? addLaneBelow : undefined}
-              onReorderLanes={!drill ? reorderLanes : undefined}
+              onDeleteLane={canvasOnDeleteLane}
+              onAddLaneBelow={canvasOnAddLaneBelow}
+              onReorderLanes={canvasOnReorderLanes}
+              isLaneManageable={canvasIsLaneManageable}
               onGatesLabelClick={openGatesPanel}
               locale={locale}
               showWeekends={settings.showWeekends}

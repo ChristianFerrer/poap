@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Diamond,
+  Download,
   GripVertical,
   Home,
   Minus,
@@ -56,6 +57,9 @@ export const IconHome = icon(Home, NAV_SIZE);
 export const IconGateDiamond = icon(Diamond, NAV_SIZE);
 export const IconLanes = icon(Rows3, NAV_SIZE);
 export const IconSettings = icon(SettingsIcon, NAV_SIZE);
-export const IconUploadNav = icon(Upload, NAV_SIZE);
+// Points *into* the app (importing a plan in), not the "choose a file to
+// hand over" Upload glyph IconUpload uses elsewhere — same underlying
+// action, but this is the sidebar's own standing menu entry, not a
+// file-picker button, so the arrow direction needed to read as "in".
+export const IconImportNav = icon(Download, NAV_SIZE);
 export const IconAlertTriangle = icon(AlertTriangle, NAV_SIZE);
-export const IconAddNav = icon(Plus, NAV_SIZE);

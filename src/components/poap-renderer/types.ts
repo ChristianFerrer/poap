@@ -107,6 +107,14 @@ export interface PoapRendererProps {
    * calling this; it has no idea what deleting a lane cascades into
    * (phases, activities, ...) — that's the caller's own mutation. Omit to
    * leave lanes non-deletable from the canvas. */
+  /** Excludes specific non-anchor lanes from delete/drag without the
+   * renderer needing to know why — e.g. a synthetic "ungrouped" bucket
+   * lane that isn't a real, orderable record on the app side. Reorder's
+   * add-below button still renders (creating something *after* the bucket
+   * is meaningful); this only gates the two actions that assume the lane
+   * itself is a real, deletable/reorderable record. Omit to make every
+   * non-anchor lane manageable, same as before this prop existed. */
+  isLaneManageable?: (laneId: string) => boolean;
   onDeleteLane?: (laneId: string) => void;
   /** Creates a new lane immediately after `afterLaneId` — the button that
    * replaced the old collapse/expand chevron at the head of every lane's

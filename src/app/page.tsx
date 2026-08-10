@@ -6,7 +6,6 @@ import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import { deriveProgramLanes, findUnassignedPlanIssues, type Project, type StageCategoryDef } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
-import { AddProjectPanel } from "./AddProjectPanel";
 import { ExecutiveSummary } from "./ExecutiveSummary";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { ImportPanel, importedLanesToLanes } from "./ImportPanel";
@@ -48,8 +47,8 @@ function ProjectGanttPanel({
   // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
   // what the Gantt button next to a project name on the Program page is
   // for. Falls back to the lanes list for a project that doesn't have a
-  // plan lane yet (shouldn't happen for anything created via AddProjectPanel,
-  // but older/imported data may not have one).
+  // plan lane yet (shouldn't happen for anything created via the canvas's
+  // own "+" button, but older/imported data may not have one).
   const planLane = project.lanes.find((l) => l.isProjectPlan);
   const initialView: ExplorerView = planLane ? { level: "phases", laneId: planLane.id } : { level: "lanes" };
   const {
@@ -121,14 +120,15 @@ export default function ProgramPage() {
     projects,
     addProject,
     addProjects,
+    addProjectBelow,
     deleteProject,
+    reorderProjects,
     stageCategories,
     addStageCategory,
     renameStageCategory,
     deleteStageCategory,
   } = useProjects();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
   const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
@@ -136,11 +136,10 @@ export default function ProgramPage() {
   const lanes = useMemo(() => deriveProgramLanes(projects, stageCategories), [projects, stageCategories]);
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
 
-  const anyPanelOpen = settingsOpen || addProjectOpen || importOpen || Boolean(ganttProject);
+  const anyPanelOpen = settingsOpen || importOpen || Boolean(ganttProject);
 
   function closeAllPanels() {
     setSettingsOpen(false);
-    setAddProjectOpen(false);
     setImportOpen(false);
     setGanttProjectId(null);
     setDraftRange(null);
@@ -157,10 +156,12 @@ export default function ProgramPage() {
     sidePanel.scrollToPanel();
   }
 
-  function openAddProjectPanel() {
-    closeAllPanels();
-    setAddProjectOpen(true);
-    sidePanel.scrollToPanel();
+  // Only reachable from the empty-program state now — every other "add a
+  // project" affordance is the canvas's own "+" (see PoapRenderer's
+  // onAddLaneBelow, wired below as addProjectBelow), but a program with no
+  // projects yet has no row to click "+" on, so this is the one seed.
+  function createFirstProject() {
+    addProject({ name: t.addProject.defaultProjectName, lanes: [], gates: [] });
   }
 
   function openImportPanel() {
@@ -200,12 +201,6 @@ export default function ProgramPage() {
     router.push(`/project/${projectId}`);
   }
 
-  function createProject(input: { name: string; lanes: Parameters<typeof addProject>[0]["lanes"] }) {
-    const id = addProject({ name: input.name, lanes: input.lanes, gates: [] });
-    closeAllPanels();
-    router.push(`/project/${id}`);
-  }
-
   // A Program-page import is understood to be a whole portfolio, not one
   // project's own breakdown — every top-level lane the sheet parsed out
   // (e.g. one per business unit or option) becomes its own new project,
@@ -220,13 +215,7 @@ export default function ProgramPage() {
     addProjects(lanes.map((lane) => ({ name: lane.name, lanes: [{ ...lane, isProjectPlan: true }], gates: [] })));
   }
 
-  const sidebarActive: SidebarActive = settingsOpen
-    ? "settings"
-    : importOpen
-      ? "import"
-      : addProjectOpen
-        ? "addProject"
-        : "home";
+  const sidebarActive: SidebarActive = settingsOpen ? "settings" : importOpen ? "import" : "home";
 
   const panelContent = ganttProject ? (
     <ProjectGanttPanel
@@ -237,14 +226,6 @@ export default function ProgramPage() {
       onDraftRangeConsumed={() => setDraftRange(null)}
       panelRef={sidePanel.panelRef}
       onClose={sidePanel.closePanel}
-    />
-  ) : addProjectOpen ? (
-    <AddProjectPanel
-      ref={sidePanel.panelRef}
-      startMonth={program.startMonth}
-      stageCategories={stageCategories}
-      onClose={sidePanel.closePanel}
-      onCreate={createProject}
     />
   ) : importOpen ? (
     <ImportPanel
@@ -282,7 +263,6 @@ export default function ProgramPage() {
         active={sidebarActive}
         onHome={goHome}
         onImport={openImportPanel}
-        onAddProject={openAddProjectPanel}
         onSettings={openSettingsPanel}
         collapsed={settings.sidebarCollapsed}
         onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
@@ -310,7 +290,7 @@ export default function ProgramPage() {
                 <p className={styles.emptyProgramTitle}>{t.header.emptyProgramTitle}</p>
                 <p className={styles.emptyProgramBody}>{t.header.emptyProgramBody}</p>
                 <div className={styles.emptyProgramActions}>
-                  <button type="button" className={styles.importButton} onClick={openAddProjectPanel}>
+                  <button type="button" className={styles.importButton} onClick={createFirstProject}>
                     <IconPlus /> {t.header.addProjectButton}
                   </button>
                   <button type="button" className={styles.importButton} onClick={openImportPanel}>
@@ -326,6 +306,14 @@ export default function ProgramPage() {
                 onLaneClick={openProject}
                 onLaneGanttClick={openGanttPanel}
                 onCreatePhase={handleCreatePhase}
+                // Every project row is a "regular" swimline here (the
+                // Program page has no isProjectPlan anchor concept) — see
+                // CLAUDE.md's consistency principle: the same delete/
+                // reorder/add-below tooling the Project page's canvas gets
+                // must be wired here too, not just there.
+                onDeleteLane={deleteProject}
+                onAddLaneBelow={addProjectBelow}
+                onReorderLanes={reorderProjects}
                 locale={locale}
                 showWeekends={settings.showWeekends}
                 showToday={settings.showToday}

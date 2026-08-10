@@ -412,6 +412,7 @@ export function PoapRenderer({
   onGatesLabelClick,
   onCreatePhase,
   isLaneCreatable,
+  isLaneManageable,
   onDeleteLane,
   onAddLaneBelow,
   onReorderLanes,
@@ -767,7 +768,8 @@ export function PoapRenderer({
   function renderLaneLabel({ lane, rows }: (typeof packedLanes)[number]) {
     const height = laneRowHeight(rows.length);
     const isAnchor = Boolean(lane.isProjectPlan);
-    const isDraggable = !isAnchor && Boolean(onReorderLanes);
+    const manageable = isLaneManageable ? isLaneManageable(lane.id) : true;
+    const isDraggable = !isAnchor && manageable && Boolean(onReorderLanes);
     const isConfirmingDelete = confirmDeleteLaneId === lane.id;
     const isDropTarget = dragOverLaneId === lane.id;
     return (
@@ -849,7 +851,7 @@ export function PoapRenderer({
                 <IconGantt />
               </button>
             )}
-            {onDeleteLane && !isAnchor && (
+            {onDeleteLane && !isAnchor && manageable && (
               <button
                 type="button"
                 className={styles.deleteLaneButton}

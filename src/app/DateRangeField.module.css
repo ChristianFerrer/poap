@@ -4,7 +4,7 @@
   max-width: 100%;
   text-align: left;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   padding: 6px 10px;
   font-size: var(--text-xs);
   font-family: inherit;
@@ -48,7 +48,7 @@
   --rdp-range_end-color: var(--color-ink);
   --rdp-range_middle-color: var(--color-snow);
   --rdp-range_middle-background-color: color-mix(in srgb, var(--color-lime) 16%, var(--color-surface));
-  --rdp-day_button-border-radius: var(--radius-full);
+  --rdp-day_button-border-radius: 0;
   color: var(--color-snow);
 }
 

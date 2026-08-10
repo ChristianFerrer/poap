@@ -23,8 +23,10 @@ import {
   syncProjectGates,
   syncProjectLanes,
   updateProgram as updateProgramRow,
+  updatePlanSortOrder,
   updateProjectName,
   updateProjectNote,
+  updateProjectSortOrder,
   updateStageCategoryLabel,
   type ProgramRow,
 } from "@/lib/db";
@@ -58,7 +60,16 @@ interface ProjectsContextValue {
    * why this isn't just addProject in a loop. Returns the new ids in the
    * same order as `inputs`. */
   addProjects: (inputs: { name: string; lanes: Lane[]; gates: Gate[] }[]) => string[];
+  /** The Program page's own "+ add a swimline below this one" action (see
+   * PoapRenderer's onAddLaneBelow) — a project IS the Program page's
+   * swimline, so this is that same capability, not a separate concept.
+   * Seeds a default name and no lanes/gates; the user renames and builds
+   * it out same as any freshly-created project. */
+  addProjectBelow: (afterProjectId: string) => void;
   deleteProject: (projectId: string) => void;
+  /** The Program page's own onReorderLanes target — every project's id in
+   * its new display order. */
+  reorderProjects: (orderedProjectIds: string[]) => void;
   /** A project's name is a single value, not two — the project-plan lane
    * that represents it on a Gantt row has its own `name` column for
    * historical/schema reasons, but nothing should ever read or edit that
@@ -72,8 +83,14 @@ interface ProjectsContextValue {
    * Phase.planId is what actually ties a phase to one. */
   plansByLane: Record<string, Plan[]>;
   addPlan: (laneId: string, name: string) => void;
+  /** The Equipo-drill canvas's own onAddLaneBelow target — see
+   * addProjectBelow's doc comment for the same "insert in the middle,
+   * renumber everyone after it" idea, one level down. */
+  addPlanBelow: (laneId: string, afterPlanId: string) => void;
   renamePlan: (id: string, name: string) => void;
   deletePlan: (id: string) => void;
+  /** The Equipo-drill canvas's own onReorderLanes target. */
+  reorderPlans: (laneId: string, orderedPlanIds: string[]) => void;
   /** Short freeform status note surfaced on the Program page's executive
    * summary for projects that need one — not a project field teams edit
    * day to day, just the "why" a PMO/sponsor asks for without opening the
@@ -297,6 +314,24 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return newProjects.map((p) => p.id);
   }
 
+  // Inserting in the middle (not just appending) means every project after
+  // the insertion point shifts by one — unlike addProjects' always-append
+  // case, those shifted sortOrders are real, persisted changes too, so
+  // every one of them gets its own updateProjectSortOrder call, not just
+  // the new project's insertProject.
+  function addProjectBelow(afterProjectId: string) {
+    const id = nextUniqueId(t.addProject.defaultProjectName, new Set(projects.map((p) => p.id)));
+    const newProject: Project = { id, name: t.addProject.defaultProjectName, sortOrder: 0, lanes: [], gates: [] };
+    const ordered = [...projects].sort((a, b) => a.sortOrder - b.sortOrder);
+    const afterIndex = ordered.findIndex((p) => p.id === afterProjectId);
+    const next = [...ordered];
+    next.splice(afterIndex === -1 ? next.length : afterIndex + 1, 0, newProject);
+    const renumbered = next.map((p, i) => ({ ...p, sortOrder: i }));
+    setProjects(renumbered);
+    void insertProject(newProject);
+    for (const p of renumbered) if (p.id !== newProject.id) void updateProjectSortOrder(p.id, p.sortOrder);
+  }
+
   function deleteProject(projectId: string) {
     const index = projects.findIndex((p) => p.id === projectId);
     if (index === -1) return;
@@ -324,6 +359,16 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, name, lanes: nextLanes } : p)));
     void updateProjectName(projectId, name);
     if (prevLanes.some((l) => l.isProjectPlan)) void syncProjectLanes(projectId, prevLanes, nextLanes);
+  }
+
+  // Program-page drag-and-drop reordering (see PoapRenderer's
+  // onReorderLanes) — every project is a "regular" swimline there (no
+  // isProjectPlan anchor concept at that level), so unlike
+  // useProjectSwimlines.reorderLanes this never has to exclude one.
+  function reorderProjects(orderedProjectIds: string[]) {
+    const orderIndex = new Map(orderedProjectIds.map((id, i) => [id, i]));
+    setProjects((prev) => prev.map((p) => (orderIndex.has(p.id) ? { ...p, sortOrder: orderIndex.get(p.id)! } : p)));
+    orderedProjectIds.forEach((id, i) => void updateProjectSortOrder(id, i));
   }
 
   function setProjectLanes(projectId: string, updater: (lanes: Lane[]) => Lane[]) {
@@ -376,6 +421,43 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const plan: Plan = { id: crypto.randomUUID(), laneId, name: trimmed, sortOrder: existing.length };
     setPlansByLane((prev) => ({ ...prev, [laneId]: [...(prev[laneId] ?? []), plan] }));
     void insertPlan(plan);
+  }
+
+  // Equipo-drill's own "+ add a plan below this one" (see PoapRenderer's
+  // onAddLaneBelow) — same insert-after-and-renumber pattern as
+  // addProjectBelow, just scoped to one team lane's own Planes instead of
+  // the whole Program. afterPlanId is the *team lane's own* id (not a real
+  // Plan) when the anchor row's own "+" fired — same "insert at 0" case
+  // useProjectSwimlines.addLaneBelow handles for its plan-lane anchor.
+  function addPlanBelow(laneId: string, afterPlanId: string) {
+    const existing = plansByLane[laneId] ?? [];
+    const newPlan: Plan = { id: crypto.randomUUID(), laneId, name: t.plansNav.defaultPlanName, sortOrder: 0 };
+    const ordered = [...existing].sort((a, b) => a.sortOrder - b.sortOrder);
+    const afterIndex = ordered.findIndex((p) => p.id === afterPlanId);
+    // Not a real Plan id and not the anchor either — afterPlanId is the
+    // synthetic "Sin plan asignado" bucket, which always sorts last (see
+    // groupPhasesByPlan), so appending is the only insertion that keeps
+    // this new Plan visually "below" it like the click implied.
+    const insertAt = afterPlanId === laneId ? 0 : afterIndex === -1 ? ordered.length : afterIndex + 1;
+    const next = [...ordered];
+    next.splice(insertAt, 0, newPlan);
+    const renumbered = next.map((p, i) => ({ ...p, sortOrder: i }));
+    setPlansByLane((prev) => ({ ...prev, [laneId]: renumbered }));
+    void insertPlan(newPlan);
+    for (const p of renumbered) if (p.id !== newPlan.id) void updatePlanSortOrder(p.id, p.sortOrder);
+  }
+
+  // Equipo-drill's own onReorderLanes target — a team lane's Planes reorder
+  // independently of every other lane's, so unlike reorderProjects this
+  // takes laneId too and only ever touches that one lane's slice of
+  // plansByLane.
+  function reorderPlans(laneId: string, orderedPlanIds: string[]) {
+    const orderIndex = new Map(orderedPlanIds.map((id, i) => [id, i]));
+    setPlansByLane((prev) => ({
+      ...prev,
+      [laneId]: (prev[laneId] ?? []).map((p) => (orderIndex.has(p.id) ? { ...p, sortOrder: orderIndex.get(p.id)! } : p)),
+    }));
+    orderedPlanIds.forEach((id, i) => void updatePlanSortOrder(id, i));
   }
 
   function renamePlan(id: string, name: string) {
@@ -460,14 +542,18 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         projects,
         addProject,
         addProjects,
+        addProjectBelow,
         deleteProject,
+        reorderProjects,
         renameProject,
         setProjectLanes,
         setProjectGates,
         plansByLane,
         addPlan,
+        addPlanBelow,
         renamePlan,
         deletePlan,
+        reorderPlans,
         setProjectNote,
         activitiesByPhase,
         updatePhaseActivities,

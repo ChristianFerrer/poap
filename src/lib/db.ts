@@ -264,6 +264,15 @@ export async function updateProjectName(id: string, name: string) {
   }
 }
 
+export async function updateProjectSortOrder(id: string, sortOrder: number) {
+  try {
+    const { error } = await supabase.from("projects").update({ sort_order: sortOrder }).eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`updateProjectSortOrder(${id})`, error);
+  }
+}
+
 // ---------------------------------------------------------------------
 // Lanes + phases — one project's full lanes array is diffed against
 // whatever it was before, so any caller that already has a
@@ -365,6 +374,15 @@ export async function deletePlanRow(id: string) {
     if (error) throw error;
   } catch (error) {
     logFailure(`deletePlanRow(${id})`, error);
+  }
+}
+
+export async function updatePlanSortOrder(id: string, sortOrder: number) {
+  try {
+    const { error } = await supabase.from("plans").update({ sort_order: sortOrder }).eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    logFailure(`updatePlanSortOrder(${id})`, error);
   }
 }
 

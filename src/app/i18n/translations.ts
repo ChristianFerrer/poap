@@ -27,13 +27,7 @@ const es = {
     loading: "Cargando…",
   },
   addProject: {
-    eyebrow: "Nuevo proyecto",
-    title: "Agregar proyecto",
-    nameSection: "Nombre del proyecto",
-    namePlaceholder: "ej. VMI France",
-    stagesSection: "Etapas del proyecto",
-    stagesHint: "Marcá las etapas que ya conocés y su rango de fechas — podés agregar o ajustar el resto después.",
-    createButton: "Crear proyecto",
+    defaultProjectName: "Nuevo proyecto",
   },
   explorer: {
     close: "Cerrar",
@@ -169,7 +163,6 @@ const es = {
     gatesLabel: "Gates",
     swimlinesLabel: "Swimlines",
     importLabel: "Importar",
-    addProjectLabel: "Proyecto",
     settingsLabel: "Ajustes",
     navAria: "Navegación principal",
     collapseAria: "Contraer menú",
@@ -256,6 +249,10 @@ const es = {
     fasesEyebrow: "Fases de",
     fasesTitle: (planName: string) => `${planName} — Fases`,
     unassignedPlanLabel: "Sin plan asignado",
+    /** Seed name for the canvas's own "+" add-a-plan-below button (see
+     * addPlanBelow) — same idea as addProject.defaultProjectName, the user
+     * renames it same as any freshly-created plan. */
+    defaultPlanName: "Nuevo plan",
   },
   dateRange: {
     placeholder: "Seleccionar fechas",
@@ -290,13 +287,7 @@ const en: Translations = {
     loading: "Loading…",
   },
   addProject: {
-    eyebrow: "New project",
-    title: "Add project",
-    nameSection: "Project name",
-    namePlaceholder: "e.g. VMI France",
-    stagesSection: "Project stages",
-    stagesHint: "Check off the stages you already know, with their date range — add or adjust the rest later.",
-    createButton: "Create project",
+    defaultProjectName: "New project",
   },
   explorer: {
     close: "Close",
@@ -432,7 +423,6 @@ const en: Translations = {
     gatesLabel: "Gates",
     swimlinesLabel: "Swimlines",
     importLabel: "Import",
-    addProjectLabel: "Project",
     settingsLabel: "Settings",
     navAria: "Main navigation",
     collapseAria: "Collapse menu",
@@ -519,6 +509,7 @@ const en: Translations = {
     fasesEyebrow: "Phases for",
     fasesTitle: (planName) => `${planName} — Phases`,
     unassignedPlanLabel: "Unassigned",
+    defaultPlanName: "New plan",
   },
   dateRange: {
     placeholder: "Select dates",
