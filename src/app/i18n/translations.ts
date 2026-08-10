@@ -10,6 +10,7 @@ import type { Locale } from "@/lib/i18n";
 const es = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
+    levelHome: "Inicio",
     levelProgram: "Programa",
     projectTitle: (name: string) => `${name} — plan on a page`,
     projectsWord: "proyectos",
@@ -270,6 +271,7 @@ type Translations = typeof es;
 const en: Translations = {
   header: {
     eyebrow: "PoAP · Plan on a Page",
+    levelHome: "Home",
     levelProgram: "Program",
     projectTitle: (name) => `${name} — plan on a page`,
     projectsWord: "projects",

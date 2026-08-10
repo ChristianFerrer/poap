@@ -583,11 +583,12 @@ function ProjectView({ project }: { project: Project }) {
           : "home";
 
   // "Where am I" — every ancestor level above whatever's shown as the
-  // page's own title below it (Programa always first, then this project,
-  // then however deep the recursive canvas is currently drilled). The
-  // title itself is never repeated as its own crumb — that's exactly what
-  // makes it the title instead of just the last breadcrumb segment.
+  // page's own title below it (Inicio and Programa always first, then this
+  // project, then however deep the recursive canvas is currently drilled).
+  // The title itself is never repeated as its own crumb — that's exactly
+  // what makes it the title instead of just the last breadcrumb segment.
   const breadcrumbCrumbs: { label: string; onClick: () => void }[] = [
+    { label: t.header.levelHome, onClick: () => router.push("/") },
     { label: t.header.levelProgram, onClick: () => router.push("/") },
   ];
   if (drill) {

@@ -270,7 +270,11 @@ export default function ProgramPage() {
       <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
-            <p className={styles.eyebrow}>{t.header.levelProgram}</p>
+            {/* The Program page is the top of the hierarchy — "Inicio" is
+                the one crumb every deeper page's own breadcrumb starts
+                from (see project/[projectId]/page.tsx), shown here plain
+                since there's nowhere higher to link it to. */}
+            <p className={styles.eyebrow}>{t.header.levelHome}</p>
             <h1 className={styles.title}>{program.name}</h1>
             <p className={styles.meta}>
               {projects.length} {t.header.projectsWord} · {program.months} {t.header.monthsWord} ·{" "}
