@@ -19,7 +19,8 @@ import { useProjects } from "../../ProjectsProvider";
 import { useProjectSwimlines } from "../../useProjectSwimlines";
 import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
 import { GatesPanel } from "../../GatesPanel";
-import { ImportPanel } from "../../ImportPanel";
+import { ImportPanel, importedLanesToLanes } from "../../ImportPanel";
+import type { ParseResult } from "@/lib/importExcel";
 import { SettingsPanel } from "../../SettingsPanel";
 import { Sidebar, type SidebarActive } from "../../Sidebar";
 import { useAppSettings } from "../../useAppSettings";
@@ -192,7 +193,8 @@ function ProjectView({ project }: { project: Project }) {
     setNewPlanName("");
   }
 
-  function importLanes(newLanes: Lane[]) {
+  function importLanes(result: ParseResult) {
+    const newLanes = importedLanesToLanes(result, program.startMonth);
     setProjectLanes(project.id, (prev) => [...prev, ...newLanes.map((lane, i) => ({ ...lane, sortOrder: prev.length + i }))]);
   }
 
@@ -612,6 +614,7 @@ function ProjectView({ project }: { project: Project }) {
       ref={sidePanel.panelRef}
       startMonth={program.startMonth}
       months={program.months}
+      mode="swimlines"
       onClose={sidePanel.closePanel}
       onImport={importLanes}
     />

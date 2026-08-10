@@ -54,6 +54,10 @@ interface ProjectsContextValue {
    * off the current `projects` closure, not read back out of the setState
    * updater, so the caller can navigate to it immediately). */
   addProject: (input: { name: string; lanes: Lane[]; gates: Gate[] }) => string;
+  /** One call, many new projects — see addProjects's own doc comment for
+   * why this isn't just addProject in a loop. Returns the new ids in the
+   * same order as `inputs`. */
+  addProjects: (inputs: { name: string; lanes: Lane[]; gates: Gate[] }[]) => string[];
   deleteProject: (projectId: string) => void;
   /** A project's name is a single value, not two — the project-plan lane
    * that represents it on a Gantt row has its own `name` column for
@@ -248,19 +252,49 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     void updateProgramRow(program.id, patch);
   }
 
-  function addProject(input: { name: string; lanes: Lane[]; gates: Gate[] }): string {
-    const base = slugify(input.name);
-    const existingIds = new Set(projects.map((p) => p.id));
+  /** Picks an id for `name` that isn't already in `taken` — and adds it to
+   * `taken`, so a caller minting several ids in the same batch (see
+   * addProjects below) never hands out the same one twice, the way calling
+   * addProject in a loop would (each call only sees `projects` as of the
+   * last completed render, not its own loop siblings that haven't landed
+   * in state yet). */
+  function nextUniqueId(name: string, taken: Set<string>): string {
+    const base = slugify(name);
     let id = base;
     let suffix = 2;
-    while (existingIds.has(id)) {
+    while (taken.has(id)) {
       id = `${base}-${suffix}`;
       suffix += 1;
     }
+    taken.add(id);
+    return id;
+  }
+
+  function addProject(input: { name: string; lanes: Lane[]; gates: Gate[] }): string {
+    const id = nextUniqueId(input.name, new Set(projects.map((p) => p.id)));
     const project: Project = { id, name: input.name, sortOrder: projects.length, lanes: input.lanes, gates: input.gates };
     setProjects((prev) => [...prev, project]);
     void insertProject(project);
     return id;
+  }
+
+  /** Bulk sibling of addProject — every id/sortOrder in the batch is
+   * computed against the same starting snapshot plus its own batch
+   * siblings, so importing several projects from one Excel workbook in one
+   * go can't collide ids or double-assign a sortOrder the way N sequential
+   * addProject calls would. */
+  function addProjects(inputs: { name: string; lanes: Lane[]; gates: Gate[] }[]): string[] {
+    const taken = new Set(projects.map((p) => p.id));
+    const newProjects: Project[] = inputs.map((input, i) => ({
+      id: nextUniqueId(input.name, taken),
+      name: input.name,
+      sortOrder: projects.length + i,
+      lanes: input.lanes,
+      gates: input.gates,
+    }));
+    setProjects((prev) => [...prev, ...newProjects]);
+    newProjects.forEach((project) => void insertProject(project));
+    return newProjects.map((p) => p.id);
   }
 
   function deleteProject(projectId: string) {
@@ -425,6 +459,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         updateProgram,
         projects,
         addProject,
+        addProjects,
         deleteProject,
         renameProject,
         setProjectLanes,

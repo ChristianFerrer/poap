@@ -3,14 +3,14 @@
 import { useMemo, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
-import type { Lane } from "@/components/poap-renderer/types";
 import { deriveProgramLanes, findUnassignedPlanIssues, type Project, type StageCategoryDef } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
 import { AddProjectPanel } from "./AddProjectPanel";
 import { ExecutiveSummary } from "./ExecutiveSummary";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
-import { ImportPanel } from "./ImportPanel";
+import { ImportPanel, importedLanesToLanes } from "./ImportPanel";
+import type { ParseResult } from "@/lib/importExcel";
 import { SettingsPanel } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
 import { useAppSettings } from "./useAppSettings";
@@ -120,6 +120,7 @@ export default function ProgramPage() {
     updateProgram,
     projects,
     addProject,
+    addProjects,
     deleteProject,
     stageCategories,
     addStageCategory,
@@ -129,7 +130,6 @@ export default function ProgramPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [importProjectName, setImportProjectName] = useState("");
   const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
   const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
 
@@ -165,7 +165,6 @@ export default function ProgramPage() {
 
   function openImportPanel() {
     closeAllPanels();
-    setImportProjectName("");
     setImportOpen(true);
     sidePanel.scrollToPanel();
   }
@@ -207,10 +206,18 @@ export default function ProgramPage() {
     router.push(`/project/${id}`);
   }
 
-  function createProjectFromImport(lanes: Lane[]) {
-    const id = addProject({ name: importProjectName.trim(), lanes, gates: [] });
-    closeAllPanels();
-    router.push(`/project/${id}`);
+  // A Program-page import is understood to be a whole portfolio, not one
+  // project's own breakdown — every top-level lane the sheet parsed out
+  // (e.g. one per business unit or option) becomes its own new project,
+  // named straight from that lane's own name, with its phases as that
+  // project's plan lane. No project-name field needed: there's no single
+  // name to ask for. Stays on the Program page afterward (not navigating
+  // into any one of the several projects just created) so every new row
+  // is visible at once, same as the project-page import staying put to
+  // show its own "imported" confirmation.
+  function createProjectsFromImport(result: ParseResult) {
+    const lanes = importedLanesToLanes(result, program.startMonth);
+    addProjects(lanes.map((lane) => ({ name: lane.name, lanes: [{ ...lane, isProjectPlan: true }], gates: [] })));
   }
 
   const sidebarActive: SidebarActive = settingsOpen
@@ -244,9 +251,9 @@ export default function ProgramPage() {
       ref={sidePanel.panelRef}
       startMonth={program.startMonth}
       months={program.months}
-      nameField={{ value: importProjectName, onChange: setImportProjectName, placeholder: t.addProject.namePlaceholder }}
+      mode="projects"
       onClose={sidePanel.closePanel}
-      onImport={createProjectFromImport}
+      onImport={createProjectsFromImport}
     />
   ) : settingsOpen ? (
     <SettingsPanel

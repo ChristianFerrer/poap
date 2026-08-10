@@ -10,7 +10,6 @@ import { IconClose, IconUpload } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { translations } from "./i18n/translations";
 import styles from "./ImportPanel.module.css";
-import explorerStyles from "./ExplorerPanel.module.css";
 
 // Vercel serverless functions cap request bodies at 4.5 MB no matter what
 // this app configures. Stay comfortably under that for a direct POST, and
@@ -71,26 +70,30 @@ async function postForm<T>(body: FormData, locale: Locale): Promise<T> {
 /**
  * Import flow: pick a .xlsx -> pick a sheet -> the server parses it
  * (exceljs needs Node, so parsing happens in /api/import-excel, not in the
- * browser) -> review each lane's phases with their actual dates -> confirm
- * adds the result as new swimlanes, every phase starting as "not_started".
+ * browser) -> review each parsed lane's phases with their actual dates ->
+ * confirm hands the raw ParseResult back to the caller, every phase
+ * starting as "not_started".
  *
- * `nameField` is optional and changes nothing about that flow — it only
- * adds a name input above the file picker and requires it non-empty
- * before confirming. The Program page uses this to import a workbook as
- * a brand-new project (which needs a name the way "add lanes to the
- * project I'm already on" never did); the project page's own import
- * omits it and behaves exactly as before.
+ * What a "lane" in the sheet becomes depends on where the import is
+ * launched from, hence `mode` rather than this component deciding: from
+ * the Program page each lane is its own project's plan lane (a workbook
+ * of many projects, one per lane — see the Program page's own onImport),
+ * so `mode="projects"`; from a project page each lane becomes one of that
+ * project's swimlanes, `mode="swimlines"`. Only the review copy ("N
+ * swimlines" vs "N projects") changes between them — never a name field,
+ * since a project's name and a swimline's name both already come from the
+ * lane's own name in the sheet.
  */
 export const ImportPanel = forwardRef<
   HTMLDivElement,
   {
     startMonth: string;
     months: number;
-    nameField?: { value: string; onChange: (value: string) => void; placeholder: string };
+    mode: "projects" | "swimlines";
     onClose: () => void;
-    onImport: (lanes: Lane[]) => void;
+    onImport: (result: ParseResult) => void;
   }
->(function ImportPanel({ startMonth, months, nameField, onClose, onImport }, ref) {
+>(function ImportPanel({ startMonth, months, mode, onClose, onImport }, ref) {
   const { t, locale } = useLanguage();
   const monthAbbr = MONTH_ABBR[locale];
   const [file, setFile] = useState<File | null>(null);
@@ -163,7 +166,7 @@ export const ImportPanel = forwardRef<
 
   function confirmImport() {
     if (!result) return;
-    onImport(importedLanesToLanes(result, startMonth));
+    onImport(result);
     setImported(true);
   }
 
@@ -178,23 +181,13 @@ export const ImportPanel = forwardRef<
       <h2 className={styles.title}>{t.import.title}</h2>
 
       {imported ? (
-        <p className={styles.success}>{t.import.success(result?.lanes.length ?? 0, totalPhases, statusLabel)}</p>
+        <p className={styles.success}>
+          {mode === "projects"
+            ? t.import.successProjects(result?.lanes.length ?? 0, totalPhases, statusLabel)
+            : t.import.success(result?.lanes.length ?? 0, totalPhases, statusLabel)}
+        </p>
       ) : (
         <>
-          {nameField && (
-            <div className={styles.step}>
-              <p className={styles.sectionTitle}>{t.import.newProjectNameSection}</p>
-              <input
-                className={explorerStyles.textInput}
-                placeholder={nameField.placeholder}
-                value={nameField.value}
-                onChange={(e) => nameField.onChange(e.target.value)}
-                aria-label={t.import.newProjectNameSection}
-              />
-              <p className={explorerStyles.fieldHint}>{t.import.newProjectNameHint}</p>
-            </div>
-          )}
-
           <div className={styles.step}>
             <label className={styles.fileLabel}>
               <input
@@ -245,7 +238,9 @@ export const ImportPanel = forwardRef<
               {result.lanes.length > 0 && (
                 <>
                   <p className={styles.summary}>
-                    {t.import.summaryPrefix(result.lanes.length, totalPhases, statusLabel)}
+                    {mode === "projects"
+                      ? t.import.summaryPrefixProjects(result.lanes.length, totalPhases, statusLabel)
+                      : t.import.summaryPrefix(result.lanes.length, totalPhases, statusLabel)}
                     {outOfRange > 0 && (
                       <span className={styles.rangeWarning}>{t.import.rangeWarning(outOfRange, months)}</span>
                     )}
@@ -270,21 +265,14 @@ export const ImportPanel = forwardRef<
                     ))}
                   </div>
 
-                  {nameField && !nameField.value.trim() && (
-                    <p className={explorerStyles.fieldHint}>{t.import.newProjectNameHint}</p>
-                  )}
                   <div className={styles.actions}>
                     <button type="button" className={styles.secondaryButton} onClick={() => setResult(null)}>
                       {t.import.chooseAnotherSheet}
                     </button>
-                    <button
-                      type="button"
-                      className={styles.primaryButton}
-                      disabled={Boolean(nameField) && !nameField!.value.trim()}
-                      title={nameField && !nameField.value.trim() ? t.import.newProjectNameHint : undefined}
-                      onClick={confirmImport}
-                    >
-                      {t.import.importConfirm(result.lanes.length)}
+                    <button type="button" className={styles.primaryButton} onClick={confirmImport}>
+                      {mode === "projects"
+                        ? t.import.importConfirmProjects(result.lanes.length)
+                        : t.import.importConfirm(result.lanes.length)}
                     </button>
                   </div>
                 </>

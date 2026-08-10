@@ -136,8 +136,8 @@ const es = {
     title: "Desde un archivo Excel",
     success: (lanes: number, phases: number, statusLabel: string) =>
       `Se importaron ${lanes} swimlines con ${phases} fases (todas como "${statusLabel}"). Ya podés revisarlas y ajustarlas como cualquier otro swimline.`,
-    newProjectNameSection: "Nombre del proyecto nuevo",
-    newProjectNameHint: "Este archivo se importa como un proyecto nuevo — hace falta un nombre para poder confirmarlo.",
+    successProjects: (projects: number, phases: number, statusLabel: string) =>
+      `Se importaron ${projects} ${projects === 1 ? "proyecto" : "proyectos"} con ${phases} fases (todas como "${statusLabel}"). Ya podés revisarlos y ajustarlos como cualquier otro proyecto.`,
     chooseFilePlaceholder: "Elegir archivo .xlsx…",
     processing: "Procesando… los archivos grandes pueden tardar varios segundos.",
     errorTooLarge: "El archivo es demasiado grande para subir (máximo ~4.5 MB).",
@@ -149,11 +149,14 @@ const es = {
     analyzeButton: "Analizar hoja",
     summaryPrefix: (lanes: number, phases: number, statusLabel: string) =>
       `${lanes} ${lanes === 1 ? "swimline" : "swimlines"} · ${phases} ${phases === 1 ? "fase" : "fases"} · todas como "${statusLabel}"`,
+    summaryPrefixProjects: (projects: number, phases: number, statusLabel: string) =>
+      `${projects} ${projects === 1 ? "proyecto" : "proyectos"} · ${phases} ${phases === 1 ? "fase" : "fases"} · todas como "${statusLabel}"`,
     rangeWarning: (outOfRange: number, months: number) =>
       ` · ${outOfRange} ${outOfRange === 1 ? "fase cae" : "fases caen"} fuera del rango de ${months} meses visible actualmente (igual se importan)`,
     previewSection: "Vista previa",
     chooseAnotherSheet: "Elegir otra hoja",
     importConfirm: (n: number) => `Importar ${n} ${n === 1 ? "swimline" : "swimlines"}`,
+    importConfirmProjects: (n: number) => `Importar ${n} ${n === 1 ? "proyecto" : "proyectos"}`,
   },
   sidebar: {
     homeAria: "Inicio",
@@ -395,8 +398,8 @@ const en: Translations = {
     title: "From an Excel file",
     success: (lanes, phases, statusLabel) =>
       `Imported ${lanes} swimlines with ${phases} phases (all as "${statusLabel}"). You can now review and adjust them like any other swimline.`,
-    newProjectNameSection: "New project name",
-    newProjectNameHint: "This file imports as a new project — a name is required before you can confirm.",
+    successProjects: (projects, phases, statusLabel) =>
+      `Imported ${projects} ${projects === 1 ? "project" : "projects"} with ${phases} phases (all as "${statusLabel}"). You can now review and adjust them like any other project.`,
     chooseFilePlaceholder: "Choose .xlsx file…",
     processing: "Processing… large files can take a few seconds.",
     errorTooLarge: "The file is too large to upload (max ~4.5 MB).",
@@ -408,11 +411,14 @@ const en: Translations = {
     analyzeButton: "Analyze sheet",
     summaryPrefix: (lanes, phases, statusLabel) =>
       `${lanes} ${lanes === 1 ? "swimline" : "swimlines"} · ${phases} ${phases === 1 ? "phase" : "phases"} · all as "${statusLabel}"`,
+    summaryPrefixProjects: (projects, phases, statusLabel) =>
+      `${projects} ${projects === 1 ? "project" : "projects"} · ${phases} ${phases === 1 ? "phase" : "phases"} · all as "${statusLabel}"`,
     rangeWarning: (outOfRange, months) =>
       ` · ${outOfRange} ${outOfRange === 1 ? "phase falls" : "phases fall"} outside the currently visible ${months}-month range (still imported)`,
     previewSection: "Preview",
     chooseAnotherSheet: "Choose another sheet",
     importConfirm: (n) => `Import ${n} ${n === 1 ? "swimline" : "swimlines"}`,
+    importConfirmProjects: (n) => `Import ${n} ${n === 1 ? "project" : "projects"}`,
   },
   sidebar: {
     homeAria: "Home",
