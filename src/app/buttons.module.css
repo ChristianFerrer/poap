@@ -101,10 +101,15 @@
   cursor: not-allowed;
 }
 
-/* 24px meets WCAG 2.5.8's floor — used inside dense rows/toolbars. */
+/* 24px meets WCAG 2.5.8's floor — used inside dense rows/toolbars. Its own
+   smaller radius overrides .iconBtn's --radius-xl (12px): at this box size
+   2*12=24 exactly matches the shortest side, rounding the whole square into
+   a circle instead of a corner — the exact case CLAUDE.md's radius rule
+   calls out. --radius-lg (8px) keeps 2*radius under 24px. */
 .iconBtnSm {
   width: 24px;
   height: 24px;
+  border-radius: var(--radius-lg);
 }
 /* 28px — a touch more prominent, reserved for a panel's one primary close
    action rather than a repeated per-row control. */

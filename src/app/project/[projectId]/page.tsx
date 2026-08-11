@@ -201,6 +201,22 @@ function ProjectView({ project }: { project: Project }) {
     sidePanel.scrollToPanel();
   }
 
+  // Same panel-opening call the Gantt button always used, except a second
+  // click on the row that's already open closes it instead of re-opening
+  // the same view — matches the button's own active/pressed look (see
+  // activeGanttLaneId below), which would otherwise claim to be a toggle
+  // without behaving like one.
+  function openOrCloseExplorer(view: ExplorerView) {
+    const alreadyOpen =
+      (view.level === "phases" && explorer?.level === "phases" && explorer.laneId === view.laneId) ||
+      (view.level === "activities" && explorer?.level === "activities" && explorer.phaseId === view.phaseId);
+    if (alreadyOpen) {
+      sidePanel.closePanel();
+      return;
+    }
+    openExplorer(view);
+  }
+
   function openImportPanel() {
     setImportOpen(true);
     setExplorer(null);
@@ -492,27 +508,27 @@ function ProjectView({ project }: { project: Project }) {
       // Top level: laneId is a real team lane (or the isProjectPlan lane)
       // — opens the same rename+edit-tracks panel a Plan/Equipo-anchor row
       // gets once drilled in, without requiring a drill first.
-      openExplorer({ level: "phases", laneId });
+      openOrCloseExplorer({ level: "phases", laneId });
       return;
     }
     if (drill.level === "equipo") {
       // laneId is either this Equipo's own real lane (the anchor row) or
       // one of its real Plans (or UNASSIGNED_PLAN_ID) — either way it's a
       // real "phases" panel target, see explorerLanes for why both resolve.
-      openExplorer({ level: "phases", laneId });
+      openOrCloseExplorer({ level: "phases", laneId });
       return;
     }
     if (drill.level === "plan") {
       if (laneId === drill.planId) {
         if (drill.planId === UNASSIGNED_PLAN_ID) return;
-        openExplorer({ level: "phases", laneId: drill.planId });
+        openOrCloseExplorer({ level: "phases", laneId: drill.planId });
         return;
       }
-      openExplorer({ level: "activities", phaseId: laneId }); // laneId = a Fase's id
+      openOrCloseExplorer({ level: "activities", phaseId: laneId }); // laneId = a Fase's id
       return;
     }
     if (drill.level === "fase" && laneId === drill.phaseId) {
-      openExplorer({ level: "activities", phaseId: drill.phaseId });
+      openOrCloseExplorer({ level: "activities", phaseId: drill.phaseId });
     }
   }
 

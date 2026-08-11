@@ -950,6 +950,7 @@ export function PoapRenderer({
             {onLaneGanttClick && (
               <button
                 type="button"
+                data-gantt-button="true"
                 className={[styles.ganttButton, activeGanttLaneId === lane.id ? styles.ganttButtonActive : ""]
                   .join(" ")
                   .trim()}

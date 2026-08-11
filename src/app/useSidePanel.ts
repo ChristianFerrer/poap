@@ -3,8 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
-const PANEL_WIDTH_DEFAULT = 400;
-const PANEL_WIDTH_MIN = 320;
+const PANEL_WIDTH_DEFAULT = 480;
+// Below this, GatesPanel's own "Agregar hito" row (label input + date input
+// + button, all inline) and its table's VISIBLE/NOMBRE/FECHA columns start
+// clipping against the panel's own edge — this is the narrowest width every
+// panel's content was actually designed to fit in, not an arbitrary floor.
+const PANEL_WIDTH_MIN = 480;
 
 // The panel can grow up to half the viewport, never more — read live off
 // window.innerWidth rather than a fixed px cap, since "half the screen" is
@@ -13,11 +17,16 @@ function panelWidthMax(): number {
   return typeof window === "undefined" ? PANEL_WIDTH_DEFAULT : Math.floor(window.innerWidth * 0.5);
 }
 
-// Opens at 30% of the viewport rather than the old "always maxed out"
-// default — the drag handle still lets you grow it from there, up to
-// panelWidthMax.
+// Opens wide enough on its own (see PANEL_WIDTH_MIN's own comment) that
+// every panel's rows/tables/forms render without clipping — the drag
+// handle still lets you grow it further from there, up to panelWidthMax.
 function panelWidthDefault(): number {
-  return typeof window === "undefined" ? PANEL_WIDTH_DEFAULT : Math.floor(window.innerWidth * 0.3);
+  if (typeof window === "undefined") return PANEL_WIDTH_DEFAULT;
+  // Never wider than panelWidthMax's own half-viewport cap — matters just
+  // below the 900px breakpoint (see page.module.css) where half the
+  // viewport is still narrower than PANEL_WIDTH_MIN; above it, the panel
+  // renders at 100% width and this value is moot anyway.
+  return Math.min(panelWidthMax(), Math.max(PANEL_WIDTH_MIN, Math.floor(window.innerWidth * 0.32)));
 }
 
 /**
@@ -79,6 +88,15 @@ export function useSidePanel({ isOpen, onCloseAll }: { isOpen: boolean; onCloseA
       // Without this it would read as "outside the panel" and close the
       // whole panel on the very first day you click.
       if ((target as HTMLElement).closest?.("[data-date-range-popover]")) return;
+      // A lane's own Gantt button (see PoapRenderer.tsx) lives on the
+      // canvas, outside this wrapper — without this exemption, this
+      // mousedown listener would close the panel a beat before the
+      // button's own click handler runs, so by the time that handler
+      // checks "is this lane's panel already open" the answer is always
+      // "no" (this listener just zeroed it out), turning its own
+      // open/close toggle into "close, then immediately reopen the same
+      // view" — invisible to the user but never actually closing.
+      if ((target as HTMLElement).closest?.("[data-gantt-button]")) return;
       if (sidePanelWrapperRef.current && !sidePanelWrapperRef.current.contains(target)) {
         onCloseAll();
       }

@@ -211,7 +211,15 @@ export default function ProgramPage() {
 
   // The Gantt-button shortcut on each project row — opens that project's
   // Swimlines panel right here, without navigating to its own page.
+  // Clicking the Gantt button for the project whose panel is already open
+  // toggles it back off instead of re-opening the same thing — matches the
+  // button's own active/pressed look (see activeGanttLaneId below), which
+  // would otherwise claim to be a toggle without behaving like one.
   function openGanttPanel(projectId: string) {
+    if (ganttProjectId === projectId) {
+      closeAllPanels();
+      return;
+    }
     closeAllPanels();
     setGanttProjectId(projectId);
     sidePanel.scrollToPanel();
