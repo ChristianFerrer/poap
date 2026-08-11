@@ -56,6 +56,21 @@ recursive canvas, not six different screens that happen to look similar.
   deep the current view is) sits above the page's own title, which is
   followed by its meta/stats subtext line.
 
+## Default to autonomy on ambiguous visual/UX calls
+
+When a request leaves a visual or UX detail unspecified, don't wait for a
+pixel-precise spec — infer the closest existing pattern already in the
+codebase (the same radius/chip/hover/spacing as the nearest sibling control,
+the same interaction convention documented above) and implement it, then
+verify with a screenshot per the tiers below. A first-pass screenshot is
+cheaper to correct than a written spec is to produce, and this app already
+has enough established convention (design system baseline, one-behavior-
+every-screen) that most "what should this look like" questions have an
+answer already sitting in the code. Only ask before implementing when two
+existing patterns are equally valid *and* the change is Tier 2 (shared,
+high blast radius) — never stall a Tier 1 change on a clarifying question
+when a nearby component already answers it.
+
 ## Verification standard
 
 Every UI change gets checked live with Playwright against a mocked Supabase
