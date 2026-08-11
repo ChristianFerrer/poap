@@ -793,7 +793,9 @@
 .confirmDeleteLabel {
   font-size: var(--text-3xs);
   color: var(--color-fog);
-  white-space: nowrap;
+  max-width: 96px;
+  text-align: center;
+  line-height: 1.2;
 }
 .confirmButtonsRow {
   display: flex;
