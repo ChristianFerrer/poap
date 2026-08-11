@@ -102,9 +102,14 @@
   height: 20px;
   flex: 0 0 auto;
 }
+/* Plain system sans instead of the app's own Plus Jakarta Sans display
+   font — matches the neutral, less-geometric nav-label style of the GERD
+   reference (medium weight, not the app's usual semibold), scoped to just
+   this rail's own destination labels rather than a global font swap. */
 .navLabel {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
