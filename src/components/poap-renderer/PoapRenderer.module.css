@@ -652,6 +652,7 @@
      rectangle instead of a pill even on the narrowest/shortest of them
      (see .dragHandle's own comment on why -lg doesn't work here). */
   border-radius: var(--radius-md);
+  border: none;
   color: var(--color-fog);
   cursor: pointer;
   padding: 0;
@@ -727,6 +728,7 @@
      every control on a row shares one shape, and even at half the row's
      height this slot stays a rounded rectangle instead of a circle. */
   border-radius: var(--radius-md);
+  border: none;
   background: var(--color-row-chip-bg);
   color: var(--color-fog);
 }
@@ -747,6 +749,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
+  border: none;
   background: var(--color-row-chip-bg);
   color: var(--color-fog);
 }
