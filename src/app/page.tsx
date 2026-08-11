@@ -28,14 +28,10 @@ import styles from "./page.module.css";
  * project's Gantt button has actually been clicked). */
 function ProjectGanttPanel({
   project,
-  draftRange,
-  onDraftRangeConsumed,
   panelRef,
   onClose,
 }: {
   project: Project;
-  draftRange?: { laneId: string; start: number; end: number } | null;
-  onDraftRangeConsumed?: () => void;
   panelRef: Ref<HTMLDivElement>;
   onClose: () => void;
 }) {
@@ -81,8 +77,6 @@ function ProjectGanttPanel({
       onRenameLane={renameLane}
       projectName={project.name}
       onRenameProject={(name) => renameProject(project.id, name)}
-      draftRange={draftRange}
-      onDraftRangeConsumed={onDraftRangeConsumed}
       onUpdatePhase={updatePhase}
       onAddPhase={addPhase}
       onAddActivity={addActivity}
@@ -129,7 +123,6 @@ export default function ProgramPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
-  const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
 
   const lanes = useMemo(() => deriveProgramLanes(projects), [projects]);
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
@@ -161,7 +154,6 @@ export default function ProgramPage() {
     setSettingsOpen(false);
     setImportOpen(false);
     setGanttProjectId(null);
-    setDraftRange(null);
   }
 
   const sidePanel = useSidePanel({
@@ -208,16 +200,38 @@ export default function ProgramPage() {
   // Dragging directly on a project's row in the portfolio calendar —
   // "swimlines de proyectos" get the same track-creation gesture as any
   // other swimline. The bars on this page are a derived summary
-  // (deriveProgramLanes), not real rows of their own, so a drag here
-  // routes to that project's actual plan-lane phase form instead — same
-  // shortcut panel the Gantt button already opens, just pre-filled.
-  function handleCreatePhase(projectId: string, start: number, end: number) {
+  // (deriveProgramLanes), not real rows of their own, so this writes
+  // straight into that project's actual plan lane (see handleResizePhase's
+  // own comment on why `projectId` is the id PoapRenderer reports here) —
+  // the new track appears right on the canvas, with a default title
+  // PoapRenderer immediately hands back for inline editing (see
+  // onRenamePhase below), instead of routing through the Gantt panel.
+  function handleCreatePhase(projectId: string, start: number, end: number): string | undefined {
     const project = projects.find((p) => p.id === projectId);
     const planLane = project?.lanes.find((l) => l.isProjectPlan);
-    closeAllPanels();
-    setGanttProjectId(projectId);
-    if (planLane) setDraftRange({ laneId: planLane.id, start, end });
-    sidePanel.scrollToPanel();
+    if (!planLane) return undefined;
+    const id = crypto.randomUUID();
+    setProjectLanes(projectId, (prev) =>
+      prev.map((lane) =>
+        lane.id !== planLane.id
+          ? lane
+          : { ...lane, phases: [...lane.phases, { id, title: t.explorer.newPhaseName, start, end, status: "not_started" }] },
+      ),
+    );
+    return id;
+  }
+
+  // Commits the name typed into a just-created track's own inline editor
+  // (see handleCreatePhase/PoapRenderer's onRenamePhase) — same
+  // straight-through write as handleResizePhase, just for the title.
+  function handleRenamePhase(projectId: string, phaseId: string, title: string) {
+    setProjectLanes(projectId, (prev) => {
+      const planLane = prev.find((l) => l.isProjectPlan);
+      if (!planLane) return prev;
+      return prev.map((lane) =>
+        lane.id !== planLane.id ? lane : { ...lane, phases: lane.phases.map((p) => (p.id === phaseId ? { ...p, title } : p)) },
+      );
+    });
   }
 
   // Dragging an existing bar's edge on the portfolio calendar — unlike
@@ -262,8 +276,6 @@ export default function ProgramPage() {
     <ProjectGanttPanel
       key={ganttProject.id}
       project={ganttProject}
-      draftRange={draftRange}
-      onDraftRangeConsumed={() => setDraftRange(null)}
       panelRef={sidePanel.panelRef}
       onClose={sidePanel.closePanel}
     />
@@ -354,6 +366,7 @@ export default function ProgramPage() {
                 activeGanttLaneId={ganttProjectId}
                 onCreatePhase={handleCreatePhase}
                 onResizePhase={handleResizePhase}
+                onRenamePhase={handleRenamePhase}
                 // Every project row is a "regular" swimline here (the
                 // Program page has no isProjectPlan anchor concept) — see
                 // CLAUDE.md's consistency principle: the same delete/

@@ -127,7 +127,6 @@ function ProjectView({ project }: { project: Project }) {
   const lanes = project.lanes;
   const gates = project.gates;
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
-  const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
   const [drill, setDrill] = useState<Drill | null>(null);
   const [newPlanName, setNewPlanName] = useState("");
 
@@ -472,10 +471,22 @@ function ProjectView({ project }: { project: Project }) {
       : undefined;
   const canvasIsLaneManageable = drill?.level === "equipo" ? (laneId: string) => laneId !== UNASSIGNED_PLAN_ID : undefined;
 
-  function handleCreatePhase(laneId: string, start: number, end: number) {
-    if (!isLaneCreatable(laneId)) return;
-    setDraftRange({ laneId, start, end });
-    openExplorer({ level: "phases", laneId });
+  // Dragging directly on a creatable lane's own track — creates the phase
+  // immediately with a default title (see handleAddPhase for how a
+  // synthetic Plan-as-lane id gets redirected to the real team lane) and
+  // hands its id back so PoapRenderer can drop straight into inline
+  // editing on the new bar, instead of opening the panel.
+  function handleCreatePhase(laneId: string, start: number, end: number): string | undefined {
+    if (!isLaneCreatable(laneId)) return undefined;
+    const id = crypto.randomUUID();
+    handleAddPhase(laneId, { id, title: t.explorer.newPhaseName, start, end, status: "not_started" });
+    return id;
+  }
+
+  // Commits the name typed into a just-created track's own inline editor
+  // (see handleCreatePhase/PoapRenderer's onRenamePhase).
+  function handleRenamePhase(laneId: string, phaseId: string, title: string) {
+    handleUpdatePhase(laneId, phaseId, { title });
   }
 
   // The small Gantt-icon next to a row's name (same affordance the Program
@@ -668,8 +679,6 @@ function ProjectView({ project }: { project: Project }) {
       projectName={project.name}
       onRenameProject={(name) => renameProject(project.id, name)}
       phasesEyebrowLabel={drill?.level === "equipo" ? t.header.levelPlan : undefined}
-      draftRange={draftRange}
-      onDraftRangeConsumed={() => setDraftRange(null)}
       onUpdatePhase={handleUpdatePhase}
       onAddPhase={handleAddPhase}
       onAddActivity={addActivity}
@@ -791,6 +800,7 @@ function ProjectView({ project }: { project: Project }) {
               onLaneGanttClick={handleLaneGanttClick}
               activeGanttLaneId={explorer?.level === "phases" ? explorer.laneId : null}
               onCreatePhase={handleCreatePhase}
+              onRenamePhase={handleRenamePhase}
               isLaneCreatable={isLaneCreatable}
               onResizePhase={(laneId, phaseId, start, end) => handleUpdatePhase(laneId, phaseId, { start, end })}
               onDeleteLane={canvasOnDeleteLane}

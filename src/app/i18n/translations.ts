@@ -60,6 +60,12 @@ const es = {
     viewGanttAria: (name: string) => `Ver fases de ${name}`,
     addPhaseSection: "Agregar fase",
     phaseTitlePlaceholder: "Título de la fase",
+    /** Seed title for a track created by clicking-clicking dates directly
+     * on the Gantt canvas (see PoapRenderer's onCreatePhase) — the bar
+     * appears immediately with this name, already in its own inline
+     * rename editor (see onRenamePhase), same idea as
+     * explorer.newLaneName. */
+    newPhaseName: "Nueva fase",
     startDateAria: "Fecha de inicio",
     endDateAria: "Fecha de fin",
     dateRangeAria: "Fechas de inicio y fin",
@@ -308,6 +314,7 @@ const en: Translations = {
     viewGanttAria: (name) => `View phases for ${name}`,
     addPhaseSection: "Add phase",
     phaseTitlePlaceholder: "Phase title",
+    newPhaseName: "New phase",
     startDateAria: "Start date",
     endDateAria: "End date",
     dateRangeAria: "Start and end dates",

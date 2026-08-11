@@ -908,6 +908,15 @@
   text-align: left;
   font-family: inherit;
 }
+/* Reserves room at both edges for the hover-revealed resize handles (see
+   .barResizeHandle, 14px wide each) so the label text never sits flush
+   against — or under — an arrow the instant it fades in. Only applied
+   when Bar actually renders the handles (onResizeStart passed in); a
+   read-only caller keeps the tighter default padding. */
+.barResizable {
+  padding-left: 16px;
+  padding-right: 16px;
+}
 .bar:hover {
   filter: brightness(0.97);
 }
@@ -918,6 +927,27 @@
 .barSelected {
   outline: 1.5px solid var(--color-line2);
   outline-offset: 1px;
+}
+/* The bar a two-click canvas creation just committed, showing its own
+   inline title editor in place of the normal clickable button (see Bar's
+   `editing` prop) — same box as .bar (radius, status color, padding) via
+   the shared class, just swapped to a text cursor since nothing here is
+   clickable while naming it. */
+.barEditing {
+  cursor: text;
+}
+.barLabelInput {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--color-lime);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-2xs);
+  margin: 0 calc(var(--space-2xs) * -1);
+  color: inherit;
+  font: inherit;
 }
 /* Hidden until the bar (or the handle itself) is hovered, or the handle
    is the one actively being dragged (.barResizeHandleActive) — a static
@@ -952,11 +982,16 @@
 }
 .barResizeHandleLeft {
   left: 0;
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  /* radius-md, not the bar's own radius-lg — at this handle's 14px width
+     the larger radius rounds both corners into each other and reads as a
+     half-circle blob instead of a rounded rectangle with a visible chevron
+     inside (2×radius must stay under the shortest side, see globals.css'
+     own radius-scale usage rule). */
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 .barResizeHandleRight {
   right: 0;
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 .barLabel {
   /* Sticks to the left edge of .timelineScroll while any part of the bar

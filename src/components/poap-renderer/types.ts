@@ -72,10 +72,17 @@ export interface PoapRendererProps {
   /** Dragging across empty space in an expanded lane's track — the
    * renderer only reports the lane and the dragged axis range, exactly
    * like a manually-typed date range would; it has no opinion on what
-   * "creating a track" involves beyond that (title, category, ...). Omit
-   * to leave the track non-interactive for creation (e.g. the read-only
-   * Program-level portfolio view). */
-  onCreatePhase?: (laneId: string, start: number, end: number) => void;
+   * "creating a track" involves beyond that (title, ...). Omit to leave
+   * the track non-interactive for creation (e.g. the read-only
+   * Program-level portfolio view).
+   *
+   * Returning the new phase's id (the caller already generates one to
+   * construct it) drops the just-created bar straight into its own inline
+   * title editor — see onRenamePhase — instead of leaving the renderer no
+   * way to know which of `lanes`' phases is the one that just appeared.
+   * Returning nothing (or the creation being a no-op, e.g. a lane that
+   * turned out not to be creatable) just skips that. */
+  onCreatePhase?: (laneId: string, start: number, end: number) => string | void;
   /** Restricts which lanes onCreatePhase actually applies to — e.g. the
    * project page shows team lanes and the isProjectPlan anchor lane side
    * by side, but only the anchor lane's tracks are allowed to exist
@@ -93,6 +100,14 @@ export interface PoapRendererProps {
    * that rule is about a *new* track needing a Plan link, unrelated to
    * moving an existing one's dates. */
   onResizePhase?: (laneId: string, phaseId: string, start: number, end: number) => void;
+  /** Commits the name typed into a bar's own inline title editor — the
+   * one a track created via onCreatePhase drops straight into (see its own
+   * doc comment) instead of opening a side panel. Fires once, on blur or
+   * Enter; the renderer has no opinion on validation beyond "don't submit
+   * empty" (see Bar's own editor). Omit (with onCreatePhase still set) to
+   * fall back to whatever default title the caller gave the phase, with no
+   * way to rename it from the canvas itself. */
+  onRenamePhase?: (laneId: string, phaseId: string, title: string) => void;
   /** A second, explicit per-lane action distinct from onLaneClick — e.g.
    * the Program page uses this for a "view swimlines" shortcut on each
    * project row, while onLaneClick itself still navigates into the

@@ -453,6 +453,7 @@ export function PoapRenderer({
   onCreatePhase,
   isLaneCreatable,
   onResizePhase,
+  onRenamePhase,
   isLaneManageable,
   onDeleteLane,
   onAddLaneBelow,
@@ -518,6 +519,14 @@ export function PoapRenderer({
   // it drives can be painted inside just that one lane's row (renderLaneTrack)
   // instead of the old full-height column overlay.
   const [hoverCell, setHoverCell] = useState<{ laneId: string; start: number; end: number } | null>(null);
+  // The phase whose own bar is currently showing its inline title editor
+  // instead of its static label — set the moment a two-click track
+  // creation commits (see handleTrackClick/onCreatePhase), cleared once
+  // that editor blurs/submits (see Bar's own onCommitTitle). Internal, not
+  // a controlled prop: the caller only needs to hand back the new phase's
+  // id from onCreatePhase, everything about actually editing it lives
+  // here.
+  const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   // Delete confirmation is armed for at most one lane at a time — clicking
   // the trash icon swaps that row's Gantt/delete buttons for a compact
   // cancel/confirm pair instead of deleting immediately (see
@@ -542,8 +551,20 @@ export function PoapRenderer({
     rect: DOMRect;
     originalStart: number;
     originalEnd: number;
+    startAxis: number;
     currentAxis: number;
   } | null>(null);
+  // Set for one tick right as a resize gesture releases (see handleUp
+  // below) — a mousedown+drag+mouseup that starts on a resize handle but
+  // ends elsewhere still makes the browser fire a synthetic "click" on the
+  // track's own common ancestor afterward (mousedown/mouseup targets
+  // differ), which handleTrackClick's own `closest("button")` guard can't
+  // catch since that click's target is the track div itself, not the
+  // handle. This flag lets handleTrackClick recognize and swallow exactly
+  // that one follow-on click instead of misreading it as "empty space
+  // clicked, start a new track." A ref, not state, so it's readable
+  // synchronously inside that same click and never triggers a render.
+  const resizeJustEndedRef = useRef(false);
   const activeGateIds = useMemo(() => new Set(activeGateIdsProp), [activeGateIdsProp]);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
@@ -736,6 +757,10 @@ export function PoapRenderer({
   function handleTrackClick(e: ReactMouseEvent<HTMLDivElement>, laneId: string) {
     if (!laneIsCreatable(laneId)) return;
     if ((e.target as HTMLElement).closest("button")) return;
+    if (resizeJustEndedRef.current) {
+      resizeJustEndedRef.current = false;
+      return;
+    }
     const axis = axisFromClientX(e.clientX, e.currentTarget.getBoundingClientRect());
     if (!dragCreate || dragCreate.laneId !== laneId) {
       // First click, or a click on a different lane than the one a
@@ -746,8 +771,9 @@ export function PoapRenderer({
     }
     // Second click on the same lane the start was dropped on — commit.
     const { start, end } = snapAxisRange(dragCreate.startAxis, axis, zoomKey, startMonth);
-    onCreatePhase?.(laneId, start, end);
+    const newPhaseId = onCreatePhase?.(laneId, start, end);
     setDragCreate(null);
+    if (newPhaseId) setEditingPhaseId(newPhaseId);
   }
 
   // Cancels a pending start on Escape or a click outside any creatable
@@ -796,6 +822,7 @@ export function PoapRenderer({
     const trackEl = (e.target as HTMLElement).closest("[data-lane-track-id]") as HTMLElement | null;
     if (!trackEl) return;
     const rect = trackEl.getBoundingClientRect();
+    const axis = axisFromClientX(e.clientX, rect);
     setResizeDrag({
       laneId,
       phaseId: phase.id,
@@ -803,7 +830,8 @@ export function PoapRenderer({
       rect,
       originalStart: phase.start,
       originalEnd: phase.end,
-      currentAxis: axisFromClientX(e.clientX, rect),
+      startAxis: axis,
+      currentAxis: axis,
     });
   }
 
@@ -825,10 +853,27 @@ export function PoapRenderer({
       setResizeDrag((prev) => (prev ? { ...prev, currentAxis: axisFromClientX(e.clientX, prev.rect) } : prev));
     }
     function handleUp() {
+      setResizeDrag(null);
+      resizeJustEndedRef.current = true;
+      // A use-once guard (see its own declaration) — cleared shortly after
+      // in case the browser never actually follows this mouseup with a
+      // synthetic click on the track (e.g. touch input), so it can't get
+      // stuck swallowing some unrelated later click.
+      window.setTimeout(() => {
+        resizeJustEndedRef.current = false;
+      }, 0);
+      // A plain click on the handle (mouseup without ever moving to a
+      // different day than where the drag started) must leave the phase's
+      // dates completely untouched — comparing the *day-snapped start and
+      // current axis* here, not the final computed start/end against
+      // originalStart/originalEnd, since snapAxisDay(drag.startAxis) can
+      // legitimately land on a different value than the phase's own
+      // (not necessarily day-aligned) start/end even with zero real
+      // pointer movement.
+      if (snapAxisDay(drag.currentAxis) === snapAxisDay(drag.startAxis)) return;
       const snapped = snapAxisDay(drag.currentAxis);
       const start = drag.edge === "start" ? Math.min(snapped, addDaysAxis(drag.originalEnd, -1)) : drag.originalStart;
       const end = drag.edge === "end" ? Math.max(snapped, addDaysAxis(drag.originalStart, 1)) : drag.originalEnd;
-      setResizeDrag(null);
       if (start !== drag.originalStart || end !== drag.originalEnd) {
         onResizePhase?.(drag.laneId, drag.phaseId, start, end);
       }
@@ -1126,6 +1171,15 @@ export function PoapRenderer({
                   resizeDrag && resizeDrag.phaseId === phase.id
                     ? { edge: resizeDrag.edge, axis: snapAxisDay(resizeDrag.currentAxis) }
                     : null
+                }
+                editing={phase.id === editingPhaseId}
+                onCommitTitle={
+                  onRenamePhase
+                    ? (title) => {
+                        onRenamePhase(lane.id, phase.id, title);
+                        setEditingPhaseId(null);
+                      }
+                    : undefined
                 }
                 strings={strings}
               />
@@ -1454,6 +1508,8 @@ function Bar({
   onLeave,
   onResizeStart,
   resizeLive,
+  editing,
+  onCommitTitle,
   strings,
 }: {
   phase: Phase;
@@ -1472,6 +1528,13 @@ function Bar({
    * day-snapped) value so the bar visibly follows the cursor before the
    * drag actually commits on mouseup. */
   resizeLive?: { edge: "start" | "end"; axis: number } | null;
+  /** True for the one bar PoapRenderer just created via its own two-click
+   * gesture (see onCreatePhase/editingPhaseId) — swaps the static label
+   * for a focused, select-all text input right on the bar itself instead
+   * of the normal click/hover/resize affordances, so naming a fresh track
+   * never has to leave the canvas. */
+  editing?: boolean;
+  onCommitTitle?: (title: string) => void;
   strings: (typeof RENDERER_STRINGS)[Locale];
 }) {
   const displayStart = resizeLive?.edge === "start" ? resizeLive.axis : phase.start;
@@ -1479,6 +1542,31 @@ function Bar({
   const spanDays = axisToDays(displayEnd, scale) - axisToDays(displayStart, scale);
   const widthPx = trackWidth ? (spanDays / scale.totalDays) * trackWidth : Infinity;
   const showText = widthPx >= BAR_MIN_TEXT_PX;
+
+  if (editing && onCommitTitle) {
+    return (
+      <span
+        className={styles.barWrap}
+        style={{ left: pct(displayStart, scale), width: pctSpan(displayStart, displayEnd, scale) }}
+      >
+        <span className={[styles.bar, styles.barEditing, STATUS_CLASS[phase.status]].join(" ")}>
+          <input
+            type="text"
+            className={styles.barLabelInput}
+            defaultValue={phase.title}
+            autoFocus
+            onFocus={(e) => e.currentTarget.select()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onBlur={(e) => onCommitTitle(e.currentTarget.value.trim() || phase.title)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
+            }}
+          />
+        </span>
+      </span>
+    );
+  }
 
   return (
     <span
@@ -1489,6 +1577,7 @@ function Bar({
         type="button"
         className={[
           styles.bar,
+          onResizeStart ? styles.barResizable : "",
           STATUS_CLASS[phase.status],
           selected ? styles.barSelected : "",
           showText ? "" : styles.barNoText,

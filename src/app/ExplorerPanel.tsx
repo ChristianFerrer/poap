@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
 import { UNASSIGNED_PLAN_ID, type Plan } from "@/lib/portfolio";
@@ -134,13 +134,6 @@ export const ExplorerPanel = forwardRef<
      * (Proyecto/Equipo), correct for every caller except one drilled into
      * an Equipo showing one of its own Plans. */
     phasesEyebrowLabel?: string;
-    /** A date range dragged directly on the Gantt canvas (see PoapRenderer's
-     * onCreatePhase) — seeds the "add phase" form's dates the moment the
-     * matching lane's phases view is open. Consumed once via
-     * onDraftRangeConsumed so it doesn't keep re-applying itself over
-     * whatever the user types next. */
-    draftRange?: { laneId: string; start: number; end: number } | null;
-    onDraftRangeConsumed?: () => void;
     onUpdatePhase: (
       laneId: string,
       phaseId: string,
@@ -171,8 +164,6 @@ export const ExplorerPanel = forwardRef<
     projectName,
     onRenameProject,
     phasesEyebrowLabel,
-    draftRange,
-    onDraftRangeConsumed,
     onUpdatePhase,
     onAddPhase,
     onAddActivity,
@@ -196,22 +187,6 @@ export const ExplorerPanel = forwardRef<
   });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
   const [draft, setDraft] = useState("");
-
-  useEffect(() => {
-    if (!draftRange || view.level !== "phases" || view.laneId !== draftRange.laneId) return;
-    setNewPhase((p) => ({
-      ...p,
-      start: toISODate(draftRange.start, startMonth),
-      end: toISODate(draftRange.end, startMonth),
-    }));
-    onDraftRangeConsumed?.();
-    // Re-checked on `view` too (not just `draftRange`) — a drag on an
-    // already-open project's row doesn't remount this panel, so if the
-    // explorer wasn't already sitting on the right lane's phases the
-    // moment the drag landed, it still catches up the first time the user
-    // navigates there while the draft is still unconsumed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftRange, view]);
 
   const [laneSearch, setLaneSearch] = useState("");
   const [laneSort, setLaneSort] = useState<SortBy>("name");
