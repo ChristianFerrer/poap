@@ -11,13 +11,6 @@ interface AppSettings {
   showToday: boolean;
   theme: Theme;
   sidebarCollapsed: boolean;
-  /** Whether an uncategorized phase (no stage-category tag, or one
-   * pointing at a deleted stage) gets flagged amber + a warning glyph on
-   * the Program page's summary row (see Phase.warning) instead of just
-   * its normal status color. On by default — it's meant to surface real
-   * data-quality gaps (typically straight from an Excel import) — but
-   * some teams would rather not see it at all. */
-  flagUncategorizedPhases: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -25,7 +18,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   showToday: true,
   theme: "dark",
   sidebarCollapsed: false,
-  flagUncategorizedPhases: true,
 };
 
 /**
@@ -40,7 +32,6 @@ export function useAppSettings() {
   const [showToday, setShowToday] = useState(DEFAULT_SETTINGS.showToday);
   const [theme, setTheme] = useState<Theme>(DEFAULT_SETTINGS.theme);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(DEFAULT_SETTINGS.sidebarCollapsed);
-  const [flagUncategorizedPhases, setFlagUncategorizedPhases] = useState(DEFAULT_SETTINGS.flagUncategorizedPhases);
   // Gates the save effect below until the load effect has actually run —
   // without this, the save effect's very first pass (still holding the
   // lazy defaults, before the load effect's setState calls have committed)
@@ -65,7 +56,6 @@ export function useAppSettings() {
           setTheme(parsed.theme);
         }
         if (typeof parsed.sidebarCollapsed === "boolean") setSidebarCollapsed(parsed.sidebarCollapsed);
-        if (typeof parsed.flagUncategorizedPhases === "boolean") setFlagUncategorizedPhases(parsed.flagUncategorizedPhases);
       } catch {
         // Malformed/foreign localStorage value — fall back to defaults
         // rather than throw during render.
@@ -76,9 +66,9 @@ export function useAppSettings() {
 
   useEffect(() => {
     if (!loaded) return;
-    const settings: AppSettings = { showWeekends, showToday, theme, sidebarCollapsed, flagUncategorizedPhases };
+    const settings: AppSettings = { showWeekends, showToday, theme, sidebarCollapsed };
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-  }, [loaded, showWeekends, showToday, theme, sidebarCollapsed, flagUncategorizedPhases]);
+  }, [loaded, showWeekends, showToday, theme, sidebarCollapsed]);
 
   // Reflects the theme choice onto <html data-theme>, same attribute the
   // no-flash inline script in layout.tsx already set before this ever ran
@@ -100,7 +90,5 @@ export function useAppSettings() {
     setTheme,
     sidebarCollapsed,
     setSidebarCollapsed,
-    flagUncategorizedPhases,
-    setFlagUncategorizedPhases,
   };
 }

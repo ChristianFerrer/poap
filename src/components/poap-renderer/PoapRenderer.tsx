@@ -26,7 +26,6 @@ import {
   IconPinOff,
   IconPlus,
   IconTrash,
-  IconWarning,
 } from "@/lib/icons";
 import {
   BADGE_STRIP_HEIGHT,
@@ -465,9 +464,9 @@ export function PoapRenderer({
   const statusLabels = STATUS_LABELS[locale];
   const strings = RENDERER_STRINGS[locale];
   // How many of this canvas's own tracks (bars) land in each status —
-  // generic across every level PoapRenderer renders (projects' own
-  // category-aggregate bars on the Program page, team lanes'/Plans'/Fases'
-  // real phases inside a project), since it's computed straight from
+  // generic across every level PoapRenderer renders (projects' own plan
+  // tracks on the Program page, team lanes'/Plans'/Fases' real phases
+  // inside a project), since it's computed straight from
   // whatever `lanes` this call was actually given rather than anything
   // Program-specific. Tallies every phase by its own status rather than
   // one worst-status verdict per lane — a lane mixing a done phase with an
@@ -1490,7 +1489,7 @@ function Bar({
         type="button"
         className={[
           styles.bar,
-          phase.warning ? styles.statusWarning : STATUS_CLASS[phase.status],
+          STATUS_CLASS[phase.status],
           selected ? styles.barSelected : "",
           showText ? "" : styles.barNoText,
         ].join(" ").trim()}
@@ -1515,11 +1514,6 @@ function Bar({
         onBlur={onLeave}
       >
         {showText && <span className={styles.barLabel}>{phase.title}</span>}
-        {showText && phase.warning && (
-          <span className={styles.barWarningIcon} aria-hidden="true">
-            <IconWarning />
-          </span>
-        )}
       </button>
       {onResizeStart && (
         <>

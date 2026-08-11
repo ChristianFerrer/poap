@@ -28,65 +28,6 @@ export const DAY_INITIALS: Record<Locale, string[]> = {
 };
 
 /**
- * Shared stage taxonomy for team-level phases — tagging a phase with one of
- * these is what lets a project's portfolio-level summary bars (SIT/UAT/TCO/…)
- * get derived automatically from whatever teams already entered, instead of
- * someone hand-maintaining a second, parallel executive summary. Optional on
- * Phase (see PoapRendererProps/Phase in poap-renderer/types.ts) — untagged
- * phases just don't contribute to any project-level stage bar.
- */
-export type StageCategory =
-  | "discovery"
-  | "design"
-  | "build"
-  | "sit"
-  | "uat"
-  | "integration_testing"
-  | "go_live"
-  | "hypercare"
-  | "sustain";
-
-// Standard project lifecycle order — also the order stage checkboxes/
-// options render in wherever this list drives UI (the new-project stage
-// picker, the phase category select).
-export const STAGE_CATEGORIES: StageCategory[] = [
-  "discovery",
-  "design",
-  "build",
-  "sit",
-  "uat",
-  "integration_testing",
-  "go_live",
-  "hypercare",
-  "sustain",
-];
-
-export const STAGE_CATEGORY_LABELS: Record<Locale, Record<StageCategory, string>> = {
-  es: {
-    discovery: "Discovery",
-    design: "Diseño",
-    build: "Construcción",
-    sit: "SIT",
-    uat: "UAT",
-    integration_testing: "Pruebas de Integración",
-    go_live: "Go Live",
-    hypercare: "Hypercare",
-    sustain: "Sostenimiento",
-  },
-  en: {
-    discovery: "Discovery",
-    design: "Design",
-    build: "Build",
-    sit: "SIT",
-    uat: "UAT",
-    integration_testing: "Integration Testing",
-    go_live: "Go Live",
-    hypercare: "Hypercare",
-    sustain: "Sustain",
-  },
-};
-
-/**
  * poap-renderer/ only ever receives data in and fires callbacks out (see
  * the component's own architecture comment) — it never reaches into app
  * state or context. Locale is just another prop, same as `months` or

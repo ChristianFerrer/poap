@@ -92,13 +92,7 @@ export function activitiesFor(phase: Phase): ActivitySeed[] {
 
 // ---------------------------------------------------------------------
 // Project 1 — PMF FF/SP (Solution Design): the original, fully fleshed
-// out project this app started from. Phases are tagged with `category`
-// wherever they map cleanly onto the shared stage taxonomy (src/lib/i18n
-// StageCategory) — that's what lets the portfolio view derive this
-// project's SIT/UAT/TCO/Build/Rollout summary bars on its own, instead of
-// someone maintaining a second executive-summary calendar by hand.
-// Ongoing/maintenance phases (e.g. "Mantenimiento DFU continuo") are left
-// untagged on purpose: they aren't a discrete stage-gate milestone.
+// out project this app started from.
 // ---------------------------------------------------------------------
 const PMF_LANES: Lane[] = [
   {
@@ -106,19 +100,16 @@ const PMF_LANES: Lane[] = [
     name: "Plan del proyecto",
     sortOrder: 0,
     isProjectPlan: true,
-    // One aggregated phase per stage category actually tagged somewhere in
-    // this project's team lanes below — same span/worst-status rule as
-    // deriveProjectSummary (src/lib/portfolio.ts), computed by hand here
-    // once at backfill time rather than derived live, since this lane's
-    // phases need to be real, independently editable rows (see
-    // Lane.isProjectPlan) rather than a read-only summary bar.
+    // The project's own high-level tracks (Design/Build/SIT/UAT/…) — real,
+    // independently editable rows (see Lane.isProjectPlan), not a
+    // read-only summary derived from the team lanes below.
     phases: [
-      { id: "pmf-plan-sit", title: "SIT", start: 0, end: 3.8, status: "at_risk", category: "sit" },
-      { id: "pmf-plan-build", title: "Construcción", start: 0, end: 10.9666666666667, status: "at_risk", category: "build" },
-      { id: "pmf-plan-uat", title: "UAT", start: 0, end: 5.4, status: "at_risk", category: "uat" },
-      { id: "pmf-plan-go_live", title: "Go Live", start: 1.38709677419355, end: 6.32258064516129, status: "in_progress", category: "go_live" },
-      { id: "pmf-plan-hypercare", title: "Hypercare", start: 4.12903225806452, end: 8.89285714285714, status: "at_risk", category: "hypercare" },
-      { id: "pmf-plan-sustain", title: "Sostenimiento", start: 6.19354838709677, end: 11.9677419354839, status: "not_started", category: "sustain" },
+      { id: "pmf-plan-sit", title: "SIT", start: 0, end: 3.8, status: "at_risk" },
+      { id: "pmf-plan-build", title: "Construcción", start: 0, end: 10.9666666666667, status: "at_risk" },
+      { id: "pmf-plan-uat", title: "UAT", start: 0, end: 5.4, status: "at_risk" },
+      { id: "pmf-plan-go_live", title: "Go Live", start: 1.38709677419355, end: 6.32258064516129, status: "in_progress" },
+      { id: "pmf-plan-hypercare", title: "Hypercare", start: 4.12903225806452, end: 8.89285714285714, status: "at_risk" },
+      { id: "pmf-plan-sustain", title: "Sostenimiento", start: 6.19354838709677, end: 11.9677419354839, status: "not_started" },
     ],
   },
   {
@@ -126,13 +117,13 @@ const PMF_LANES: Lane[] = [
     name: "Producto / Proceso",
     sortOrder: 1,
     phases: [
-      { id: "smoke", title: "Smoke Test + SIT Prep", start: axis(2026, 6, 1), end: axis(2026, 6, 19), status: "done", owners: ["Equipo Producto"], category: "sit" },
-      { id: "sit-exec", title: "SIT Ejecución", start: axis(2026, 6, 22), end: axis(2026, 7, 24), status: "at_risk", owners: ["Equipo Producto", "J. Alonso"], category: "sit" },
+      { id: "smoke", title: "Smoke Test + SIT Prep", start: axis(2026, 6, 1), end: axis(2026, 6, 19), status: "done", owners: ["Equipo Producto"] },
+      { id: "sit-exec", title: "SIT Ejecución", start: axis(2026, 6, 22), end: axis(2026, 7, 24), status: "at_risk", owners: ["Equipo Producto", "J. Alonso"] },
       { id: "rt-readiness", title: "RT Readiness", start: axis(2026, 7, 6), end: axis(2026, 9, 4), status: "in_progress", owners: ["Equipo Producto"] },
-      { id: "tco-readiness", title: "TCO Readiness", start: axis(2026, 7, 13), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Producto"], category: "go_live" },
-      { id: "uat-prep", title: "UAT Preparación", start: axis(2026, 7, 27), end: axis(2026, 8, 21), status: "at_risk", owners: ["Equipo Producto"], category: "uat" },
-      { id: "uat", title: "UAT", start: axis(2026, 8, 24), end: axis(2026, 10, 16), status: "not_started", owners: ["Equipo Producto", "Negocio UK/PL"], category: "uat" },
-      { id: "bu-ramp", title: "BU Adoption Ramp Up", start: axis(2026, 12, 7), end: axis(2027, 5, 31), status: "not_started", owners: ["Negocio UK/PL"], category: "sustain" },
+      { id: "tco-readiness", title: "TCO Readiness", start: axis(2026, 7, 13), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Producto"] },
+      { id: "uat-prep", title: "UAT Preparación", start: axis(2026, 7, 27), end: axis(2026, 8, 21), status: "at_risk", owners: ["Equipo Producto"] },
+      { id: "uat", title: "UAT", start: axis(2026, 8, 24), end: axis(2026, 10, 16), status: "not_started", owners: ["Equipo Producto", "Negocio UK/PL"] },
+      { id: "bu-ramp", title: "BU Adoption Ramp Up", start: axis(2026, 12, 7), end: axis(2027, 5, 31), status: "not_started", owners: ["Negocio UK/PL"] },
     ],
   },
   {
@@ -140,13 +131,13 @@ const PMF_LANES: Lane[] = [
     name: "Datos",
     sortOrder: 2,
     phases: [
-      { id: "ac2-enable", title: "Habilitación Data Science (AC2)", start: axis(2026, 6, 1), end: axis(2026, 7, 10), status: "done", subLane: "AC2", owners: ["Equipo Datos"], category: "build" },
-      { id: "ac2-sit", title: "AC2 SIT Prep + Ejecución", start: axis(2026, 8, 3), end: axis(2026, 9, 25), status: "at_risk", subLane: "AC2", owners: ["Equipo Datos"], category: "sit" },
-      { id: "ac2-uat", title: "AC2 UAT Prep + Ejecución", start: axis(2026, 9, 28), end: axis(2026, 11, 13), status: "not_started", subLane: "AC2", owners: ["Equipo Datos"], category: "uat" },
-      { id: "red-sit", title: "Red & SIT", start: axis(2026, 8, 3), end: axis(2026, 9, 25), status: "at_risk", owners: ["Equipo Datos", "Redes"], category: "sit" },
-      { id: "uat-bdv", title: "UAT BDV", start: axis(2026, 8, 3), end: axis(2026, 8, 31), status: "in_progress", owners: ["Equipo Datos"], category: "uat" },
+      { id: "ac2-enable", title: "Habilitación Data Science (AC2)", start: axis(2026, 6, 1), end: axis(2026, 7, 10), status: "done", subLane: "AC2", owners: ["Equipo Datos"] },
+      { id: "ac2-sit", title: "AC2 SIT Prep + Ejecución", start: axis(2026, 8, 3), end: axis(2026, 9, 25), status: "at_risk", subLane: "AC2", owners: ["Equipo Datos"] },
+      { id: "ac2-uat", title: "AC2 UAT Prep + Ejecución", start: axis(2026, 9, 28), end: axis(2026, 11, 13), status: "not_started", subLane: "AC2", owners: ["Equipo Datos"] },
+      { id: "red-sit", title: "Red & SIT", start: axis(2026, 8, 3), end: axis(2026, 9, 25), status: "at_risk", owners: ["Equipo Datos", "Redes"] },
+      { id: "uat-bdv", title: "UAT BDV", start: axis(2026, 8, 3), end: axis(2026, 8, 31), status: "in_progress", owners: ["Equipo Datos"] },
       { id: "dfu", title: "Mantenimiento DFU continuo", start: axis(2026, 7, 13), end: axis(2027, 5, 31), status: "in_progress", owners: ["Equipo Datos"] },
-      { id: "tco", title: "TCO", start: axis(2026, 11, 30), end: axis(2026, 12, 11), status: "not_started", owners: ["Equipo Datos"], category: "go_live" },
+      { id: "tco", title: "TCO", start: axis(2026, 11, 30), end: axis(2026, 12, 11), status: "not_started", owners: ["Equipo Datos"] },
     ],
   },
   {
@@ -154,12 +145,12 @@ const PMF_LANES: Lane[] = [
     name: "Data Science",
     sortOrder: 3,
     phases: [
-      { id: "pfe-v2", title: "PFE Calibración v2", start: axis(2026, 6, 1), end: axis(2026, 7, 31), status: "done", owners: ["Equipo DS"], category: "build" },
-      { id: "promo-v3a", title: "SIT Promo v3a", start: axis(2026, 7, 13), end: axis(2026, 8, 14), status: "in_progress", owners: ["Equipo DS"], category: "sit" },
-      { id: "pfe-v3bc", title: "PFE Calibración v3b/v3c", start: axis(2026, 8, 17), end: axis(2027, 4, 30), status: "at_risk", owners: ["Equipo DS"], category: "build" },
-      { id: "ac1-uk", title: "AC1 Build & Calibración PFE (UK)", start: axis(2026, 8, 24), end: axis(2027, 3, 31), status: "in_progress", subLane: "UK/PL", owners: ["Equipo DS", "Negocio UK"], category: "build" },
-      { id: "ac1-pl", title: "AC1 Build & Calibración PFE (PL)", start: axis(2026, 9, 21), end: axis(2027, 3, 31), status: "in_progress", subLane: "UK/PL", owners: ["Equipo DS", "Negocio PL"], category: "build" },
-      { id: "ac2-pfe", title: "AC2 Habilitación PFE (incl. HC)", start: axis(2026, 6, 15), end: axis(2026, 8, 14), status: "done", owners: ["Equipo DS"], category: "build" },
+      { id: "pfe-v2", title: "PFE Calibración v2", start: axis(2026, 6, 1), end: axis(2026, 7, 31), status: "done", owners: ["Equipo DS"] },
+      { id: "promo-v3a", title: "SIT Promo v3a", start: axis(2026, 7, 13), end: axis(2026, 8, 14), status: "in_progress", owners: ["Equipo DS"] },
+      { id: "pfe-v3bc", title: "PFE Calibración v3b/v3c", start: axis(2026, 8, 17), end: axis(2027, 4, 30), status: "at_risk", owners: ["Equipo DS"] },
+      { id: "ac1-uk", title: "AC1 Build & Calibración PFE (UK)", start: axis(2026, 8, 24), end: axis(2027, 3, 31), status: "in_progress", subLane: "UK/PL", owners: ["Equipo DS", "Negocio UK"] },
+      { id: "ac1-pl", title: "AC1 Build & Calibración PFE (PL)", start: axis(2026, 9, 21), end: axis(2027, 3, 31), status: "in_progress", subLane: "UK/PL", owners: ["Equipo DS", "Negocio PL"] },
+      { id: "ac2-pfe", title: "AC2 Habilitación PFE (incl. HC)", start: axis(2026, 6, 15), end: axis(2026, 8, 14), status: "done", owners: ["Equipo DS"] },
     ],
   },
   {
@@ -167,12 +158,12 @@ const PMF_LANES: Lane[] = [
     name: "Cambio y Formación",
     sortOrder: 4,
     phases: [
-      { id: "form-t1", title: "Formación UAT UK/PL — Tanda 1", start: axis(2026, 6, 1), end: axis(2026, 6, 26), status: "done", owners: ["Equipo C&L"], category: "uat" },
-      { id: "form-t2", title: "Formación UAT UK/PL — Tanda 2", start: axis(2026, 9, 14), end: axis(2026, 9, 25), status: "not_started", owners: ["Equipo C&L"], category: "uat" },
-      { id: "eu-pl-training", title: "EU PL Training", start: axis(2026, 10, 5), end: axis(2027, 1, 8), status: "not_started", owners: ["Equipo C&L"], category: "hypercare" },
-      { id: "dp-comms", title: "DP PL Comms", start: axis(2026, 10, 5), end: axis(2027, 2, 26), status: "in_progress", owners: ["Equipo C&L"], category: "hypercare" },
-      { id: "isoe", title: "iS&OE / iS&OP Onboarding", start: axis(2026, 11, 30), end: axis(2026, 12, 18), status: "at_risk", owners: ["Equipo C&L", "Negocio UK/PL"], category: "hypercare" },
-      { id: "guided-forums", title: "Guided Forums", start: axis(2027, 1, 18), end: axis(2027, 5, 31), status: "not_started", owners: ["Equipo C&L"], category: "sustain" },
+      { id: "form-t1", title: "Formación UAT UK/PL — Tanda 1", start: axis(2026, 6, 1), end: axis(2026, 6, 26), status: "done", owners: ["Equipo C&L"] },
+      { id: "form-t2", title: "Formación UAT UK/PL — Tanda 2", start: axis(2026, 9, 14), end: axis(2026, 9, 25), status: "not_started", owners: ["Equipo C&L"] },
+      { id: "eu-pl-training", title: "EU PL Training", start: axis(2026, 10, 5), end: axis(2027, 1, 8), status: "not_started", owners: ["Equipo C&L"] },
+      { id: "dp-comms", title: "DP PL Comms", start: axis(2026, 10, 5), end: axis(2027, 2, 26), status: "in_progress", owners: ["Equipo C&L"] },
+      { id: "isoe", title: "iS&OE / iS&OP Onboarding", start: axis(2026, 11, 30), end: axis(2026, 12, 18), status: "at_risk", owners: ["Equipo C&L", "Negocio UK/PL"] },
+      { id: "guided-forums", title: "Guided Forums", start: axis(2027, 1, 18), end: axis(2027, 5, 31), status: "not_started", owners: ["Equipo C&L"] },
     ],
   },
 ];
@@ -199,10 +190,10 @@ const VMI_LANES: Lane[] = [
     sortOrder: 0,
     isProjectPlan: true,
     phases: [
-      { id: "vmi-plan-discovery", title: "Discovery", start: 0, end: 1.06451612903226, status: "done", category: "discovery" },
-      { id: "vmi-plan-sit", title: "SIT", start: 1.16129032258065, end: 2.64516129032258, status: "in_progress", category: "sit" },
-      { id: "vmi-plan-uat", title: "UAT", start: 2.74193548387097, end: 4.48387096774194, status: "not_started", category: "uat" },
-      { id: "vmi-plan-go_live", title: "Go Live", start: 4.58064516129032, end: 5.16666666666667, status: "not_started", category: "go_live" },
+      { id: "vmi-plan-discovery", title: "Discovery", start: 0, end: 1.06451612903226, status: "done" },
+      { id: "vmi-plan-sit", title: "SIT", start: 1.16129032258065, end: 2.64516129032258, status: "in_progress" },
+      { id: "vmi-plan-uat", title: "UAT", start: 2.74193548387097, end: 4.48387096774194, status: "not_started" },
+      { id: "vmi-plan-go_live", title: "Go Live", start: 4.58064516129032, end: 5.16666666666667, status: "not_started" },
     ],
   },
   {
@@ -210,10 +201,10 @@ const VMI_LANES: Lane[] = [
     name: "Equipo Implementación",
     sortOrder: 1,
     phases: [
-      { id: "vmi-script-prep", title: "Script Prep", start: axis(2026, 6, 1), end: axis(2026, 7, 3), status: "done", owners: ["Equipo Implementación"], category: "discovery" },
-      { id: "vmi-sit", title: "SIT", start: axis(2026, 7, 6), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Implementación"], category: "sit" },
-      { id: "vmi-uat", title: "UAT", start: axis(2026, 8, 24), end: axis(2026, 10, 16), status: "not_started", owners: ["Equipo Implementación", "Negocio Francia"], category: "uat" },
-      { id: "vmi-tco", title: "TCO", start: axis(2026, 10, 19), end: axis(2026, 11, 6), status: "not_started", owners: ["Equipo Implementación"], category: "go_live" },
+      { id: "vmi-script-prep", title: "Script Prep", start: axis(2026, 6, 1), end: axis(2026, 7, 3), status: "done", owners: ["Equipo Implementación"] },
+      { id: "vmi-sit", title: "SIT", start: axis(2026, 7, 6), end: axis(2026, 8, 21), status: "in_progress", owners: ["Equipo Implementación"] },
+      { id: "vmi-uat", title: "UAT", start: axis(2026, 8, 24), end: axis(2026, 10, 16), status: "not_started", owners: ["Equipo Implementación", "Negocio Francia"] },
+      { id: "vmi-tco", title: "TCO", start: axis(2026, 10, 19), end: axis(2026, 11, 6), status: "not_started", owners: ["Equipo Implementación"] },
     ],
   },
 ];
@@ -234,8 +225,8 @@ const IBERIA_LANES: Lane[] = [
     sortOrder: 0,
     isProjectPlan: true,
     phases: [
-      { id: "iberia-plan-build", title: "Construcción", start: 0.466666666666667, end: 7.96774193548387, status: "in_progress", category: "build" },
-      { id: "iberia-plan-integration_testing", title: "Pruebas de Integración", start: 8, end: 10.4666666666667, status: "not_started", category: "integration_testing" },
+      { id: "iberia-plan-build", title: "Construcción", start: 0.466666666666667, end: 7.96774193548387, status: "in_progress" },
+      { id: "iberia-plan-integration_testing", title: "Pruebas de Integración", start: 8, end: 10.4666666666667, status: "not_started" },
     ],
   },
   {
@@ -243,7 +234,7 @@ const IBERIA_LANES: Lane[] = [
     name: "Europe",
     sortOrder: 1,
     phases: [
-      { id: "iberia-build", title: "Build (Final Load)", start: axis(2026, 6, 15), end: axis(2027, 1, 31), status: "in_progress", owners: ["Equipo Europe"], category: "build" },
+      { id: "iberia-build", title: "Build (Final Load)", start: axis(2026, 6, 15), end: axis(2027, 1, 31), status: "in_progress", owners: ["Equipo Europe"] },
     ],
   },
   {
@@ -251,7 +242,7 @@ const IBERIA_LANES: Lane[] = [
     name: "QA",
     sortOrder: 2,
     phases: [
-      { id: "iberia-test", title: "Test", start: axis(2027, 2, 1), end: axis(2027, 4, 15), status: "not_started", owners: ["Equipo QA"], category: "integration_testing" },
+      { id: "iberia-test", title: "Test", start: axis(2027, 2, 1), end: axis(2027, 4, 15), status: "not_started", owners: ["Equipo QA"] },
     ],
   },
 ];

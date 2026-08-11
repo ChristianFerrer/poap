@@ -10,28 +10,11 @@ export interface Phase {
   subLane?: string | null;
   /** Teams/people involved — shown in the hover popup, not on the bar itself. */
   owners?: string[];
-  /** Which stage this phase belongs to (see StageCategory in src/lib/i18n)
-   * — purely an app-level tag the renderer never reads itself, used to
-   * derive a project's portfolio-level summary bars from its teams' own
-   * phases. Untagged phases (undefined) just don't count toward any
-   * stage's aggregate span. */
-  category?: string;
   /** Which of its team lane's Planes this phase belongs to (see the Plan
-   * type in src/lib/portfolio.ts) — another app-level grouping tag the
-   * renderer never reads, same shape as `category` but one level down the
-   * hierarchy (Equipo -> Plan -> Fase, vs. category's Proyecto -> Fase).
-   * Undefined for the isProjectPlan anchor lane's own phases, which don't
-   * have Planes of their own. */
+   * type in src/lib/portfolio.ts) — an app-level grouping tag the renderer
+   * never reads. Undefined for the isProjectPlan anchor lane's own phases,
+   * which don't have Planes of their own. */
   planId?: string;
-  /** Marks a bar the renderer itself should flag (amber fill + a warning
-   * glyph) instead of its normal status color — unlike category/planId,
-   * this one IS read by the renderer, since it's about how the bar looks,
-   * not what it means app-side. Currently only set by deriveProjectSummary
-   * for a project-summary phase missing its stage-category tag, so an
-   * Excel-imported project reads as "real work, needs a category" on the
-   * Program page instead of either vanishing or blending in with tagged
-   * work. */
-  warning?: boolean;
 }
 
 export interface Lane {
@@ -40,8 +23,8 @@ export interface Lane {
   sortOrder: number;
   phases: Phase[];
   /** Marks the one lane per project that holds its high-level, cross-team
-   * plan (Design/Build/SIT/UAT/…, tagged with the same stage categories
-   * team lanes use) rather than a specific team's own work. The renderer
+   * plan (Design/Build/SIT/UAT/…, freeform tracks the project owner
+   * defines) rather than a specific team's own work. The renderer
    * pins it above every other lane and above the Stage gates row, and
    * gives it a distinct accent — see PoapRenderer's plan-lane handling —
    * so it always reads as "the plan", not just another team. */

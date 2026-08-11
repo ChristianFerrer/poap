@@ -3,7 +3,7 @@
 import { useMemo, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
-import { deriveProgramLanes, findLinkageIssues, findUnassignedPlanIssues, type Project, type StageCategoryDef } from "@/lib/portfolio";
+import { deriveProgramLanes, findUnassignedPlanIssues, type Project } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
@@ -28,14 +28,12 @@ import styles from "./page.module.css";
  * project's Gantt button has actually been clicked). */
 function ProjectGanttPanel({
   project,
-  stageCategories,
   draftRange,
   onDraftRangeConsumed,
   panelRef,
   onClose,
 }: {
   project: Project;
-  stageCategories: StageCategoryDef[];
   draftRange?: { laneId: string; start: number; end: number } | null;
   onDraftRangeConsumed?: () => void;
   panelRef: Ref<HTMLDivElement>;
@@ -76,7 +74,6 @@ function ProjectGanttPanel({
       lanes={project.lanes}
       startMonth={program.startMonth}
       view={explorer ?? { level: "lanes" }}
-      stageCategories={stageCategories}
       getActivities={getActivities}
       onNavigate={setExplorer}
       onClose={onClose}
@@ -127,10 +124,6 @@ export default function ProgramPage() {
     deleteProject,
     reorderProjects,
     setProjectLanes,
-    stageCategories,
-    addStageCategory,
-    renameStageCategory,
-    deleteStageCategory,
     plansByLane,
   } = useProjects();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -138,10 +131,7 @@ export default function ProgramPage() {
   const [ganttProjectId, setGanttProjectId] = useState<string | null>(null);
   const [draftRange, setDraftRange] = useState<{ laneId: string; start: number; end: number } | null>(null);
 
-  const lanes = useMemo(
-    () => deriveProgramLanes(projects, stageCategories, settings.flagUncategorizedPhases),
-    [projects, stageCategories, settings.flagUncategorizedPhases],
-  );
+  const lanes = useMemo(() => deriveProgramLanes(projects), [projects]);
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
 
   // Program-wide list of the same "needs attention" issues each project
@@ -153,17 +143,6 @@ export default function ProgramPage() {
   const notificationAlerts: NotificationAlert[] = useMemo(() => {
     const alerts: NotificationAlert[] = [];
     for (const project of projects) {
-      const planLane = project.lanes.find((l) => l.isProjectPlan) ?? null;
-      if (planLane) {
-        for (const issue of findLinkageIssues(project.lanes)) {
-          alerts.push({
-            id: `category-${project.id}-${issue.phaseId}`,
-            message: t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name),
-            actionLabel: t.linkage.fixButton,
-            onAction: () => openGanttPanel(project.id),
-          });
-        }
-      }
       for (const issue of findUnassignedPlanIssues(project.lanes, plansByLane)) {
         alerts.push({
           id: `plan-${project.id}-${issue.phaseId}`,
@@ -283,7 +262,6 @@ export default function ProgramPage() {
     <ProjectGanttPanel
       key={ganttProject.id}
       project={ganttProject}
-      stageCategories={stageCategories}
       draftRange={draftRange}
       onDraftRangeConsumed={() => setDraftRange(null)}
       panelRef={sidePanel.panelRef}
@@ -307,16 +285,8 @@ export default function ProgramPage() {
       onShowWeekendsChange={settings.setShowWeekends}
       showToday={settings.showToday}
       onShowTodayChange={settings.setShowToday}
-      flagUncategorizedPhases={settings.flagUncategorizedPhases}
-      onFlagUncategorizedPhasesChange={settings.setFlagUncategorizedPhases}
-      stageCategories={stageCategories}
-      onAddStageCategory={addStageCategory}
-      onRenameStageCategory={renameStageCategory}
-      onDeleteStageCategory={deleteStageCategory}
       program={program}
       onUpdateProgram={updateProgram}
-      projects={projects}
-      onDeleteProject={deleteProject}
       onClose={sidePanel.closePanel}
     />
   ) : null;

@@ -1001,21 +1001,6 @@
   background: var(--color-surface2);
   color: var(--color-fog);
 }
-/* A phase missing its stage-category tag (typically straight from an
-   Excel import) — flat amber, deliberately distinct from .statusAtRisk's
-   hatch so "needs a category" never reads as "at risk" by mistake. */
-.statusWarning {
-  background: var(--color-amber-soft);
-  color: var(--color-amber-ink);
-}
-.barWarningIcon {
-  margin-left: auto;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  padding-left: var(--space-2xs);
-}
-
 .legend {
   display: flex;
   gap: var(--space-lg);

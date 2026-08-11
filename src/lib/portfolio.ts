@@ -1,15 +1,5 @@
 import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 
-/** A user-editable stage in the project lifecycle (see StageCategoryDef
- * usage in ProjectsProvider) — `id` is what a Phase.category actually
- * stores, `label` is whatever the user has it named right now. Plain data,
- * not a fixed enum, since Settings lets the list itself be renamed/added
- * to/deleted from. */
-export interface StageCategoryDef {
-  id: string;
-  label: string;
-}
-
 /**
  * A team lane's (Equipo's) own sub-grouping of its phases — one level
  * between Equipo and Fase (Equipo -> Plan -> Fase), a different concept
@@ -83,83 +73,24 @@ export function worstStatus(phases: Phase[]): PhaseStatus {
 
 /**
  * A project's own single "how's it doing" status — the worst status among
- * every phase in every one of its team lanes, tagged or not (unlike
- * deriveProjectSummary, which only looks at phases tagged with a stage
- * category). This is what the Program page's executive summary strip
- * groups projects by; a project with no phases at all reads as
- * "not_started" rather than crashing on an empty worstStatus lookup.
+ * every phase in every one of its team lanes. This is what the Program
+ * page's executive summary strip groups projects by; a project with no
+ * phases at all reads as "not_started" rather than crashing on an empty
+ * worstStatus lookup.
  */
 export function projectOverallStatus(project: Project): PhaseStatus {
   const phases = project.lanes.flatMap((l) => l.phases);
   return phases.length === 0 ? "not_started" : worstStatus(phases);
 }
 
-/** Tags a phase `warning` when it isn't tagged with a live stage category
- * (same "uncategorized" test deriveProjectSummary's own bars use) and the
- * caller wants that flagged — shared so a project's plan-lane phases
- * (deriveProgramLanes) and its synthesized summary bars (the
- * deriveProjectSummary fallback below) agree on when a phase reads as
- * "needs a stage" instead of each having their own copy of the check. */
-function flagIfUncategorized(phase: Phase, categories: StageCategoryDef[], flagUncategorized: boolean): Phase {
-  if (!flagUncategorized) return phase;
-  const isUncategorized = !phase.category || !categories.some((c) => c.id === phase.category);
-  return isUncategorized ? { ...phase, warning: true } : phase;
-}
-
 /**
- * One aggregated bar per stage category actually tagged somewhere in the
- * project's team lanes (see Phase.category), plus every untagged phase
- * shown on its own (not merged into anything) — its span covers every
- * tagged phase in that category across every team, so "UAT" on the
- * portfolio view always matches whatever the teams themselves entered as
- * their own UAT phases, with nobody maintaining a second copy by hand.
- * `categories` is the live, user-editable stage list (Settings → Fases de
- * proyecto) — it drives both which bars can appear at all and the
- * order/label they render with; a phase tagged with an id no longer in
- * that list (its stage got deleted) just stops contributing to a category
- * bar and falls back to rendering on its own, same as a never-tagged one.
- *
- * Untagged phases (every phase straight from an Excel import starts this
- * way; nothing assigns a stage automatically) are passed through as-is
- * instead of being dropped or merged into a single stand-in bar. When
- * `flagUncategorized` is on (Settings' own toggle — see useAppSettings'
- * flagUncategorizedPhases) each one is also tagged Phase.warning so the
- * renderer flags it amber + a warning glyph instead of its normal status
- * color, reading as "real work, needs attention" on the Program page
- * rather than either vanishing or looking indistinguishable from a
- * properly tagged one; off, they render with their ordinary status color
- * like any other phase, just still shown individually.
+ * Every phase across every one of a project's team lanes, flattened —
+ * deriveProgramLanes' fallback for the rare project that doesn't have a
+ * plan lane at all yet (older/imported data), so the portfolio view still
+ * has something to render for it.
  */
-export function deriveProjectSummary(project: Project, categories: StageCategoryDef[], flagUncategorized: boolean): Phase[] {
-  const byCategory = new Map<string, Phase[]>();
-  const uncategorized: Phase[] = [];
-  for (const lane of project.lanes) {
-    for (const phase of lane.phases) {
-      if (!phase.category || !categories.some((c) => c.id === phase.category)) {
-        uncategorized.push(phase);
-        continue;
-      }
-      const group = byCategory.get(phase.category) ?? [];
-      group.push(phase);
-      byCategory.set(phase.category, group);
-    }
-  }
-
-  const bars: Phase[] = categories
-    .filter((c) => byCategory.has(c.id))
-    .map((c) => {
-      const phases = byCategory.get(c.id)!;
-      return {
-        id: `${project.id}-${c.id}`,
-        title: c.label,
-        start: Math.min(...phases.map((p) => p.start)),
-        end: Math.max(...phases.map((p) => p.end)),
-        status: worstStatus(phases),
-        category: c.id,
-      };
-    });
-
-  return [...bars, ...uncategorized.map((p) => flagIfUncategorized(p, categories, flagUncategorized))];
+export function deriveProjectSummary(project: Project): Phase[] {
+  return project.lanes.flatMap((l) => l.phases);
 }
 
 /**
@@ -170,7 +101,7 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
  * Any phase whose planId doesn't match a real Plan (never assigned, or its
  * Plan got deleted) still shows up, grouped under `unassignedLabel`, rather
  * than silently disappearing — same "never hide an orphan" rule as
- * findLinkageIssues below.
+ * findUnassignedPlanIssues below.
  */
 export function groupPhasesByPlan(lane: Lane, plans: Plan[], unassignedLabel: string): Lane[] {
   const byPlan = new Map<string, Phase[]>();
@@ -223,38 +154,6 @@ export function derivePlanAggregateBars(lane: Lane, plans: Plan[]): Phase[] {
     });
 }
 
-export interface LinkageIssue {
-  laneId: string;
-  laneName: string;
-  phaseId: string;
-  phaseTitle: string;
-}
-
-/**
- * Every team-lane phase that doesn't point at a real track of the
- * project's plan lane (see Lane.isProjectPlan) — either untagged, or
- * tagged with a category the plan lane doesn't actually have a phase for
- * (its own track got renamed/deleted out from under it). This is meant to
- * be recomputed on every render from whatever's currently true, not stored
- * — so a plan-lane edit that breaks a previously-valid link surfaces the
- * same way a phase that was never tagged does, and a fix clears itself the
- * moment the data agrees again.
- */
-export function findLinkageIssues(lanes: Lane[]): LinkageIssue[] {
-  const planLane = lanes.find((l) => l.isProjectPlan);
-  const planCategories = new Set(planLane?.phases.map((p) => p.category).filter((c): c is string => Boolean(c)));
-  const issues: LinkageIssue[] = [];
-  for (const lane of lanes) {
-    if (lane.isProjectPlan) continue;
-    for (const phase of lane.phases) {
-      if (!phase.category || !planCategories.has(phase.category)) {
-        issues.push({ laneId: lane.id, laneName: lane.name, phaseId: phase.id, phaseTitle: phase.title });
-      }
-    }
-  }
-  return issues;
-}
-
 export interface UnassignedPlanIssue {
   laneId: string;
   laneName: string;
@@ -263,10 +162,9 @@ export interface UnassignedPlanIssue {
 }
 
 /** Every team-lane phase whose planId doesn't resolve to a real Plan of
- * that lane — never assigned, or its Plan got deleted since. Separate from
- * findLinkageIssues (a different relationship: Fase -> Plan, not
- * Fase -> project-plan category) but the same "recompute live, never
- * store/hide it" rule. */
+ * that lane — never assigned, or its Plan got deleted since. Recomputed
+ * live from whatever's currently true, not stored, so a fix clears itself
+ * the moment the data agrees again. */
 export function findUnassignedPlanIssues(lanes: Lane[], plansByLane: Record<string, Plan[]>): UnassignedPlanIssue[] {
   const issues: UnassignedPlanIssue[] = [];
   for (const lane of lanes) {
@@ -298,7 +196,7 @@ export function findUnassignedPlanIssues(lanes: Lane[], plansByLane: Record<stri
  * imported data — everything the canvas's own "+" button creates always
  * has one, see Lane.isProjectPlan).
  */
-export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[], flagUncategorized: boolean): Lane[] {
+export function deriveProgramLanes(projects: Project[]): Lane[] {
   return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((project) => {
@@ -307,9 +205,7 @@ export function deriveProgramLanes(projects: Project[], categories: StageCategor
         id: project.id,
         name: project.name,
         sortOrder: project.sortOrder,
-        phases: planLane
-          ? planLane.phases.map((phase) => flagIfUncategorized(phase, categories, flagUncategorized))
-          : deriveProjectSummary(project, categories, flagUncategorized),
+        phases: planLane ? planLane.phases : deriveProjectSummary(project),
       };
     });
 }

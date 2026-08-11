@@ -3,11 +3,7 @@
 import { forwardRef, useEffect, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
-import {
-  UNASSIGNED_PLAN_ID,
-  type Plan,
-  type StageCategoryDef,
-} from "@/lib/portfolio";
+import { UNASSIGNED_PLAN_ID, type Plan } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { formatDate, fromISODate, toISODate } from "./dateAxis";
 import { DateRangeField } from "./DateRangeField";
@@ -27,22 +23,6 @@ function filterByName<T>(items: T[], search: string, getName: (item: T) => strin
 
 function sortItems<T>(items: T[], sortBy: SortBy, getName: (item: T) => string, getDate: (item: T) => number): T[] {
   return [...items].sort((a, b) => (sortBy === "name" ? getName(a).localeCompare(getName(b)) : getDate(a) - getDate(b)));
-}
-
-/** Picks whichever plan-lane phase (a "top plan" track) overlaps the given
- * range the most — the auto-suggestion behind the otherwise-mandatory
- * category field on a team phase. Returns null if the plan lane has
- * nothing overlapping at all, leaving the field for the user to fill in
- * by hand (and the persistent linkage alert to flag once saved). */
-function suggestCategory(start: number, end: number, planLane: Lane | null): string | undefined {
-  if (!planLane) return undefined;
-  let best: { category: string; overlap: number } | null = null;
-  for (const p of planLane.phases) {
-    if (!p.category) continue;
-    const overlap = Math.min(end, p.end) - Math.max(start, p.start);
-    if (overlap > 0 && (!best || overlap > best.overlap)) best = { category: p.category, overlap };
-  }
-  return best?.category;
 }
 
 function FilterBar({
@@ -134,7 +114,6 @@ export const ExplorerPanel = forwardRef<
     lanes: Lane[];
     startMonth: string;
     view: ExplorerView;
-    stageCategories: StageCategoryDef[];
     getActivities: (phase: Phase) => ActivitySeed[];
     onNavigate: (view: ExplorerView) => void;
     onClose: () => void;
@@ -156,16 +135,16 @@ export const ExplorerPanel = forwardRef<
      * an Equipo showing one of its own Plans. */
     phasesEyebrowLabel?: string;
     /** A date range dragged directly on the Gantt canvas (see PoapRenderer's
-     * onCreatePhase) — seeds the "add phase" form's dates (and, once both
-     * are set, its category suggestion) the moment the matching lane's
-     * phases view is open. Consumed once via onDraftRangeConsumed so it
-     * doesn't keep re-applying itself over whatever the user types next. */
+     * onCreatePhase) — seeds the "add phase" form's dates the moment the
+     * matching lane's phases view is open. Consumed once via
+     * onDraftRangeConsumed so it doesn't keep re-applying itself over
+     * whatever the user types next. */
     draftRange?: { laneId: string; start: number; end: number } | null;
     onDraftRangeConsumed?: () => void;
     onUpdatePhase: (
       laneId: string,
       phaseId: string,
-      patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category" | "planId">>,
+      patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "planId">>,
     ) => void;
     onAddPhase: (laneId: string, phase: Phase) => void;
     onAddActivity: (phase: Phase, activity: ActivitySeed) => void;
@@ -184,7 +163,6 @@ export const ExplorerPanel = forwardRef<
     lanes,
     startMonth,
     view,
-    stageCategories,
     getActivities,
     onNavigate,
     onClose,
@@ -215,21 +193,16 @@ export const ExplorerPanel = forwardRef<
     start: "",
     end: "",
     status: "not_started" as PhaseStatus,
-    category: "",
   });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
   const [draft, setDraft] = useState("");
 
   useEffect(() => {
     if (!draftRange || view.level !== "phases" || view.laneId !== draftRange.laneId) return;
-    const lane = lanes.find((l) => l.id === draftRange.laneId);
-    const planLane = lanes.find((l) => l.isProjectPlan) ?? null;
-    const suggested = !lane?.isProjectPlan ? suggestCategory(draftRange.start, draftRange.end, planLane) : undefined;
     setNewPhase((p) => ({
       ...p,
       start: toISODate(draftRange.start, startMonth),
       end: toISODate(draftRange.end, startMonth),
-      category: suggested ?? p.category,
     }));
     onDraftRangeConsumed?.();
     // Re-checked on `view` too (not just `draftRange`) — a drag on an
@@ -270,9 +243,8 @@ export const ExplorerPanel = forwardRef<
       start: fromISODate(newPhase.start, startMonth),
       end: fromISODate(newPhase.end, startMonth),
       status: newPhase.status,
-      category: newPhase.category || undefined,
     });
-    setNewPhase({ title: "", start: "", end: "", status: "not_started", category: "" });
+    setNewPhase({ title: "", start: "", end: "", status: "not_started" });
   }
 
   function submitNewActivity(phase: Phase) {
@@ -463,12 +435,6 @@ export const ExplorerPanel = forwardRef<
                   end: Math.max(...lane.phases.map((p) => p.end)),
                 }
               : null;
-          // Every team-lane phase must point at a track of the project's
-          // plan lane (the "plan ancla") — the plan lane itself is what
-          // that taxonomy *is*, so it's exempt from needing to point at
-          // itself.
-          const planLane = lanes.find((l) => l.isProjectPlan) ?? null;
-          const categoryRequired = !lane.isProjectPlan;
           // The "Sin plan asignado" bucket is a fix-it surface for existing
           // orphans, not another place to author new phases — creating one
           // here couldn't have a Plan either, which the app never allows
@@ -511,49 +477,16 @@ export const ExplorerPanel = forwardRef<
               <div className={styles.addGroup}>
                 <p className={styles.sectionTitle}>{t.explorer.addPhaseSection}</p>
                 <div className={styles.addRow}>
-                  {lane.isProjectPlan ? (
-                    // The plan lane's own phases ARE the predefined lifecycle
-                    // stages (Settings → Fases de proyecto) — picking one sets
-                    // both the phase's title and its category together,
-                    // instead of typing a free title and then separately
-                    // picking an unexplained "Stage" that duplicated it.
-                    <>
-                      <select
-                        className={styles.textInput}
-                        value={newPhase.category}
-                        onChange={(e) => {
-                          const chosen = stageCategories.find((c) => c.id === e.target.value);
-                          setNewPhase((p) => ({ ...p, category: e.target.value, title: chosen?.label ?? "" }));
-                        }}
-                        aria-label={t.explorer.stagePickerAria}
-                      >
-                        <option value="">{t.explorer.stagePickerPlaceholder}</option>
-                        {stageCategories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
-                      {stageCategories.length === 0 && <p className={styles.fieldHint}>{t.explorer.stagePickerEmpty}</p>}
-                    </>
-                  ) : (
-                    <input
-                      className={styles.textInput}
-                      placeholder={t.explorer.phaseTitlePlaceholder}
-                      value={newPhase.title}
-                      onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
-                    />
-                  )}
+                  <input
+                    className={styles.textInput}
+                    placeholder={t.explorer.phaseTitlePlaceholder}
+                    value={newPhase.title}
+                    onChange={(e) => setNewPhase((p) => ({ ...p, title: e.target.value }))}
+                  />
                   <DateRangeField
                     startValue={newPhase.start}
                     endValue={newPhase.end}
-                    onChange={(start, end) => {
-                      const suggested =
-                        categoryRequired && start && end && !newPhase.category
-                          ? suggestCategory(fromISODate(start, startMonth), fromISODate(end, startMonth), planLane)
-                          : undefined;
-                      setNewPhase((p) => ({ ...p, start, end, category: suggested ?? p.category }));
-                    }}
+                    onChange={(start, end) => setNewPhase((p) => ({ ...p, start, end }))}
                     ariaLabel={t.explorer.dateRangeAria}
                   />
                   <select
@@ -568,33 +501,10 @@ export const ExplorerPanel = forwardRef<
                       </option>
                     ))}
                   </select>
-                  {categoryRequired && (
-                    <>
-                      <select
-                        className={styles.statusSelect}
-                        value={newPhase.category}
-                        onChange={(e) => setNewPhase((p) => ({ ...p, category: e.target.value }))}
-                        aria-label={t.explorer.categoryAria}
-                      >
-                        {!newPhase.category && <option value="">{t.explorer.categoryAria}…</option>}
-                        {stageCategories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
-                      <p className={styles.fieldHint}>
-                        {newPhase.category && newPhase.start && newPhase.end &&
-                        suggestCategory(fromISODate(newPhase.start, startMonth), fromISODate(newPhase.end, startMonth), planLane) === newPhase.category
-                          ? t.explorer.categorySuggested(stageCategories.find((c) => c.id === newPhase.category)?.label ?? newPhase.category)
-                          : t.explorer.categoryRequired}
-                      </p>
-                    </>
-                  )}
                   <button
                     type="button"
                     className={styles.addButton}
-                    disabled={(lane.isProjectPlan ? !newPhase.category : !newPhase.title.trim()) || !newPhase.start || !newPhase.end}
+                    disabled={!newPhase.title.trim() || !newPhase.start || !newPhase.end}
                     onClick={() => submitNewPhase(lane.id)}
                   >
                     <IconPlus /> {t.explorer.addButton}
@@ -618,7 +528,6 @@ export const ExplorerPanel = forwardRef<
                         <th>{t.explorer.tableTitle}</th>
                         <th colSpan={2}>{t.explorer.tableDateRange}</th>
                         <th>{t.explorer.tableStatus}</th>
-                        <th>{t.explorer.tableCategory}</th>
                         {isUnassignedBucket && planOptions.length > 0 && <th>{t.explorer.tablePlan}</th>}
                         <th aria-hidden="true" />
                         <th aria-hidden="true" />
@@ -658,27 +567,6 @@ export const ExplorerPanel = forwardRef<
                               {STATUS_OPTIONS.map((s) => (
                                 <option key={s} value={s}>
                                   {STATUS_LABELS[locale][s]}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td>
-                            <select
-                              className={styles.statusSelect}
-                              value={phase.category ?? ""}
-                              onChange={(e) => onUpdatePhase(lane.id, phase.id, { category: e.target.value || undefined })}
-                              aria-label={t.explorer.categoryAria}
-                            >
-                              {/* A team phase that's already linked can't be blanked back out
-                                  once categoryRequired — but a legacy phase that's still
-                                  unlinked keeps the option so there's a way to leave it as-is
-                                  while looking at the rest of the row. */}
-                              {(!categoryRequired || !phase.category) && (
-                                <option value="">{t.explorer.categoryNone}</option>
-                              )}
-                              {stageCategories.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.label}
                                 </option>
                               ))}
                             </select>
@@ -724,14 +612,14 @@ export const ExplorerPanel = forwardRef<
                       ))}
                       {visiblePhases.length === 0 && lane.phases.length > 0 && (
                         <tr>
-                          <td colSpan={7} className={styles.emptyCell}>
+                          <td colSpan={6} className={styles.emptyCell}>
                             {t.explorer.noPhaseMatch}
                           </td>
                         </tr>
                       )}
                       {lane.phases.length === 0 && (
                         <tr>
-                          <td colSpan={7} className={styles.emptyCell}>
+                          <td colSpan={6} className={styles.emptyCell}>
                             {t.explorer.noPhases}
                           </td>
                         </tr>

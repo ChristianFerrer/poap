@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
-import type { Plan, Project, StageCategoryDef } from "@/lib/portfolio";
+import type { Plan, Project } from "@/lib/portfolio";
 import { activitiesFor, type ActivityComment, type ActivitySeed } from "./mock-data";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { UndoToast } from "./UndoToast";
@@ -10,13 +10,11 @@ import { SyncErrorToast } from "./SyncErrorToast";
 import {
   deletePlanRow,
   deleteProjectRow,
-  deleteStageCategoryRow,
   errorMessage,
   fetchAppData,
   insertComment,
   insertPlan,
   insertProject,
-  insertStageCategory,
   renamePlanRow,
   setSyncErrorHandler,
   syncPhaseActivities,
@@ -27,7 +25,6 @@ import {
   updateProjectName,
   updateProjectNote,
   updateProjectSortOrder,
-  updateStageCategoryLabel,
   type ProgramRow,
 } from "@/lib/db";
 import { PROGRAM as FALLBACK_PROGRAM } from "./mock-data";
@@ -114,17 +111,7 @@ interface ProjectsContextValue {
    * key can't point at an activity that doesn't exist in the database
    * yet. */
   addComment: (phase: Phase, activityId: string, text: string) => void;
-  /** The live, user-editable stage lifecycle (Settings → Fases de
-   * proyecto) — what AddProjectPanel and ExplorerPanel's category picker
-   * offer, and what deriveProjectSummary aggregates by. Loaded from the
-   * database, freely renameable/extendable/deletable from here on; a
-   * Phase only ever stores a category *id*, so renaming one updates every
-   * phase's displayed stage for free. */
-  stageCategories: StageCategoryDef[];
-  addStageCategory: (label: string) => void;
-  renameStageCategory: (id: string, label: string) => void;
-  deleteStageCategory: (id: string) => void;
-  /** Every delete in the app (project/lane/phase/activity/gate/stage) goes
+  /** Every delete in the app (project/lane/phase/activity/gate) goes
    * through this instead of just mutating state — it's what lets a delete
    * happen instantly (no confirm dialog to click through) while still
    * being safe: the caller captures whatever it just removed and hands
@@ -187,7 +174,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [plansByLane, setPlansByLane] = useState<Record<string, Plan[]>>({});
   const [activitiesByPhase, setActivitiesByPhase] = useState<Record<string, ActivitySeed[]>>({});
   const [commentsByActivity, setCommentsByActivity] = useState<Record<string, ActivityComment[]>>({});
-  const [stageCategories, setStageCategories] = useState<StageCategoryDef[]>([]);
   const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -230,7 +216,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         setPlansByLane(data.plansByLane);
         setActivitiesByPhase(data.activitiesByPhase);
         setCommentsByActivity(data.commentsByActivity);
-        setStageCategories(data.stageCategories);
       })
       .catch((error) => {
         // eslint-disable-next-line no-console
@@ -524,36 +509,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  function addStageCategory(label: string) {
-    const trimmed = label.trim();
-    if (!trimmed) return;
-    const category: StageCategoryDef = { id: crypto.randomUUID(), label: trimmed };
-    const sortOrder = stageCategories.length;
-    setStageCategories((prev) => [...prev, category]);
-    void insertStageCategory(category, sortOrder);
-  }
-
-  function renameStageCategory(id: string, label: string) {
-    setStageCategories((prev) => prev.map((c) => (c.id === id ? { ...c, label } : c)));
-    void updateStageCategoryLabel(id, label);
-  }
-
-  function deleteStageCategory(id: string) {
-    const index = stageCategories.findIndex((c) => c.id === id);
-    if (index === -1) return;
-    const removed = stageCategories[index]!;
-    setStageCategories((prev) => prev.filter((c) => c.id !== id));
-    void deleteStageCategoryRow(id);
-    announceUndo(t.undo.stageDeleted(removed.label), () => {
-      setStageCategories((prev) => {
-        const next = [...prev];
-        next.splice(index, 0, removed);
-        return next;
-      });
-      void insertStageCategory(removed, index);
-    });
-  }
-
   return (
     <ProjectsContext.Provider
       value={{
@@ -581,10 +536,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         updatePhaseActivities,
         commentsByActivity,
         addComment,
-        stageCategories,
-        addStageCategory,
-        renameStageCategory,
-        deleteStageCategory,
         pendingUndo,
         announceUndo,
         consumeUndo,

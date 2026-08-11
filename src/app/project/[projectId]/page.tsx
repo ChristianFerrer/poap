@@ -7,7 +7,6 @@ import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
 import {
   derivePlanAggregateBars,
-  findLinkageIssues,
   findUnassignedPlanIssues,
   groupPhasesByPlan,
   UNASSIGNED_PLAN_ID,
@@ -95,8 +94,6 @@ function ProjectView({ project }: { project: Project }) {
   const {
     program,
     updateProgram,
-    projects,
-    deleteProject,
     renameProject,
     setProjectLanes,
     setProjectGates,
@@ -109,10 +106,6 @@ function ProjectView({ project }: { project: Project }) {
     reorderPlans,
     commentsByActivity,
     addComment,
-    stageCategories,
-    addStageCategory,
-    renameStageCategory,
-    deleteStageCategory,
     announceUndo,
   } = useProjects();
   const {
@@ -152,17 +145,6 @@ function ProjectView({ project }: { project: Project }) {
   // bucket) rather than just opening the lanes list generically.
   const notificationAlerts: NotificationAlert[] = useMemo(() => {
     const alerts: NotificationAlert[] = [];
-    const planLane = lanes.find((l) => l.isProjectPlan) ?? null;
-    if (planLane) {
-      for (const issue of findLinkageIssues(lanes)) {
-        alerts.push({
-          id: `category-${issue.phaseId}`,
-          message: t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name),
-          actionLabel: t.linkage.fixButton,
-          onAction: () => openExplorer({ level: "phases", laneId: issue.laneId }),
-        });
-      }
-    }
     for (const issue of findUnassignedPlanIssues(lanes, plansByLane)) {
       alerts.push({
         id: `plan-${issue.phaseId}`,
@@ -352,10 +334,9 @@ function ProjectView({ project }: { project: Project }) {
 
   // `lanes` ExplorerPanel actually edits against — real project lanes for
   // the top level, or (while drilled in) that Equipo's Planes-as-lanes
-  // synthetic view *plus* the real lanes, so category-suggestion can still
-  // find the real isProjectPlan anchor lane. See handleAddPhase/
-  // handleUpdatePhase/handleDeletePhase for how a mutation on one of these
-  // synthetic ids gets redirected back to the real lane it belongs to.
+  // synthetic view. See handleAddPhase/handleUpdatePhase/handleDeletePhase
+  // for how a mutation on one of these synthetic ids gets redirected back
+  // to the real lane it belongs to.
   const explorerLanes: Lane[] = (() => {
     if (drill?.level === "equipo") {
       const lane = lanes.find((l) => l.id === drill.laneId);
@@ -551,7 +532,7 @@ function ProjectView({ project }: { project: Project }) {
     }
     addPhase(laneId, phase);
   }
-  function handleUpdatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "category" | "planId">>) {
+  function handleUpdatePhase(laneId: string, phaseId: string, patch: Partial<Pick<Phase, "title" | "start" | "end" | "status" | "planId">>) {
     updatePhase(drill ? drill.laneId : laneId, phaseId, patch);
   }
   function handleDeletePhase(laneId: string, phaseId: string) {
@@ -629,16 +610,6 @@ function ProjectView({ project }: { project: Project }) {
     });
   }
 
-  // Deleting the project currently being viewed can't just update state
-  // and stay put — this page's own `project` lookup would immediately
-  // start failing every render — so it navigates back to the Program page
-  // in the same action. Deleting any other project from here (Settings
-  // lists every project, not just this one) just updates state in place.
-  function handleDeleteProject(id: string) {
-    deleteProject(id);
-    if (id === project.id) router.push("/");
-  }
-
   const sidebarActive: SidebarActive = settingsOpen
     ? "settings"
     : gatesPanelOpen
@@ -689,7 +660,6 @@ function ProjectView({ project }: { project: Project }) {
       lanes={explorerLanes}
       startMonth={program.startMonth}
       view={explorer}
-      stageCategories={stageCategories}
       getActivities={getActivities}
       onNavigate={setExplorer}
       onClose={sidePanel.closePanel}
@@ -740,16 +710,8 @@ function ProjectView({ project }: { project: Project }) {
       onShowWeekendsChange={settings.setShowWeekends}
       showToday={settings.showToday}
       onShowTodayChange={settings.setShowToday}
-      flagUncategorizedPhases={settings.flagUncategorizedPhases}
-      onFlagUncategorizedPhasesChange={settings.setFlagUncategorizedPhases}
-      stageCategories={stageCategories}
-      onAddStageCategory={addStageCategory}
-      onRenameStageCategory={renameStageCategory}
-      onDeleteStageCategory={deleteStageCategory}
       program={program}
       onUpdateProgram={updateProgram}
-      projects={projects}
-      onDeleteProject={handleDeleteProject}
       onClose={sidePanel.closePanel}
     />
   ) : null;

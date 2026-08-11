@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
-import type { Plan, Project, StageCategoryDef } from "@/lib/portfolio";
+import type { Plan, Project } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "@/app/mock-data";
 
 /**
@@ -68,13 +68,11 @@ interface AppData {
   plansByLane: Record<string, Plan[]>;
   activitiesByPhase: Record<string, ActivitySeed[]>;
   commentsByActivity: Record<string, ActivityComment[]>;
-  stageCategories: StageCategoryDef[];
 }
 
 export async function fetchAppData(): Promise<AppData> {
   const [
     { data: programRows, error: programError },
-    { data: stageCategoryRows, error: stageCategoriesError },
     { data: projectRows, error: projectsError },
     { data: laneRows, error: lanesError },
     { data: planRows, error: plansError },
@@ -84,7 +82,6 @@ export async function fetchAppData(): Promise<AppData> {
     { data: commentRows, error: commentsError },
   ] = await Promise.all([
     supabase.from("programs").select("*").limit(1),
-    supabase.from("stage_categories").select("*").order("sort_order"),
     supabase.from("projects").select("*").order("sort_order"),
     supabase.from("lanes").select("*").order("sort_order"),
     supabase.from("plans").select("*").order("sort_order"),
@@ -94,8 +91,7 @@ export async function fetchAppData(): Promise<AppData> {
     supabase.from("activity_comments").select("*").order("created_at"),
   ]);
 
-  const firstError =
-    programError || stageCategoriesError || projectsError || lanesError || plansError || phasesError || gatesError || activitiesError || commentsError;
+  const firstError = programError || projectsError || lanesError || plansError || phasesError || gatesError || activitiesError || commentsError;
   if (firstError) throw firstError;
 
   const plansByLane: Record<string, Plan[]> = {};
@@ -109,8 +105,6 @@ export async function fetchAppData(): Promise<AppData> {
     ? { id: programRow.id, name: programRow.name, startMonth: programRow.start_month, months: programRow.months }
     : null;
 
-  const stageCategories: StageCategoryDef[] = (stageCategoryRows ?? []).map((r) => ({ id: r.id, label: r.label }));
-
   const phasesByLane = new Map<string, Phase[]>();
   for (const r of phaseRows ?? []) {
     const phase: Phase = {
@@ -119,7 +113,6 @@ export async function fetchAppData(): Promise<AppData> {
       start: r.start_day,
       end: r.end_day,
       status: r.status as PhaseStatus,
-      category: r.category ?? undefined,
       planId: r.plan_id ?? undefined,
       subLane: r.sub_lane ?? undefined,
       owners: r.owners ?? undefined,
@@ -179,7 +172,7 @@ export async function fetchAppData(): Promise<AppData> {
     (activitiesByPhase[r.phase_id] ??= []).push(activity);
   }
 
-  return { program, projects, plansByLane, activitiesByPhase, commentsByActivity, stageCategories };
+  return { program, projects, plansByLane, activitiesByPhase, commentsByActivity };
 }
 
 // ---------------------------------------------------------------------
@@ -292,7 +285,6 @@ function phaseToRow(phase: Phase, laneId: string) {
     start_day: phase.start,
     end_day: phase.end,
     status: phase.status,
-    category: phase.category ?? null,
     plan_id: phase.planId ?? null,
     sub_lane: phase.subLane ?? null,
     owners: phase.owners ?? null,
@@ -408,38 +400,6 @@ export async function syncProjectGates(projectId: string, prevGates: Gate[], nex
     }
   } catch (error) {
     logFailure(`syncProjectGates(${projectId})`, error);
-  }
-}
-
-// ---------------------------------------------------------------------
-// Stage categories — already granular per-call-site handlers, so plain
-// targeted inserts/updates/deletes rather than a diffed collection.
-// ---------------------------------------------------------------------
-
-export async function insertStageCategory(category: StageCategoryDef, sortOrder: number) {
-  try {
-    const { error } = await supabase.from("stage_categories").insert({ id: category.id, label: category.label, sort_order: sortOrder });
-    if (error) throw error;
-  } catch (error) {
-    logFailure(`insertStageCategory(${category.id})`, error);
-  }
-}
-
-export async function updateStageCategoryLabel(id: string, label: string) {
-  try {
-    const { error } = await supabase.from("stage_categories").update({ label }).eq("id", id);
-    if (error) throw error;
-  } catch (error) {
-    logFailure(`updateStageCategoryLabel(${id})`, error);
-  }
-}
-
-export async function deleteStageCategoryRow(id: string) {
-  try {
-    const { error } = await supabase.from("stage_categories").delete().eq("id", id);
-    if (error) throw error;
-  } catch (error) {
-    logFailure(`deleteStageCategoryRow(${id})`, error);
   }
 }
 
