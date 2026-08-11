@@ -176,7 +176,10 @@
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 20;
+  /* Above the NotificationBell's own z-index (30, see that component) —
+     every detail panel should sit on top of the bell, not the other way
+     around, so an open panel is never partially covered by it. */
+  z-index: 31;
   display: flex;
   background: var(--color-surface);
   border-left: 1px solid var(--color-line);

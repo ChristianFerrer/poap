@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import {
-  IconAlertTriangle,
   IconChevronLeft,
   IconChevronRight,
   IconGateDiamond,
@@ -32,8 +31,6 @@ export function Sidebar({
   onGates,
   onImport,
   onSettings,
-  issuesCount = 0,
-  onIssuesClick,
   collapsed,
   onToggleCollapsed,
 }: {
@@ -45,13 +42,6 @@ export function Sidebar({
    * the first place, on both the Program and Project pages. */
   onImport: () => void;
   onSettings: () => void;
-  /** Count of tracks missing a required parent (no plan-lane category, or
-   * no Plan) — rendered as a permanent badge in the rail itself rather
-   * than inside any one panel, so it can never be closed, buried, or
-   * covered by an open panel. Omit (or 0) to render nothing; the Program
-   * page has no lanes of its own yet, so it simply never passes this. */
-  issuesCount?: number;
-  onIssuesClick?: () => void;
   /** Desktop-only rail width toggle (icon+label vs. icon-only) — the
    * caller owns persisting it (see useAppSettings), this component only
    * renders whichever state it's told. Meaningless below the mobile
@@ -107,19 +97,6 @@ export function Sidebar({
       ))}
 
       <span className={styles.spacer} aria-hidden="true" />
-
-      {issuesCount > 0 && onIssuesClick && (
-        <button
-          type="button"
-          className={styles.issuesButton}
-          onClick={onIssuesClick}
-          aria-label={t.linkage.bannerTitle + " — " + t.linkage.count(issuesCount)}
-          title={t.linkage.bannerTitle}
-        >
-          <IconAlertTriangle />
-          <span className={styles.issuesCount}>{issuesCount}</span>
-        </button>
-      )}
 
       <button
         type="button"

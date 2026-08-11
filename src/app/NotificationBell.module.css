@@ -1,10 +1,14 @@
 /* Fixed to the viewport corner (like .sidePanel/.sidebar, not part of any
-   one page's own header flow) and given a higher z-index than the side
-   panel (20) — "permanente" means visible above an open panel too, not
-   just present when the header row has room for it (the Import button
-   right next to it on the Project page hides for exactly that overlap
-   reason; this one deliberately doesn't). The bell itself is positioned
-   relatively so NotificationsPopup can anchor directly under it. */
+   one page's own header flow) — "permanente" means visible on every
+   screen regardless of what else is open, not just present when the
+   header row has room for it (the Import button right next to it on the
+   Project page hides for exactly that overlap reason; this one
+   deliberately doesn't). It sits *below* any open detail panel (see
+   .sidePanel's own z-index, 31 > this 30) — a panel covering the bell is
+   fine, since the panel is the thing actually in focus; the bell just
+   needs to stay above the ordinary page chrome underneath it. The bell
+   itself is positioned relatively so NotificationsPopup can anchor
+   directly under it. */
 .root {
   position: fixed;
   top: 16px;

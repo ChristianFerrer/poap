@@ -243,7 +243,6 @@ const es = {
       `En el swimline "${laneName}", la fase "${phaseTitle}" no tiene un Plan asignado. Para solucionarlo, entrá al equipo "${laneName}" y asignale un Plan.`,
     fixButton: "Ir a la fase",
     planFixButton: "Ir al equipo",
-    count: (n: number) => (n === 1 ? "1 pendiente" : `${n} pendientes`),
     empty: "No hay vínculos pendientes.",
   },
   notifications: {
@@ -514,7 +513,6 @@ const en: Translations = {
       `In swimline "${laneName}", phase "${phaseTitle}" has no Plan assigned. To fix it, go into "${laneName}" and assign it a Plan.`,
     fixButton: "Go to phase",
     planFixButton: "Go to team",
-    count: (n) => (n === 1 ? "1 pending" : `${n} pending`),
     empty: "No pending links.",
   },
   notifications: {

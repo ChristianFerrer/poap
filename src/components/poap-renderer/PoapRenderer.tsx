@@ -1097,26 +1097,30 @@ export function PoapRenderer({
             style={{ height: rulerHeight + BADGE_STRIP_HEIGHT }}
           />
           {planPackedLanes.map(renderLaneLabel)}
-          <div
-            className={`${styles.labelCell} ${styles.gatesLabelCell}`}
-            style={{ height: gateRowHeight }}
-          >
-            {/* Same left indent as a lane row's own leading elements (drag
-                handle + add-below button, whichever the caller actually
-                renders) and the same laneLabelText styling, so "Stage
-                gates" reads as one more row in the same list rather than a
-                visually distinct heading. The name itself is plain text,
-                not a button — this row never "drills" anywhere the way a
-                lane's own name can, so it doesn't get that row's hover-
-                active affordance; the Gantt button below is the one real
-                way to open its own detail panel, same as every other
-                row's own Gantt shortcut. */}
-            {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
-            {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
-            <span className={styles.gatesLabelText}>
-              <span className={styles.laneLabelText}>{strings.stageGates}</span>
-            </span>
-            {onGatesLabelClick && (
+          {onGatesLabelClick && (
+            <div
+              className={`${styles.labelCell} ${styles.gatesLabelCell}`}
+              style={{ height: gateRowHeight }}
+            >
+              {/* Same left indent as a lane row's own leading elements (drag
+                  handle + add-below button, whichever the caller actually
+                  renders) and the same laneLabelText styling, so "Stage
+                  gates" reads as one more row in the same list rather than a
+                  visually distinct heading. The name itself is plain text,
+                  not a button — this row never "drills" anywhere the way a
+                  lane's own name can, so it doesn't get that row's hover-
+                  active affordance; the Gantt button below is the one real
+                  way to open its own detail panel, same as every other
+                  row's own Gantt shortcut. Gated on onGatesLabelClick — the
+                  only caller that passes it is the Project page's own
+                  canvas, since stage gates belong to a single project, not
+                  a Program-page row of whole projects (see that page's own
+                  <PoapRenderer> call, which never passes this prop). */}
+              {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
+              {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
+              <span className={styles.gatesLabelText}>
+                <span className={styles.laneLabelText}>{strings.stageGates}</span>
+              </span>
               <span className={styles.laneRowActions}>
                 <button
                   type="button"
@@ -1128,8 +1132,8 @@ export function PoapRenderer({
                   <IconGantt />
                 </button>
               </span>
-            )}
-          </div>
+            </div>
+          )}
           {teamPackedLanes.map(renderLaneLabel)}
         </div>
 
@@ -1259,31 +1263,33 @@ export function PoapRenderer({
 
             {planPackedLanes.map(renderLaneTrack)}
 
-            <div className={styles.gatesTrack} style={{ height: gateRowHeight }}>
-              {sortedGates.map((gate) => {
-                const active = activeGateIds.has(gate.id);
-                return (
-                  <button
-                    key={gate.id}
-                    type="button"
-                    className={`${styles.gate} ${active ? styles.gateActive : ""}`}
-                    style={{ left: pct(gate.position, scale), top: gateOffsets[gate.id] }}
-                    onClick={() => onGateClick?.(gate.id)}
-                    onMouseMove={(e) => showGateTooltip(e, gate)}
-                    onMouseLeave={() => setGateTooltip(null)}
-                    onFocus={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      showGateTooltip({ clientX: rect.left, clientY: rect.bottom }, gate);
-                    }}
-                    onBlur={() => setGateTooltip(null)}
-                    aria-pressed={active}
-                  >
-                    <span className={styles.gateDiamond} aria-hidden="true" />
-                    <span className={styles.gateLabel}>{gate.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {onGatesLabelClick && (
+              <div className={styles.gatesTrack} style={{ height: gateRowHeight }}>
+                {sortedGates.map((gate) => {
+                  const active = activeGateIds.has(gate.id);
+                  return (
+                    <button
+                      key={gate.id}
+                      type="button"
+                      className={`${styles.gate} ${active ? styles.gateActive : ""}`}
+                      style={{ left: pct(gate.position, scale), top: gateOffsets[gate.id] }}
+                      onClick={() => onGateClick?.(gate.id)}
+                      onMouseMove={(e) => showGateTooltip(e, gate)}
+                      onMouseLeave={() => setGateTooltip(null)}
+                      onFocus={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        showGateTooltip({ clientX: rect.left, clientY: rect.bottom }, gate);
+                      }}
+                      onBlur={() => setGateTooltip(null)}
+                      aria-pressed={active}
+                    >
+                      <span className={styles.gateDiamond} aria-hidden="true" />
+                      <span className={styles.gateLabel}>{gate.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {teamPackedLanes.map(renderLaneTrack)}
 

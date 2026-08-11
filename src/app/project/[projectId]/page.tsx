@@ -143,10 +143,10 @@ function ProjectView({ project }: { project: Project }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
-  const linkageIssueCount = findLinkageIssues(lanes).length + findUnassignedPlanIssues(lanes, plansByLane).length;
 
-  // Same two issue sources as linkageIssueCount above, expanded into the
-  // notification bell's own popup list — each alert keeps the deep-link
+  // Same two issue sources the old Sidebar corner badge used to tally,
+  // expanded into the notification bell's own popup list — each alert
+  // keeps the deep-link
   // navigation the old in-panel LinkageBanner used (straight to the
   // offending lane's phases, or into the Equipo's "Sin plan asignado"
   // bucket) rather than just opening the lanes list generically.
@@ -762,8 +762,6 @@ function ProjectView({ project }: { project: Project }) {
         onGates={openGatesPanel}
         onImport={openImportPanel}
         onSettings={openSettingsPanel}
-        issuesCount={linkageIssueCount}
-        onIssuesClick={() => openExplorer({ level: "lanes" })}
         collapsed={settings.sidebarCollapsed}
         onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
       />
