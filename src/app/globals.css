@@ -71,6 +71,18 @@
   --today-line: #c6ff00;
   --accent-live-ink: #10210a; /* readable text/icon color set against --today-line fills */
 
+  /* Swimline row chip system (PoapRenderer's .laneLabel/.gatesLabelCell and
+     their drag/+/Gantt/delete controls) — three flat steps, darkest to
+     lightest: the row's own resting background, its controls' slightly
+     darker resting "chip" background, and the hover state both the drag
+     handle and the row-name button land on. Kept as their own tokens
+     rather than reusing --color-surface2/--color-line since the light-theme
+     values were specified as exact hex against a reference mockup, not
+     derived from the existing surface scale. */
+  --color-row-bg: var(--color-surface2);
+  --color-row-chip-bg: color-mix(in srgb, var(--color-surface2) 88%, var(--color-fog) 12%);
+  --color-row-hover-bg: color-mix(in srgb, var(--color-surface2) 74%, var(--color-fog) 26%);
+
   --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
   --shadow-lime: 0 10px 40px -12px rgba(198, 242, 78, 0.4);
   /* The two other shadow recipes actually reused across the app (found
@@ -83,6 +95,11 @@
   /* Radius scale — spec names (rounded-lg/xl/2xl/3xl), not this app's old
      xs/sm/md/lg, so a glance at a value here maps straight onto the spec
      table (§5.1) instead of needing a lookup. */
+  /* Sits between -dot and -lg — for a control too narrow/short for -lg's
+     8px to read as a rounded rectangle rather than a pill/circle (e.g. the
+     swimline row's drag-handle and half-height Gantt/delete chips, whose
+     shortest side only clears ~20px even at the row's min-height floor). */
+  --radius-md: 6px;
   --radius-lg: 8px; /* icon buttons, chips, small cells */
   --radius-xl: 12px; /* buttons, inputs, cards */
   --radius-2xl: 16px; /* panels, modals, section containers */
@@ -192,6 +209,13 @@
 
   --shadow-soft: 0 1px 2px rgba(20, 22, 26, 0.06), 0 12px 32px -16px rgba(20, 22, 26, 0.12);
   --shadow-lime: 0 10px 32px -14px rgba(29, 209, 161, 0.35);
+
+  /* Swimline row chip system — exact hex from the reference mockup, not
+     derived from --color-surface2 (see the :root block's own comment on
+     this trio). */
+  --color-row-bg: #f5f5f6;
+  --color-row-chip-bg: #ebebed;
+  --color-row-hover-bg: #d9d9d9;
 }
 
 * {

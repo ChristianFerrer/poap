@@ -25,6 +25,7 @@ import {
   GATE_SHIFT_PX,
   LABEL_COL_WIDTH,
   LANE_PADDING_Y,
+  MIN_LANE_ROW_HEIGHT,
   MONTH_ROW_HEIGHT,
   ROW_GAP,
   SUB_ROW_HEIGHT,
@@ -372,7 +373,8 @@ function hoverCellRange(axis: number, zoomKey: ZoomLevel["key"], startMonth: str
 
 function laneRowHeight(rowCount: number): number {
   const rows = Math.max(rowCount, 1);
-  return LANE_PADDING_Y * 2 + rows * BAR_HEIGHT + (rows - 1) * ROW_GAP;
+  const packed = LANE_PADDING_Y * 2 + rows * BAR_HEIGHT + (rows - 1) * ROW_GAP;
+  return Math.max(packed, MIN_LANE_ROW_HEIGHT);
 }
 
 function formatAxisDate(position: number, startMonth: string, monthAbbr: string[]): string {

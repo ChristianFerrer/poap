@@ -10,6 +10,15 @@ export const ROW_GAP = 2;
 // needs enough headroom for two small stacked buttons (16px each + a 2px
 // gap = 34px), not just one bar.
 export const LANE_PADDING_Y = 9;
+/** Floor for a lane row's total height (label + track together, see
+ * laneRowHeight in the .tsx) — a single-bar row's packed height (35px)
+ * left only ~11px for each of the stacked Gantt/delete buttons after the
+ * row's own 5px inset, squishing them into slivers. 52px leaves each
+ * stacked half ~20px tall, enough for --radius-md (6px) to still read as
+ * a rounded rectangle rather than rounding all the way into a pill. Only
+ * ever raises the height; rows already packing multiple bars are
+ * untouched. */
+export const MIN_LANE_ROW_HEIGHT = 52;
 export const BAR_RADIUS = 3;
 export const BAR_FONT_SIZE = 11;
 export const GATE_COLLISION_PX = 60;

@@ -306,10 +306,7 @@
 }
 .gatesLabelCell {
   gap: 2px;
-  background: var(--color-surface2);
-}
-.gatesLabelCell:hover {
-  background: color-mix(in srgb, var(--color-surface2) 86%, var(--color-fog) 14%);
+  background: var(--color-row-bg);
 }
 /* Matches .leadingButton's width so "Stage gates" starts at the exact same
    x-position as a lane name (which sits after its own leading button +
@@ -336,7 +333,13 @@
   font: inherit;
   color: inherit;
   text-align: left;
-  padding: 0 4px 0 0;
+  padding: 0 6px;
+  transition: background-color 0.12s ease;
+}
+/* The row's own name/label is the hover target now, not the whole row
+   (see .laneNameButton's matching comment) — scoped to just this box. */
+.gatesLabelButton:hover {
+  background: var(--color-row-hover-bg);
 }
 /* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
    equivalent spacer on the label-column side, so the two stay visually
@@ -568,17 +571,7 @@
   gap: 2px;
   width: 100%;
   padding: 5px;
-  background: var(--color-surface2);
-}
-/* Whole-row hover cue — every part of the row (not just the name text)
-   darkens the instant the mouse enters it, signaling "this is
-   actionable". 14% fog mixed into the row's own resting surface2 is
-   .hoverCellHighlight's 10% tint bumped 40% more opaque, the same tint
-   family already used for hover feedback elsewhere on the canvas, just
-   stronger here since a whole row is a bigger click target than a
-   single day cell. */
-.laneLabel:hover {
-  background: color-mix(in srgb, var(--color-surface2) 86%, var(--color-fog) 14%);
+  background: var(--color-row-bg);
 }
 /* The one lane per project holding its high-level, cross-team plan (see
    Lane.isProjectPlan) — a soft brand-color wash instead of a plain label
@@ -620,11 +613,17 @@
   justify-content: center;
   width: 14px;
   height: 100%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-dot);
+  background: var(--color-row-chip-bg);
+  /* --radius-md, not the app's usual --radius-lg — at only 14px wide,
+     -lg's 8px would round both side edges into a full semicircle, turning
+     this into a pill instead of a rounded rectangle. */
+  border-radius: var(--radius-md);
   color: var(--color-fog);
   cursor: grab;
+  transition: background-color 0.12s ease;
+}
+.dragHandle:hover {
+  background: var(--color-row-hover-bg);
 }
 /* Reserves the same width on a non-draggable (anchor) row so every lane's
    name still starts at the same x-position, same idea as
@@ -647,22 +646,19 @@
   justify-content: center;
   width: 18px;
   height: 100%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  /* Same radius as .dragHandle/.ganttButton/.deleteLaneButton (radius-dot,
-     not the app's usual radius-lg) — at half the row's height the latter
-     two would round into a pill if they used radius-lg, so radius-dot is
-     the one value all of a row's controls can share and still read as
-     rectangles, not circles. */
-  border-radius: var(--radius-dot);
+  background: var(--color-row-chip-bg);
+  /* Same --radius-md as .dragHandle/.ganttButton/.deleteLaneButton — every
+     control on a row shares one shape, sized so it stays a rounded
+     rectangle instead of a pill even on the narrowest/shortest of them
+     (see .dragHandle's own comment on why -lg doesn't work here). */
+  border-radius: var(--radius-md);
   color: var(--color-fog);
   cursor: pointer;
   padding: 0;
-  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 .leadingButton:hover {
   background: var(--color-lime);
-  border-color: var(--color-lime);
   color: var(--color-surface);
 }
 /* 18px is fine for a mouse but under the touch-target floor on a phone —
@@ -675,6 +671,11 @@
     width: 24px;
   }
 }
+/* Its own independently-hoverable button now, not just text sitting on
+   whatever the row's own background happens to be — hovering the name
+   itself is what shows a hover cue, instead of the entire row (drag
+   handle, +, Gantt/delete included) darkening together the moment the
+   cursor enters anywhere in it. */
 .laneNameButton {
   flex: 1 1 auto;
   min-width: 0;
@@ -687,7 +688,11 @@
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  padding: 0 4px 0 0;
+  padding: 0 6px;
+  transition: background-color 0.12s ease;
+}
+.laneNameButton:hover {
+  background: var(--color-row-hover-bg);
 }
 /* The Gantt shortcut and delete button together mirror .leadingButton's
    own silhouette — a rounded-rect column flush against the row's right
@@ -718,16 +723,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-line);
-  /* Same radius as .dragHandle/.leadingButton (radius-dot) — every
-     control on a row (+, Gantt, delete) shares one shape. */
-  border-radius: var(--radius-dot);
-  background: var(--color-surface);
+  /* Same --radius-md as .dragHandle/.leadingButton (see that comment) —
+     every control on a row shares one shape, and even at half the row's
+     height this slot stays a rounded rectangle instead of a circle. */
+  border-radius: var(--radius-md);
+  background: var(--color-row-chip-bg);
   color: var(--color-fog);
 }
 .ganttButton:hover {
   background: var(--color-iris);
-  border-color: var(--color-iris);
   color: var(--color-surface);
 }
 /* Never rendered on the isProjectPlan anchor lane (see the .tsx) — deleting
@@ -742,14 +746,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-dot);
-  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  background: var(--color-row-chip-bg);
   color: var(--color-fog);
 }
 .deleteLaneButton:hover {
   background: var(--color-rose);
-  border-color: var(--color-rose);
   color: var(--color-surface);
 }
 /* Replaces the Gantt/delete buttons once a delete is armed (see
