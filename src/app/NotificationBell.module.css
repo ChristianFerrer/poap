@@ -1,0 +1,40 @@
+/* Fixed to the viewport corner (like .sidePanel/.sidebar, not part of any
+   one page's own header flow) and given a higher z-index than the side
+   panel (20) — "permanente" means visible above an open panel too, not
+   just present when the header row has room for it (the Import button
+   right next to it on the Project page hides for exactly that overlap
+   reason; this one deliberately doesn't). */
+.bell {
+  composes: iconBtn iconBtnLg iconBtnNeutral from "./buttons.module.css";
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 30;
+  background: var(--color-surface);
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-rose);
+  color: var(--color-surface);
+  font-size: var(--text-3xs);
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: var(--shadow-badge);
+}
+
+@media (max-width: 640px) {
+  .bell {
+    top: 10px;
+    right: 12px;
+  }
+}

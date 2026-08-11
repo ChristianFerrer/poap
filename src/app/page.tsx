@@ -10,6 +10,7 @@ import { ExecutiveSummary } from "./ExecutiveSummary";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { ImportPanel, importedLanesToLanes } from "./ImportPanel";
 import type { ParseResult } from "@/lib/importExcel";
+import { NotificationBell } from "./NotificationBell";
 import { SettingsPanel } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
 import { useAppSettings } from "./useAppSettings";
@@ -46,20 +47,17 @@ function ProjectGanttPanel({
   // Opens straight to the project's high-level plan (Design/Build/SIT/
   // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
   // what the Gantt button next to a project name on the Program page is
-  // for. Falls back to the lanes list for a project that doesn't have a
-  // plan lane yet (shouldn't happen for anything created via the canvas's
-  // own "+" button, but older/imported data may not have one), or that
-  // has team-lane linkage issues (an uncategorized/mismatched phase —
-  // exactly what shows up as its own amber warning bar on the Program
-  // page's summary row): those phases live outside the plan lane, so
-  // jumping straight to the plan lane's own phases would land on a list
-  // that's missing the very bars the user came here to find. The lanes
-  // list surfaces them (and a "Fix" link straight to their real lane) via
-  // its own linkage banner instead.
+  // for, and the exact same view clicking that plan lane's own name or its
+  // own Gantt shortcut lands on from inside the project page itself (see
+  // handleLaneClick there). Only falls back to the lanes list for a
+  // project that doesn't have a plan lane yet at all (shouldn't happen for
+  // anything created via the canvas's own "+" button, but older/imported
+  // data may not have one) — team-lane linkage issues no longer divert
+  // this to the lanes list; the plan lane's own phases view surfaces that
+  // same warning now too (see ExplorerPanel's LinkageBanner usage), so
+  // every entry point to this lane agrees on which panel it opens.
   const planLane = project.lanes.find((l) => l.isProjectPlan);
-  const hasLinkageIssues = findLinkageIssues(project.lanes).length > 0;
-  const initialView: ExplorerView =
-    planLane && !hasLinkageIssues ? { level: "phases", laneId: planLane.id } : { level: "lanes" };
+  const initialView: ExplorerView = planLane ? { level: "phases", laneId: planLane.id } : { level: "lanes" };
   const {
     explorer,
     setExplorer,
@@ -136,6 +134,7 @@ export default function ProgramPage() {
     addStageCategory,
     renameStageCategory,
     deleteStageCategory,
+    plansByLane,
   } = useProjects();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -147,6 +146,26 @@ export default function ProgramPage() {
     [projects, stageCategories, settings.flagUncategorizedPhases],
   );
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
+
+  // Program-wide count of the same "needs attention" issues each project
+  // already surfaces on its own page (see the Project page's own
+  // linkageIssueCount) — real data, not a placeholder, just summed across
+  // every project instead of scoped to one.
+  const notificationCount = useMemo(
+    () =>
+      projects.reduce(
+        (sum, project) =>
+          sum + findLinkageIssues(project.lanes).length + findUnassignedPlanIssues(project.lanes, plansByLane).length,
+        0,
+      ),
+    [projects, plansByLane],
+  );
+  function openFirstFlaggedProject() {
+    const flagged = projects.find(
+      (project) => findLinkageIssues(project.lanes).length > 0 || findUnassignedPlanIssues(project.lanes, plansByLane).length > 0,
+    );
+    if (flagged) openGanttPanel(flagged.id);
+  }
 
   const anyPanelOpen = settingsOpen || importOpen || Boolean(ganttProject);
 
@@ -276,6 +295,7 @@ export default function ProgramPage() {
         collapsed={settings.sidebarCollapsed}
         onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
       />
+      <NotificationBell count={notificationCount} onClick={openFirstFlaggedProject} />
       <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>

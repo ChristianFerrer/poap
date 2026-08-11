@@ -42,6 +42,11 @@
   gap: 16px;
   flex-wrap: wrap;
   flex: 0 0 auto;
+  /* Clears the fixed, viewport-anchored NotificationBell (top:16/right:20,
+     28px square — see NotificationBell.module.css) — without this, the
+     Project page's "Importar desde Excel" button (right-aligned in this
+     same row) sits directly under it. */
+  padding-right: 56px;
 }
 
 .headerActions {
@@ -222,6 +227,11 @@
   }
   .meta {
     margin-bottom: 10px;
+  }
+  /* Matches the bell's own smaller mobile offset (top:10/right:12 — see
+     NotificationBell.module.css). */
+  .headerRow {
+    padding-right: 44px;
   }
   /* Stop the full-screen panel (see the 900px rule below) from sitting
      underneath the bottom tab bar it would otherwise overlap now that the

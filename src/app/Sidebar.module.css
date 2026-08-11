@@ -23,6 +23,46 @@
   padding: 16px 8px;
 }
 
+/* The app's own brand mark, static (not a nav button — no click target,
+   no hover state) — "ver el bosque, no el árbol": this rail exists to
+   move between the whole program and one project's detail, so the logo
+   itself is a tree, not a building or a grid glyph. Sits above every
+   destination button, never collapsing away entirely (the icon stays
+   even in .sidebarCollapsed, same rule every .navButton icon follows). */
+.logo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  height: 44px;
+  margin-bottom: 4px;
+  color: var(--color-lime-deep, var(--color-lime));
+}
+.sidebarCollapsed .logo {
+  justify-content: center;
+  padding: 0;
+}
+.logoText {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-snow);
+  white-space: nowrap;
+}
+.sidebarCollapsed .logoText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Icon + label side by side, not stacked — reads as a normal nav list
    instead of a row of dense little tiles, and the label sits at the same
    text-sm size as ordinary body copy elsewhere in the app rather than the
@@ -193,6 +233,12 @@
      just another item in the centered row — nothing needs pushing to a
      "far corner" the way it did in the vertical rail. */
   .spacer {
+    display: none;
+  }
+  /* A logo mark makes sense at the top of a vertical rail; a bottom tab
+     bar has no "top" for it to anchor to, and the space is worth more as
+     nav buttons on a phone. */
+  .logo {
     display: none;
   }
   .issuesButton {

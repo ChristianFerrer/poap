@@ -26,7 +26,9 @@ export const metadata: Metadata = {
 const THEME_INIT_SCRIPT = `
   try {
     var saved = JSON.parse(localStorage.getItem('poap-settings') || '{}');
-    if (saved.theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    if (saved.theme === 'light' || saved.theme === 'rainbow') {
+      document.documentElement.setAttribute('data-theme', saved.theme);
+    }
   } catch (e) {}
 `;
 

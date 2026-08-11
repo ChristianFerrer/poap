@@ -22,6 +22,7 @@ import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
 import { GatesPanel } from "../../GatesPanel";
 import { ImportPanel, importedLanesToLanes } from "../../ImportPanel";
 import type { ParseResult } from "@/lib/importExcel";
+import { NotificationBell } from "../../NotificationBell";
 import { SettingsPanel } from "../../SettingsPanel";
 import { Sidebar, type SidebarActive } from "../../Sidebar";
 import { useAppSettings } from "../../useAppSettings";
@@ -715,6 +716,7 @@ function ProjectView({ project }: { project: Project }) {
         collapsed={settings.sidebarCollapsed}
         onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
       />
+      <NotificationBell count={linkageIssueCount} onClick={() => openExplorer({ level: "lanes" })} />
       <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>

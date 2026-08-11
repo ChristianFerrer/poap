@@ -120,6 +120,7 @@ export const SettingsPanel = forwardRef<HTMLDivElement, {
                 options={[
                   { value: "dark", label: t.settings.themeDark },
                   { value: "light", label: t.settings.themeLight },
+                  { value: "rainbow", label: t.settings.themeRainbow },
                 ]}
                 ariaLabel={t.settings.themeLabel}
               />

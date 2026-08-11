@@ -218,6 +218,63 @@
   --color-row-hover-bg: #d9d9d9;
 }
 
+/* Third theme option — a saturated, true-spectrum palette (a vivid green,
+   blue, orange, teal, red/rose and violet) instead of light/dark's own
+   pastel or muted accents, matching the colorful reference Gantt mockup
+   this was requested against. Same white/near-white base surfaces as the
+   light theme (this is a light-background theme, not a fourth "dark
+   rainbow"), so only the six semantic accents, --today-line, and the two
+   accent-derived shadows actually diverge from :root[data-theme="light"]
+   — everything else (radius/spacing/type scale, row chip tokens) is
+   deliberately shared, since none of that is what makes a theme "rainbow"
+   vs. "light". */
+:root[data-theme="rainbow"] {
+  color-scheme: light;
+
+  --color-carbon: #fafafa;
+  --color-surface: #ffffff;
+  --color-surface2: #f4f4f5;
+  --color-line: #e4e4e7;
+  --color-line2: #d4d4d8;
+  --color-snow: #18181b;
+  --color-fog: #71717a;
+  --color-mist: #a1a1aa;
+
+  /* Six accents, one clear step apart around the color wheel — green,
+     blue, orange, teal, red, violet — rather than the muted/pastel hues
+     light/dark each use, so switching to this theme reads as a deliberate
+     "colorful" choice rather than a slightly-different light theme. */
+  --color-lime: #22c55e;
+  --color-lime-deep: #16a34a;
+  --color-iris: #3b82f6;
+  --color-amber: #f97316;
+  --color-mint: #10b981;
+  --color-rose: #ef4444;
+  --color-cyan: #a855f7;
+
+  --color-mint-soft: color-mix(in srgb, var(--color-mint) 15%, var(--color-surface));
+  --color-rose-soft: color-mix(in srgb, var(--color-rose) 15%, var(--color-surface));
+  --color-amber-soft: color-mix(in srgb, var(--color-amber) 15%, var(--color-surface));
+  --color-iris-soft: color-mix(in srgb, var(--color-iris) 15%, var(--color-surface));
+
+  --color-mint-ink: color-mix(in srgb, var(--color-mint) 45%, black);
+  --color-iris-ink: color-mix(in srgb, var(--color-iris) 45%, black);
+  --color-amber-ink: color-mix(in srgb, var(--color-amber) 45%, black);
+  --color-rose-ink: color-mix(in srgb, var(--color-rose) 45%, black);
+  --color-cyan-ink: color-mix(in srgb, var(--color-cyan) 45%, black);
+
+  /* A clean yellow — distinct from --color-amber's orange — keeping the
+     "Hoy" marker off the six accents above, same rule light/dark follow. */
+  --today-line: #eab308;
+
+  --shadow-soft: 0 1px 2px rgba(20, 22, 26, 0.06), 0 12px 32px -16px rgba(20, 22, 26, 0.12);
+  --shadow-lime: 0 10px 32px -14px rgba(34, 197, 94, 0.4);
+
+  --color-row-bg: #f5f5f6;
+  --color-row-chip-bg: #ebebed;
+  --color-row-hover-bg: #d9d9d9;
+}
+
 * {
   box-sizing: border-box;
 }

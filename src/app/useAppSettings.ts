@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const SETTINGS_STORAGE_KEY = "poap-settings";
 
-export type Theme = "dark" | "light";
+export type Theme = "dark" | "light" | "rainbow";
 
 interface AppSettings {
   showWeekends: boolean;
@@ -61,7 +61,9 @@ export function useAppSettings() {
         const parsed = JSON.parse(saved) as Partial<AppSettings>;
         if (typeof parsed.showWeekends === "boolean") setShowWeekends(parsed.showWeekends);
         if (typeof parsed.showToday === "boolean") setShowToday(parsed.showToday);
-        if (parsed.theme === "dark" || parsed.theme === "light") setTheme(parsed.theme);
+        if (parsed.theme === "dark" || parsed.theme === "light" || parsed.theme === "rainbow") {
+          setTheme(parsed.theme);
+        }
         if (typeof parsed.sidebarCollapsed === "boolean") setSidebarCollapsed(parsed.sidebarCollapsed);
         if (typeof parsed.flagUncategorizedPhases === "boolean") setFlagUncategorizedPhases(parsed.flagUncategorizedPhases);
       } catch {
@@ -85,8 +87,8 @@ export function useAppSettings() {
   // and stomp the light theme that script just set for a returning user.
   useEffect(() => {
     if (!loaded) return;
-    if (theme === "light") document.documentElement.setAttribute("data-theme", "light");
-    else document.documentElement.removeAttribute("data-theme");
+    if (theme === "dark") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", theme);
   }, [loaded, theme]);
 
   return {

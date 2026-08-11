@@ -12,6 +12,7 @@
 import {
   AlertTriangle,
   ArrowUpDown,
+  Bell,
   ChartNoAxesGantt,
   Check,
   ChevronLeft,
@@ -25,6 +26,7 @@ import {
   Search,
   Settings as SettingsIcon,
   Trash2,
+  TreePine,
   Upload,
   X,
   type LucideIcon,
@@ -69,6 +71,10 @@ export const IconWarning = icon(AlertTriangle, BUTTON_SIZE);
 export const IconGateDiamond = icon(Diamond, NAV_SIZE);
 export const IconLanes = icon(Rows3, NAV_SIZE);
 export const IconSettings = icon(SettingsIcon, NAV_SIZE);
+export const IconBell = icon(Bell, NAV_SIZE);
+/* The sidebar's own brand mark — "ver el bosque, no el árbol": the whole
+   program at a glance, not one project in isolation. */
+export const IconForest = icon(TreePine, NAV_SIZE);
 // Points *into* the app (importing a plan in), not the "choose a file to
 // hand over" Upload glyph IconUpload uses elsewhere — same underlying
 // action, but this is the sidebar's own standing menu entry, not a

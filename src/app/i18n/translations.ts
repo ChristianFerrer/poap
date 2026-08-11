@@ -173,6 +173,8 @@ const es = {
     navAria: "Navegación principal",
     collapseAria: "Contraer menú",
     expandAria: "Expandir menú",
+    appName: "Forest",
+    appNameHint: "Forest — el bosque completo, no un árbol",
   },
   settings: {
     close: "Cerrar",
@@ -188,6 +190,7 @@ const es = {
     themeLabel: "Apariencia",
     themeDark: "Oscuro",
     themeLight: "Claro",
+    themeRainbow: "Rainbow",
     weekendsSection: "Fines de semana",
     weekendsToggleLabel: "Mostrar fines de semana",
     weekendsToggleHint: "Resalta las columnas de sábado y domingo cuando el calendario está en la vista Día.",
@@ -245,6 +248,10 @@ const es = {
     fixButton: "Ir a la fase",
     planFixButton: "Ir al equipo",
     count: (n: number) => (n === 1 ? "1 pendiente" : `${n} pendientes`),
+  },
+  notifications: {
+    bellAria: "Notificaciones",
+    bellAriaWithCount: (n: number) => `Notificaciones — ${n === 1 ? "1 pendiente" : `${n} pendientes`}`,
   },
   plansNav: {
     backToProject: (name: string) => `← Volver a ${name}`,
@@ -440,6 +447,8 @@ const en: Translations = {
     navAria: "Main navigation",
     collapseAria: "Collapse menu",
     expandAria: "Expand menu",
+    appName: "Forest",
+    appNameHint: "Forest — the whole forest, not one tree",
   },
   settings: {
     close: "Close",
@@ -455,6 +464,7 @@ const en: Translations = {
     themeLabel: "Appearance",
     themeDark: "Dark",
     themeLight: "Light",
+    themeRainbow: "Rainbow",
     weekendsSection: "Weekends",
     weekendsToggleLabel: "Show weekends",
     weekendsToggleHint: "Highlights Saturday/Sunday columns when the calendar is in Day view.",
@@ -512,6 +522,10 @@ const en: Translations = {
     fixButton: "Go to phase",
     planFixButton: "Go to team",
     count: (n) => (n === 1 ? "1 pending" : `${n} pending`),
+  },
+  notifications: {
+    bellAria: "Notifications",
+    bellAriaWithCount: (n) => `Notifications — ${n === 1 ? "1 pending" : `${n} pending`}`,
   },
   plansNav: {
     backToProject: (name) => `← Back to ${name}`,

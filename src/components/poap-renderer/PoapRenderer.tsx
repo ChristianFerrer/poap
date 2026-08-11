@@ -462,8 +462,14 @@ export function PoapRenderer({
   const prevLabelHeightsRef = useRef<Record<string, number>>({});
   const [labelHeights, setLabelHeights] = useState<Record<string, number>>({});
   const [trackWidth, setTrackWidth] = useState(0);
-  const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("anio");
-  const [zoomScale, setZoomScale] = useState(ZOOM_SCALE_DEFAULT);
+  // Defaults to Semana at 25% rather than Año at 100% — a zoomed-out week
+  // view lands the viewer on "what's happening around now" instead of the
+  // whole program's year-scale shape. 0.25 is below the shared
+  // ZOOM_SCALE_MIN floor (0.5) but still clears Semana's own, lower
+  // minScale (0.2 — see ZOOM_LEVELS in constants.ts), which is what
+  // actually gates the zoom-out stepper at this level.
+  const [zoomKey, setZoomKey] = useState<ZoomLevel["key"]>("semana");
+  const [zoomScale, setZoomScale] = useState(0.25);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [gateTooltip, setGateTooltip] = useState<GateTooltipState | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<{ range: ColumnRange; unit: ColumnUnit } | null>(null);

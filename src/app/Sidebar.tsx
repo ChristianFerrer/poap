@@ -5,6 +5,7 @@ import {
   IconAlertTriangle,
   IconChevronLeft,
   IconChevronRight,
+  IconForest,
   IconGateDiamond,
   IconImportNav,
   IconLanes,
@@ -82,6 +83,11 @@ export function Sidebar({
       className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ""}`}
       aria-label={t.sidebar.navAria}
     >
+      <div className={styles.logo} title={t.sidebar.appNameHint}>
+        <IconForest />
+        <span className={styles.logoText}>{t.sidebar.appName}</span>
+      </div>
+
       {items.map((item) => (
         <button
           key={item.key}
