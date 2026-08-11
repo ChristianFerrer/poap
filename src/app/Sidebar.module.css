@@ -42,6 +42,20 @@
   justify-content: center;
   padding: 0;
 }
+/* App-icon-style badge behind the mark — same dark green tile and
+   proportions as the actual favicon (src/app/icon.svg), fixed regardless
+   of theme since it's the brand mark, not themeable UI chrome. */
+.logoIconBg {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  background: #0c2415;
+  border-radius: var(--radius-lg);
+}
 /* Fixed brand colors of its own (see forest.svg) — same 20px NAV_SIZE
    every other sidebar icon uses, just not routed through icons.tsx's
    currentColor-based icon() wrapper since it isn't a single-color glyph. */
