@@ -58,7 +58,11 @@
   height: 44px;
   padding: 5px;
   background: #0c2415;
-  border-radius: var(--radius-lg);
+  /* Largest radius the design system's own rule allows at this 44px box
+     (2×radius must stay under the shortest side) — matches the app's
+     other rounded-square controls' softest corner instead of the tighter
+     --radius-lg every smaller row chip uses. */
+  border-radius: var(--radius-2xl);
 }
 /* Fixed brand colors of its own (see forest.svg), scaled up with
    .logoIconBg — not routed through icons.tsx's currentColor-based icon()
