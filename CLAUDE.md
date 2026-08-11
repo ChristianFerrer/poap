@@ -29,10 +29,20 @@ recursive canvas, not six different screens that happen to look similar.
 
 ## Design system baseline
 
-- **Buttons are square** (no rounded corners) everywhere in the app —
-  `border-radius: 0` on every button class in `src/app/buttons.module.css`
-  and any component-local button style. Panels/cards/pills are a separate
-  question and keep whatever radius they already have unless told otherwise.
+- **Buttons are squares or rectangles with rounded corners — never a full
+  circle.** Every clickable button in the app picks one of `globals.css`'s
+  radius tokens (`--radius-dot` through `--radius-3xl`) sized so the corner
+  stays visibly a corner instead of rounding the whole shape into a pill —
+  see that token block's own usage rule (pick the largest radius where
+  2×radius stays under the control's shortest side). Never apply
+  `--radius-full` or a 50% radius to a `<button>` itself, and never bring in
+  a third-party component's default circular button styling unreviewed (the
+  date-range picker's day-cell buttons needed an explicit override for
+  exactly this). This does NOT apply to non-button decoration that
+  conventionally reads as round — a toggle switch's track/thumb, a small
+  notification-count badge, a status dot — those keep whatever shape suits
+  their own role. Panels/cards/pills are a separate question and keep
+  whatever radius they already have unless told otherwise.
 - **Icons are never bold by default.** `strokeWidth` stays at the shared
   default (`src/lib/icons.tsx`'s `icon()` wrapper) for a resting icon; a
   heavier/filled treatment is reserved for genuinely *selected/active* state

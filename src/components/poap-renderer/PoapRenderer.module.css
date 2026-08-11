@@ -736,6 +736,15 @@
   background: var(--color-iris);
   color: var(--color-surface);
 }
+/* Stays in the hover look (not just a lighter "selected" tint) while this
+   lane's own panel is open elsewhere in the app — see activeGanttLaneId in
+   the .tsx — so the row that's currently on screen in the side panel is
+   still identifiable at a glance even after the pointer's moved away. */
+.ganttButtonActive,
+.ganttButtonActive:hover {
+  background: var(--color-iris);
+  color: var(--color-surface);
+}
 /* Never rendered on the isProjectPlan anchor lane (see the .tsx) — deleting
    the project's own plan doesn't make sense the way deleting a team lane
    does. Fills the bottom half of .laneRowActions, same reasoning as
@@ -950,6 +959,27 @@
   width: 8px;
   height: 8px;
   border-radius: var(--radius-dot);
+  flex: 0 0 auto;
+}
+/* Replaces the Program page's old separate "N projects · X at risk…"
+   strip — same counts, folded into the legend itself instead of a second
+   row above the calendar. A small rounded square (not the -full pill the
+   old strip used), so it reads as a compact count chip rather than another
+   pill competing with the zoom/level controls next to it. Always shows a
+   number, including 0, rather than hiding an empty status — the old strip
+   used to hide those, which made "is this genuinely zero, or did the strip
+   just not load yet" ambiguous. */
+.legendCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-dot);
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
 }
 

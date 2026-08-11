@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent } from "react";
 import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
+import { worstStatus } from "@/lib/portfolio";
 import type { Lane, Phase, PhaseStatus, PoapRendererProps } from "./types";
 import {
   DAY_INITIALS,
@@ -437,6 +438,7 @@ export function PoapRenderer({
   onGateClick,
   onLaneClick,
   onLaneGanttClick,
+  activeGanttLaneId = null,
   onGatesLabelClick,
   onCreatePhase,
   isLaneCreatable,
@@ -450,6 +452,20 @@ export function PoapRenderer({
   const monthAbbr = MONTH_ABBR[locale];
   const statusLabels = STATUS_LABELS[locale];
   const strings = RENDERER_STRINGS[locale];
+  // How many of this canvas's own rows land in each status — generic across
+  // every level PoapRenderer renders (projects on the Program page, team
+  // lanes/Plans/Fases inside a project), since it's computed straight from
+  // whatever `lanes` this call was actually given rather than anything
+  // Program-specific. A lane with no phases yet reads as "not_started"
+  // rather than needing a special empty case in the caller.
+  const legendCounts = useMemo(() => {
+    const counts: Record<PhaseStatus, number> = { done: 0, in_progress: 0, at_risk: 0, not_started: 0 };
+    for (const lane of lanes) {
+      const status = lane.phases.length === 0 ? "not_started" : worstStatus(lane.phases);
+      counts[status] += 1;
+    }
+    return counts;
+  }, [lanes]);
   const timelineRef = useRef<HTMLDivElement>(null);
   const labelsColRef = useRef<HTMLDivElement>(null);
   // Wrapped lane-name text can need more vertical room than the row's own
@@ -934,10 +950,13 @@ export function PoapRenderer({
             {onLaneGanttClick && (
               <button
                 type="button"
-                className={styles.ganttButton}
+                className={[styles.ganttButton, activeGanttLaneId === lane.id ? styles.ganttButtonActive : ""]
+                  .join(" ")
+                  .trim()}
                 onClick={() => onLaneGanttClick(lane.id)}
                 aria-label={strings.viewGanttAria}
                 title={strings.viewGanttAria}
+                aria-pressed={activeGanttLaneId === lane.id}
               >
                 <IconGantt />
               </button>
@@ -1019,7 +1038,7 @@ export function PoapRenderer({
   return (
     <div className={styles.card}>
       <div className={styles.toolbar}>
-        <Legend statusLabels={statusLabels} />
+        <Legend statusLabels={statusLabels} counts={legendCounts} />
         <div className={styles.toolbarControls}>
           <div className={styles.scaleGroup} role="group" aria-label={strings.continuousZoom}>
             <button
@@ -1406,7 +1425,18 @@ function GateTooltip({ data, strings }: { data: GateTooltipState; strings: (type
   );
 }
 
-function Legend({ statusLabels }: { statusLabels: Record<PhaseStatus, string> }) {
+function Legend({
+  statusLabels,
+  counts,
+}: {
+  statusLabels: Record<PhaseStatus, string>;
+  /** How many of the canvas's own rows are currently at each status — see
+   * legendCounts above. Renders as a small rounded-square badge per item,
+   * showing 0 rather than hiding the item when a status has no rows (this
+   * replaced the Program page's separate "N projects · X at risk…" strip,
+   * which used to hide empty statuses instead). */
+  counts: Record<PhaseStatus, number>;
+}) {
   const items: PhaseStatus[] = ["done", "in_progress", "at_risk", "not_started"];
   return (
     <div className={styles.legend}>
@@ -1414,6 +1444,15 @@ function Legend({ statusLabels }: { statusLabels: Record<PhaseStatus, string> })
         <span key={status} className={styles.legendItem}>
           <span className={styles.legendDot} style={{ background: `var(--${legendColorVar(status)})` }} />
           {statusLabels[status]}
+          <span
+            className={styles.legendCount}
+            style={{
+              background: `color-mix(in srgb, var(--${legendColorVar(status)}) 18%, var(--color-surface))`,
+              color: `var(--${legendColorVar(status)}-ink, var(--${legendColorVar(status)}))`,
+            }}
+          >
+            {counts[status]}
+          </span>
         </span>
       ))}
     </div>

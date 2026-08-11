@@ -6,11 +6,10 @@ import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
 import { deriveProgramLanes, findLinkageIssues, findUnassignedPlanIssues, type Project, type StageCategoryDef } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
-import { ExecutiveSummary } from "./ExecutiveSummary";
 import { ExplorerPanel, type ExplorerView } from "./ExplorerPanel";
 import { ImportPanel, importedLanesToLanes } from "./ImportPanel";
 import type { ParseResult } from "@/lib/importExcel";
-import { NotificationBell } from "./NotificationBell";
+import { NotificationBell, type NotificationAlert } from "./NotificationBell";
 import { SettingsPanel } from "./SettingsPanel";
 import { Sidebar, type SidebarActive } from "./Sidebar";
 import { useAppSettings } from "./useAppSettings";
@@ -42,8 +41,7 @@ function ProjectGanttPanel({
   panelRef: Ref<HTMLDivElement>;
   onClose: () => void;
 }) {
-  const { program, plansByLane, commentsByActivity, addComment, renameProject } = useProjects();
-  const router = useRouter();
+  const { program, commentsByActivity, addComment, renameProject } = useProjects();
   // Opens straight to the project's high-level plan (Design/Build/SIT/
   // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
   // what the Gantt button next to a project name on the Program page is
@@ -54,8 +52,8 @@ function ProjectGanttPanel({
   // anything created via the canvas's own "+" button, but older/imported
   // data may not have one) — team-lane linkage issues no longer divert
   // this to the lanes list; the plan lane's own phases view surfaces that
-  // same warning now too (see ExplorerPanel's LinkageBanner usage), so
-  // every entry point to this lane agrees on which panel it opens.
+  // same warning now too via the notification bell popup, so every entry
+  // point to this lane agrees on which panel it opens.
   const planLane = project.lanes.find((l) => l.isProjectPlan);
   const initialView: ExplorerView = planLane ? { level: "phases", laneId: planLane.id } : { level: "lanes" };
   const {
@@ -96,8 +94,6 @@ function ProjectGanttPanel({
       onDeleteActivity={deleteActivity}
       commentsByActivity={commentsByActivity}
       onAddComment={addComment}
-      planIssues={findUnassignedPlanIssues(project.lanes, plansByLane)}
-      onFixPlanIssue={() => router.push(`/project/${project.id}`)}
       planOptions={[]}
     />
   );
@@ -147,25 +143,37 @@ export default function ProgramPage() {
   );
   const ganttProject = ganttProjectId ? (projects.find((p) => p.id === ganttProjectId) ?? null) : null;
 
-  // Program-wide count of the same "needs attention" issues each project
+  // Program-wide list of the same "needs attention" issues each project
   // already surfaces on its own page (see the Project page's own
-  // linkageIssueCount) — real data, not a placeholder, just summed across
-  // every project instead of scoped to one.
-  const notificationCount = useMemo(
-    () =>
-      projects.reduce(
-        (sum, project) =>
-          sum + findLinkageIssues(project.lanes).length + findUnassignedPlanIssues(project.lanes, plansByLane).length,
-        0,
-      ),
-    [projects, plansByLane],
-  );
-  function openFirstFlaggedProject() {
-    const flagged = projects.find(
-      (project) => findLinkageIssues(project.lanes).length > 0 || findUnassignedPlanIssues(project.lanes, plansByLane).length > 0,
-    );
-    if (flagged) openGanttPanel(flagged.id);
-  }
+  // linkageIssueCount) — real data, not a placeholder, just gathered across
+  // every project instead of scoped to one. Each alert's own fix action is
+  // project-scoped (not a deep link into one specific team lane) since
+  // that's as far as this page's own Gantt-shortcut panel goes.
+  const notificationAlerts: NotificationAlert[] = useMemo(() => {
+    const alerts: NotificationAlert[] = [];
+    for (const project of projects) {
+      const planLane = project.lanes.find((l) => l.isProjectPlan) ?? null;
+      if (planLane) {
+        for (const issue of findLinkageIssues(project.lanes)) {
+          alerts.push({
+            id: `category-${project.id}-${issue.phaseId}`,
+            message: t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name),
+            actionLabel: t.linkage.fixButton,
+            onAction: () => openGanttPanel(project.id),
+          });
+        }
+      }
+      for (const issue of findUnassignedPlanIssues(project.lanes, plansByLane)) {
+        alerts.push({
+          id: `plan-${project.id}-${issue.phaseId}`,
+          message: t.linkage.planMessage(issue.laneName, issue.phaseTitle),
+          actionLabel: t.linkage.planFixButton,
+          onAction: () => router.push(`/project/${project.id}`),
+        });
+      }
+    }
+    return alerts;
+  }, [projects, plansByLane, t, router]);
 
   const anyPanelOpen = settingsOpen || importOpen || Boolean(ganttProject);
 
@@ -295,7 +303,7 @@ export default function ProgramPage() {
         collapsed={settings.sidebarCollapsed}
         onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
       />
-      <NotificationBell count={notificationCount} onClick={openFirstFlaggedProject} />
+      <NotificationBell alerts={notificationAlerts} />
       <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
@@ -311,8 +319,6 @@ export default function ProgramPage() {
             </p>
           </div>
         </div>
-
-        <ExecutiveSummary projects={projects} />
 
         <div className={styles.layout}>
           <div className={styles.calendarCol}>
@@ -338,6 +344,7 @@ export default function ProgramPage() {
                 lanes={lanes}
                 onLaneClick={openProject}
                 onLaneGanttClick={openGanttPanel}
+                activeGanttLaneId={ganttProjectId}
                 onCreatePhase={handleCreatePhase}
                 // Every project row is a "regular" swimline here (the
                 // Program page has no isProjectPlan anchor concept) — see

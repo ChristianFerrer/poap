@@ -51,7 +51,7 @@
   --rdp-range_end-color: var(--color-ink);
   --rdp-range_middle-color: var(--color-snow);
   --rdp-range_middle-background-color: color-mix(in srgb, var(--color-lime) 16%, var(--color-surface));
-  --rdp-day_button-border-radius: var(--radius-full);
+  --rdp-day_button-border-radius: var(--radius-md);
   color: var(--color-snow);
 }
 

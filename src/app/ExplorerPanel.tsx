@@ -4,12 +4,9 @@ import { forwardRef, useEffect, useState } from "react";
 import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
 import {
-  findLinkageIssues,
   UNASSIGNED_PLAN_ID,
-  type LinkageIssue,
   type Plan,
   type StageCategoryDef,
-  type UnassignedPlanIssue,
 } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
 import { formatDate, fromISODate, toISODate } from "./dateAxis";
@@ -151,64 +148,6 @@ function Breadcrumb({
 }
 
 /**
- * The "pending links" warning — shared by the lanes list AND the plan
- * lane's own phases view (see the `view.level === "phases"` branch below),
- * so the same project-wide issue count and message read identically no
- * matter which of the several ways a viewer reached the plan lane
- * (clicking its name, its Gantt shortcut, or the Program page's own Gantt
- * shortcut on this project — three separate entry points that used to land
- * on two different panel *shapes* for the exact same lane, one with this
- * banner and one without). planLaneName is only used in the category-issue
- * message text, never as a fallback identity.
- */
-function LinkageBanner({
-  linkageIssues,
-  planIssues,
-  planLane,
-  onNavigate,
-  onFixPlanIssue,
-}: {
-  linkageIssues: LinkageIssue[];
-  planIssues: UnassignedPlanIssue[];
-  planLane: Lane | null;
-  onNavigate: (view: ExplorerView) => void;
-  onFixPlanIssue: (laneId: string) => void;
-}) {
-  const { t } = useLanguage();
-  if (linkageIssues.length === 0 && planIssues.length === 0) return null;
-  return (
-    <div className={styles.linkageBanner} role="alert">
-      <p className={styles.linkageBannerTitle}>
-        {t.linkage.bannerTitle} · {t.linkage.count(linkageIssues.length + planIssues.length)}
-      </p>
-      <ul className={styles.linkageList}>
-        {planLane &&
-          linkageIssues.map((issue) => (
-            <li key={`category-${issue.phaseId}`} className={styles.linkageItem}>
-              <span>{t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name)}</span>
-              <button
-                type="button"
-                className={styles.linkageFixButton}
-                onClick={() => onNavigate({ level: "phases", laneId: issue.laneId })}
-              >
-                {t.linkage.fixButton}
-              </button>
-            </li>
-          ))}
-        {planIssues.map((issue) => (
-          <li key={`plan-${issue.phaseId}`} className={styles.linkageItem}>
-            <span>{t.linkage.planMessage(issue.laneName, issue.phaseTitle)}</span>
-            <button type="button" className={styles.linkageFixButton} onClick={() => onFixPlanIssue(issue.laneId)}>
-              {t.linkage.planFixButton}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/**
  * Drill-down management panel: Swimlines -> a lane's phases -> a phase's
  * activities -> one activity's full detail + comments. Lives outside
  * poap-renderer on the same principle as GatesPanel — the renderer only
@@ -257,13 +196,6 @@ export const ExplorerPanel = forwardRef<
     onDeleteActivity: (phase: Phase, activityId: string) => void;
     commentsByActivity: Record<string, ActivityComment[]>;
     onAddComment: (phase: Phase, activityId: string, text: string) => void;
-    /** Every team-lane phase with no real Plan — a different relationship
-     * than linkageIssues (Fase -> project-plan category), surfaced as its
-     * own banner section on the "lanes" view since fixing one takes the
-     * user somewhere this panel alone can't navigate to (see
-     * onFixPlanIssue). */
-    planIssues: UnassignedPlanIssue[];
-    onFixPlanIssue: (laneId: string) => void;
     /** Real Plans available to reassign into — only non-empty while looking
      * at the "Sin plan asignado" bucket's phases view (laneId ===
      * UNASSIGNED_PLAN_ID), where it drives the table's extra Plan column. */
@@ -292,8 +224,6 @@ export const ExplorerPanel = forwardRef<
     onDeleteActivity,
     commentsByActivity,
     onAddComment,
-    planIssues,
-    onFixPlanIssue,
     planOptions,
   },
   ref,
@@ -397,19 +327,10 @@ export const ExplorerPanel = forwardRef<
             (l) => l.name,
             (l) => (l.phases.length ? Math.min(...l.phases.map((p) => p.start)) : Infinity),
           );
-          const linkageIssues = findLinkageIssues(lanes);
           return (
             <>
               <p className={styles.eyebrow}>{t.explorer.lanesEyebrow}</p>
               <h2 className={styles.title}>{t.explorer.lanesTitle}</h2>
-
-              <LinkageBanner
-                linkageIssues={linkageIssues}
-                planIssues={planIssues}
-                planLane={planLane ?? null}
-                onNavigate={onNavigate}
-                onFixPlanIssue={onFixPlanIssue}
-              />
 
               {planLane && (
                 <div className={styles.planLaneCard}>
@@ -605,24 +526,6 @@ export const ExplorerPanel = forwardRef<
                   </>
                 )}
               </p>
-
-              {/* The plan lane's own phases view is reachable from three
-                  places (its name, its Gantt shortcut, and the Program
-                  page's own Gantt shortcut for this project — see
-                  LinkageBanner's doc comment) — surfacing the same
-                  project-wide warning here too means all three always land
-                  on the same panel *shape*, instead of the Program page's
-                  shortcut swapping to the unrelated lanes-list view
-                  whenever an issue exists. */}
-              {lane.isProjectPlan && (
-                <LinkageBanner
-                  linkageIssues={findLinkageIssues(lanes)}
-                  planIssues={planIssues}
-                  planLane={lane}
-                  onNavigate={onNavigate}
-                  onFixPlanIssue={onFixPlanIssue}
-                />
-              )}
 
               {isUnassignedBucket && <p className={styles.fieldHint}>{t.explorer.unassignedPhasesHint}</p>}
 

@@ -3,13 +3,18 @@
    panel (20) — "permanente" means visible above an open panel too, not
    just present when the header row has room for it (the Import button
    right next to it on the Project page hides for exactly that overlap
-   reason; this one deliberately doesn't). */
-.bell {
-  composes: iconBtn iconBtnLg iconBtnNeutral from "./buttons.module.css";
+   reason; this one deliberately doesn't). The bell itself is positioned
+   relatively so NotificationsPopup can anchor directly under it. */
+.root {
   position: fixed;
   top: 16px;
   right: 20px;
   z-index: 30;
+}
+
+.bell {
+  composes: iconBtn iconBtnLg iconBtnNeutral from "./buttons.module.css";
+  position: relative;
   background: var(--color-surface);
 }
 
@@ -33,7 +38,7 @@
 }
 
 @media (max-width: 640px) {
-  .bell {
+  .root {
     top: 10px;
     right: 12px;
   }

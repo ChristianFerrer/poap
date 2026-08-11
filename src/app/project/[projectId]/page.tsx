@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
@@ -22,7 +22,7 @@ import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
 import { GatesPanel } from "../../GatesPanel";
 import { ImportPanel, importedLanesToLanes } from "../../ImportPanel";
 import type { ParseResult } from "@/lib/importExcel";
-import { NotificationBell } from "../../NotificationBell";
+import { NotificationBell, type NotificationAlert } from "../../NotificationBell";
 import { SettingsPanel } from "../../SettingsPanel";
 import { Sidebar, type SidebarActive } from "../../Sidebar";
 import { useAppSettings } from "../../useAppSettings";
@@ -144,6 +144,35 @@ function ProjectView({ project }: { project: Project }) {
 
   const phaseCount = lanes.reduce((n, l) => n + l.phases.length, 0);
   const linkageIssueCount = findLinkageIssues(lanes).length + findUnassignedPlanIssues(lanes, plansByLane).length;
+
+  // Same two issue sources as linkageIssueCount above, expanded into the
+  // notification bell's own popup list — each alert keeps the deep-link
+  // navigation the old in-panel LinkageBanner used (straight to the
+  // offending lane's phases, or into the Equipo's "Sin plan asignado"
+  // bucket) rather than just opening the lanes list generically.
+  const notificationAlerts: NotificationAlert[] = useMemo(() => {
+    const alerts: NotificationAlert[] = [];
+    const planLane = lanes.find((l) => l.isProjectPlan) ?? null;
+    if (planLane) {
+      for (const issue of findLinkageIssues(lanes)) {
+        alerts.push({
+          id: `category-${issue.phaseId}`,
+          message: t.linkage.message(issue.laneName, issue.phaseTitle, planLane.name),
+          actionLabel: t.linkage.fixButton,
+          onAction: () => openExplorer({ level: "phases", laneId: issue.laneId }),
+        });
+      }
+    }
+    for (const issue of findUnassignedPlanIssues(lanes, plansByLane)) {
+      alerts.push({
+        id: `plan-${issue.phaseId}`,
+        message: t.linkage.planMessage(issue.laneName, issue.phaseTitle),
+        actionLabel: t.linkage.planFixButton,
+        onAction: () => handleFixPlanIssue(issue.laneId),
+      });
+    }
+    return alerts;
+  }, [lanes, plansByLane, t]);
 
   function closeAllPanels() {
     setExplorer(null);
@@ -662,8 +691,6 @@ function ProjectView({ project }: { project: Project }) {
       onDeleteActivity={deleteActivity}
       commentsByActivity={commentsByActivity}
       onAddComment={addComment}
-      planIssues={findUnassignedPlanIssues(lanes, plansByLane)}
-      onFixPlanIssue={handleFixPlanIssue}
       planOptions={planOptions}
     />
   ) : gatesPanelOpen ? (
@@ -723,7 +750,7 @@ function ProjectView({ project }: { project: Project }) {
         collapsed={settings.sidebarCollapsed}
         onToggleCollapsed={() => settings.setSidebarCollapsed(!settings.sidebarCollapsed)}
       />
-      <NotificationBell count={linkageIssueCount} onClick={() => openExplorer({ level: "lanes" })} />
+      <NotificationBell alerts={notificationAlerts} />
       <main className={`${styles.main} ${settings.sidebarCollapsed ? styles.mainNavLeftCollapsed : styles.mainNavLeft}`}>
         <div className={styles.headerRow}>
           <div>
@@ -785,6 +812,7 @@ function ProjectView({ project }: { project: Project }) {
               onGateClick={handleGateClick}
               onLaneClick={handleLaneClick}
               onLaneGanttClick={handleLaneGanttClick}
+              activeGanttLaneId={explorer?.level === "phases" ? explorer.laneId : null}
               onCreatePhase={handleCreatePhase}
               isLaneCreatable={isLaneCreatable}
               onDeleteLane={canvasOnDeleteLane}

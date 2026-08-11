@@ -106,6 +106,15 @@ export interface PoapRendererProps {
    * project row, while onLaneClick itself still navigates into the
    * project. Renders nothing when omitted. */
   onLaneGanttClick?: (laneId: string) => void;
+  /** Which lane's Gantt shortcut is the one currently driving an open
+   * panel elsewhere in the app — the renderer has no idea what a "panel"
+   * is, it just paints that one lane's Gantt button in its pressed/active
+   * look instead of the resting one, for as long as the caller says so
+   * (until the panel closes, or the lane itself gets deleted/canceled out
+   * from under it). Matched purely by id against whatever `lanes` this
+   * render pass got, so it stays correct across every drill level without
+   * the renderer needing to know which level it's currently showing. */
+  activeGanttLaneId?: string | null;
   /** Clicking the "Stage gates" row label itself (not a specific gate
    * diamond) — same idea as onLaneClick, opens whatever management view
    * the app has for gates in general rather than one gate in particular. */

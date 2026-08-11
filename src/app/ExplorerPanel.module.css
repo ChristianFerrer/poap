@@ -177,53 +177,6 @@
 /* Persistent, actionable warning — stays on screen for as long as any
    team phase doesn't point at a real plan-lane track, recomputed live on
    every render rather than dismissed/stored, so it can't go stale. */
-.linkageBanner {
-  padding: var(--space-md);
-  margin: var(--space-2xs) 0 var(--space-xl);
-  background: color-mix(in srgb, var(--color-amber) 12%, var(--color-surface2));
-  border: 1px solid color-mix(in srgb, var(--color-amber) 40%, var(--color-line));
-  border-left: 3px solid var(--color-amber);
-  border-radius: var(--radius-2xl);
-}
-.linkageBannerTitle {
-  margin: 0 0 var(--space-sm);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-amber-ink, var(--color-amber));
-}
-.linkageList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-.linkageItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  font-size: var(--text-xs);
-  color: var(--color-fog);
-}
-.linkageFixButton {
-  flex: none;
-  padding: var(--space-2xs) var(--space-ms);
-  border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, var(--color-amber) 50%, var(--color-line));
-  background: transparent;
-  color: var(--color-snow);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  cursor: pointer;
-}
-.linkageFixButton:hover {
-  background: color-mix(in srgb, var(--color-amber) 16%, transparent);
-}
-
 .planLaneCard {
   padding: var(--space-md);
   margin: var(--space-2xs) 0 var(--space-xl);

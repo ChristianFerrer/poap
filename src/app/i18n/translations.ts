@@ -233,9 +233,6 @@ const es = {
     undoButton: "Deshacer",
     dismissAria: "Cerrar aviso",
   },
-  summary: {
-    projectsCount: (n: number) => `${n} ${n === 1 ? "proyecto" : "proyectos"}`,
-  },
   sync: {
     saveFailed: (detail: string) => `No se pudo guardar el último cambio (sigue visible acá, pero no sobrevivirá a un recargo): ${detail}`,
   },
@@ -248,6 +245,7 @@ const es = {
     fixButton: "Ir a la fase",
     planFixButton: "Ir al equipo",
     count: (n: number) => (n === 1 ? "1 pendiente" : `${n} pendientes`),
+    empty: "No hay vínculos pendientes.",
   },
   notifications: {
     bellAria: "Notificaciones",
@@ -507,9 +505,6 @@ const en: Translations = {
     undoButton: "Undo",
     dismissAria: "Dismiss",
   },
-  summary: {
-    projectsCount: (n) => `${n} ${n === 1 ? "project" : "projects"}`,
-  },
   sync: {
     saveFailed: (detail) => `Couldn't save your last change (it's still visible here, but won't survive a reload): ${detail}`,
   },
@@ -522,6 +517,7 @@ const en: Translations = {
     fixButton: "Go to phase",
     planFixButton: "Go to team",
     count: (n) => (n === 1 ? "1 pending" : `${n} pending`),
+    empty: "No pending links.",
   },
   notifications: {
     bellAria: "Notifications",
