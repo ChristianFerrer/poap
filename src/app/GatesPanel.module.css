@@ -126,7 +126,7 @@
   background: var(--color-surface2);
   color: var(--color-snow);
 }
-.labelInput:focus {
+.labelInput:focus-visible {
   border-color: var(--color-lime);
   outline: none;
 }
@@ -142,7 +142,7 @@
   background: var(--color-surface2);
   color: var(--color-snow);
 }
-.dateInput:focus {
+.dateInput:focus-visible {
   border-color: var(--color-lime);
   outline: none;
 }

@@ -1085,7 +1085,12 @@ export const ExplorerPanel = forwardRef<
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                 />
-                <button type="button" disabled={!draft.trim()} onClick={() => submitComment(phase, activity.id)}>
+                <button
+                  type="button"
+                  className={styles.commentSubmit}
+                  disabled={!draft.trim()}
+                  onClick={() => submitComment(phase, activity.id)}
+                >
                   {t.explorer.commentButton}
                 </button>
               </div>

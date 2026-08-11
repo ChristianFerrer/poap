@@ -366,15 +366,22 @@ function ProjectView({ project }: { project: Project }) {
     openExplorer({ level: "activity", phaseId: drill.phaseId, activityId: barId });
   }
 
-  // A team lane's name drills into its Planes; a Plan's name drills into
-  // its Fases; a Fase has no further swimline to enter (Actividad is the
-  // leaf — see handlePhaseClick for opening one). The isProjectPlan anchor
-  // lane at the top is a different concept (project-wide, not a team with
-  // Planes of its own) and keeps its original phases-panel behavior.
+  // One rule, applied the same way at every depth: clicking a row's name
+  // navigates to whatever real swimlines live *beneath* it (a team lane's
+  // Planes, a Plan's Fases) — and a row with nothing beneath it opens its
+  // own management panel directly instead, since there's no lower level
+  // for the canvas to drill into. The isProjectPlan anchor lane at the top
+  // is the one row that's *always* in that second case: it has no Planes
+  // of its own, only its own phases (already the bars drawn on its own
+  // track) — same reason a Fase's name has nothing to drill into either
+  // (see handlePhaseClick, where a Fase-level bar always opens a panel).
+  // This isn't a special case for the anchor specifically, just this one
+  // general rule evaluated for a row that happens to have no children.
   function handleLaneClick(laneId: string) {
     if (!drill) {
       const lane = lanes.find((l) => l.id === laneId);
-      if (lane?.isProjectPlan) {
+      const hasChildLanes = !lane?.isProjectPlan;
+      if (!hasChildLanes) {
         openExplorer({ level: "phases", laneId });
         return;
       }

@@ -63,7 +63,6 @@
   --color-amber-ink: var(--color-amber);
   --color-rose-ink: var(--color-rose);
   --color-cyan-ink: var(--color-cyan);
-  --color-fog-ink: var(--color-fog);
 
   /* Stage-gate cut-line and the "Hoy" marker — intentionally separate
      from the six semantic accents above and from each other, so neither
@@ -94,21 +93,30 @@
 
   /* Radius scale — spec names (rounded-lg/xl/2xl/3xl), not this app's old
      xs/sm/md/lg, so a glance at a value here maps straight onto the spec
-     table (§5.1) instead of needing a lookup. */
-  /* Sits between -dot and -lg — for a control too narrow/short for -lg's
-     8px to read as a rounded rectangle rather than a pill/circle (e.g. the
-     swimline row's drag-handle and half-height Gantt/delete chips, whose
-     shortest side only clears ~20px even at the row's min-height floor). */
+     table (§5.1) instead of needing a lookup.
+
+     THE RULE, so a future one-off case doesn't add an 8th value: pick the
+     largest radius on this list where 2×radius stays comfortably under the
+     control's own shortest side (height for a wide button, width for a
+     narrow full-height one like a drag handle) — that's what keeps a
+     corner reading as "rounded rectangle" instead of rounding all the way
+     into a pill or circle. Walk the list from the bottom up:
+       -dot  (2px)  — status/legend dots, and anything under ~20px on its
+                      shortest side (half-height Gantt/delete row chips).
+       -md   (6px)  — narrow full-height row controls, ~20-28px shortest
+                      side (drag handle, the "+" add-below chip).
+       -lg   (8px)  — standard icon buttons, chips, small cells, ≥28px.
+       -xl   (12px) — buttons, inputs, cards.
+       -2xl  (16px) — panels, modals, section containers.
+       -3xl  (24px) — the side panel.
+       -full         — an intentional pill/circle (badges, avatars), never
+                      a side effect of running out of room. */
   --radius-md: 6px;
-  --radius-lg: 8px; /* icon buttons, chips, small cells */
-  --radius-xl: 12px; /* buttons, inputs, cards */
-  --radius-2xl: 16px; /* panels, modals, section containers */
-  --radius-3xl: 24px; /* the side panel */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
   --radius-full: 999px;
-  /* The small status/legend dot glyphs (Legend, tooltips, activity rows)
-     all independently agreed on 2px without ever sharing a token — this
-     just names what they were already doing, so the next one doesn't have
-     to rediscover "2px" by eye. */
   --radius-dot: 2px;
 
   /* Type scale — sizes updated to the spec's rows (§2.2); names kept as
