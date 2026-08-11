@@ -306,6 +306,12 @@
 }
 .gatesLabelCell {
   gap: var(--space-3xs);
+  width: 100%;
+  /* Same padding as .laneLabel (every other row) — this class doesn't
+     compose .laneLabel since it doesn't want that class's cursor/hover
+     rules, but the box padding still needs to match so the row reads as
+     the same aspect/spacing as a real lane row. */
+  padding: 5px;
   background: var(--color-row-bg);
 }
 /* Matches .leadingButton's width so "Stage gates" starts at the exact same
