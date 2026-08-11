@@ -853,9 +853,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  background: color-mix(in srgb, var(--color-fog) 10%, transparent);
-  border-left: 1px solid color-mix(in srgb, var(--color-fog) 30%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--color-fog) 30%, transparent);
+  background: color-mix(in srgb, var(--color-lime) 18%, transparent);
   pointer-events: none;
   transition: left 0.1s ease-out, width 0.1s ease-out;
 }

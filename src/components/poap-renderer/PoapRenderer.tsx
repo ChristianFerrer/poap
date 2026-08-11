@@ -1103,6 +1103,12 @@ export function PoapRenderer({
         onMouseMove={creatable ? (e) => handleLaneHover(e, lane.id) : undefined}
         onMouseLeave={creatable ? () => setHoverCell(null) : undefined}
       >
+        {hoverCell && hoverCell.laneId === lane.id && !dragCreate && (
+          <div
+            className={styles.hoverCellHighlight}
+            style={{ left: pct(hoverCell.start, scale), width: pctSpan(hoverCell.start, hoverCell.end, scale) }}
+          />
+        )}
         {rows.map((row, r) => (
           <div key={r} className={styles.laneRow}>
             {row.map((phase) => (
@@ -1126,12 +1132,6 @@ export function PoapRenderer({
             ))}
           </div>
         ))}
-        {hoverCell && hoverCell.laneId === lane.id && !dragCreate && (
-          <div
-            className={styles.hoverCellHighlight}
-            style={{ left: pct(hoverCell.start, scale), width: pctSpan(hoverCell.start, hoverCell.end, scale) }}
-          />
-        )}
         {dragCreate &&
           dragCreate.laneId === lane.id &&
           (() => {
