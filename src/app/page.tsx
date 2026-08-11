@@ -320,11 +320,21 @@ export default function ProgramPage() {
                 from (see project/[projectId]/page.tsx), shown here plain
                 since there's nowhere higher to link it to. */}
             <p className={styles.eyebrow}>{t.header.levelProgram}</p>
-            <h1 className={styles.title}>{program.name}</h1>
-            <p className={styles.meta}>
-              {projects.length} {t.header.projectsWord} · {program.months} {t.header.monthsWord} ·{" "}
-              {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
-            </p>
+            {/* `program`/`projects` start out as the hardcoded seed data
+                (see ProjectsProvider) until the real Supabase fetch
+                resolves — rendering them here unconditionally used to
+                flash that seed program's own name/date-range for the
+                ~1s the fetch takes, then swap to the real one. Loading
+                text until `loaded` (same gate the calendar body below
+                already used) instead of ever showing data that isn't
+                the real program's. */}
+            <h1 className={styles.title}>{loaded ? program.name : t.header.loading}</h1>
+            {loaded && (
+              <p className={styles.meta}>
+                {projects.length} {t.header.projectsWord} · {program.months} {t.header.monthsWord} ·{" "}
+                {formatMonthRange(program.startMonth, program.months, MONTH_ABBR[locale])}
+              </p>
+            )}
           </div>
         </div>
 
