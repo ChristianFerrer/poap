@@ -326,7 +326,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  background: none;
+  background: var(--color-row-chip-bg);
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -683,7 +683,7 @@
   display: flex;
   align-items: center;
   height: 100%;
-  background: none;
+  background: var(--color-row-chip-bg);
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
