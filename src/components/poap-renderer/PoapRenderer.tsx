@@ -1434,30 +1434,29 @@ function Legend({
 }: {
   statusLabels: Record<PhaseStatus, string>;
   /** How many of the canvas's own tracks are currently at each status —
-   * see legendCounts above. Renders as just the small rounded-square count
-   * badge per status (no dot, no label text alongside it — the badge's own
-   * color already carries that), showing 0 rather than hiding the item
-   * when a status has no tracks (this replaced the Program page's separate
-   * "N projects · X at risk…" strip, which used to hide empty statuses
-   * instead). The status name still reaches an accessible name/tooltip via
-   * title/aria-label, just not as visible text. */
+   * see legendCounts above. Each status renders as its small rounded-
+   * square count badge (no separate dot — the badge's own color already
+   * carries that) followed by its label text, showing 0 rather than
+   * hiding the item when a status has no tracks (this replaced the
+   * Program page's separate "N projects · X at risk…" strip, which used
+   * to hide empty statuses instead). */
   counts: Record<PhaseStatus, number>;
 }) {
   const items: PhaseStatus[] = ["done", "in_progress", "at_risk", "not_started"];
   return (
     <div className={styles.legend}>
       {items.map((status) => (
-        <span
-          key={status}
-          className={styles.legendCount}
-          style={{
-            background: `color-mix(in srgb, var(--${legendColorVar(status)}) 18%, var(--color-surface))`,
-            color: `var(--${legendColorVar(status)}-ink, var(--${legendColorVar(status)}))`,
-          }}
-          title={statusLabels[status]}
-          aria-label={`${statusLabels[status]}: ${counts[status]}`}
-        >
-          {counts[status]}
+        <span key={status} className={styles.legendItem}>
+          <span
+            className={styles.legendCount}
+            style={{
+              background: `color-mix(in srgb, var(--${legendColorVar(status)}) 18%, var(--color-surface))`,
+              color: `var(--${legendColorVar(status)}-ink, var(--${legendColorVar(status)}))`,
+            }}
+          >
+            {counts[status]}
+          </span>
+          {statusLabels[status]}
         </span>
       ))}
     </div>
