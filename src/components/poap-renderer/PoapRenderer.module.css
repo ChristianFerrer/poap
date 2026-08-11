@@ -882,9 +882,17 @@
   height: 17px;
 }
 
-.bar {
+/* Absolutely positioned by left/width — moved here off .bar itself so the
+   two resize handles below can be .bar's own siblings, flush against its
+   left/right edges, instead of nesting a <button> inside a <button>. */
+.barWrap {
   position: absolute;
   top: 0;
+  height: 100%;
+}
+.bar {
+  position: relative;
+  width: 100%;
   height: 100%;
   border-radius: var(--radius-lg);
   display: flex;
@@ -912,6 +920,45 @@
 .barSelected {
   outline: 1.5px solid var(--color-line2);
   outline-offset: 1px;
+}
+/* Hidden until the bar (or the handle itself) is hovered, or the handle
+   is the one actively being dragged (.barResizeHandleActive) — a static
+   pair of arrows on every bar at every zoom level would be far more
+   visual noise than the calendar can afford. A dark overlay (rather than
+   each status color's own ink) keeps the handle legible against every
+   status background — mint, iris, amber, or the plain not-started gray —
+   without a per-status variant. */
+.barResizeHandle {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--color-snow);
+  cursor: ew-resize;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.barWrap:hover .barResizeHandle {
+  opacity: 1;
+  pointer-events: auto;
+}
+.barResizeHandleActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+.barResizeHandleLeft {
+  left: 0;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+.barResizeHandleRight {
+  right: 0;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 .barLabel {
   /* Sticks to the left edge of .timelineScroll while any part of the bar

@@ -124,6 +124,10 @@ export const RENDERER_STRINGS: Record<
     confirmDeleteAria: (name: string) => string;
     dragLaneAria: (name: string) => string;
     anchorLaneAria: string;
+    /** The two edge handles a bar reveals on hover (see PoapRenderer's
+     * Bar) — dragging either changes that phase's start/end date. */
+    resizeStartAria: string;
+    resizeEndAria: string;
   }
 > = {
   es: {
@@ -148,6 +152,8 @@ export const RENDERER_STRINGS: Record<
     confirmDeleteAria: (name) => `Confirmar eliminación de ${name}`,
     dragLaneAria: (name) => `Reordenar swimline ${name} — arrastrar para mover`,
     anchorLaneAria: "Esta swimline es fija y no se puede reordenar",
+    resizeStartAria: "Arrastrar para cambiar la fecha de inicio",
+    resizeEndAria: "Arrastrar para cambiar la fecha de fin",
   },
   en: {
     continuousZoom: "Continuous zoom",
@@ -171,6 +177,8 @@ export const RENDERER_STRINGS: Record<
     confirmDeleteAria: (name) => `Confirm deleting ${name}`,
     dragLaneAria: (name) => `Reorder swimline ${name} — drag to move`,
     anchorLaneAria: "This swimline is fixed and can't be reordered",
+    resizeStartAria: "Drag to change the start date",
+    resizeEndAria: "Drag to change the end date",
   },
 };
 

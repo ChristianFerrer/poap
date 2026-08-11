@@ -830,6 +830,7 @@ function ProjectView({ project }: { project: Project }) {
               activeGanttLaneId={explorer?.level === "phases" ? explorer.laneId : null}
               onCreatePhase={handleCreatePhase}
               isLaneCreatable={isLaneCreatable}
+              onResizePhase={(laneId, phaseId, start, end) => handleUpdatePhase(laneId, phaseId, { start, end })}
               onDeleteLane={canvasOnDeleteLane}
               onAddLaneBelow={canvasOnAddLaneBelow}
               onReorderLanes={canvasOnReorderLanes}

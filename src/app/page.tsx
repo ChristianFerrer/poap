@@ -126,6 +126,7 @@ export default function ProgramPage() {
     addProjectBelow,
     deleteProject,
     reorderProjects,
+    setProjectLanes,
     stageCategories,
     addStageCategory,
     renameStageCategory,
@@ -238,6 +239,24 @@ export default function ProgramPage() {
     setGanttProjectId(projectId);
     if (planLane) setDraftRange({ laneId: planLane.id, start, end });
     sidePanel.scrollToPanel();
+  }
+
+  // Dragging an existing bar's edge on the portfolio calendar — unlike
+  // handleCreatePhase above, this is a direct in-place edit (drag,
+  // release, done), not a form the Gantt panel needs to collect anything
+  // for, so it writes straight through instead of opening that panel.
+  // `laneId` here is the project's own id (see deriveProgramLanes — a
+  // Program-page row's phases are its plan lane's real phases), so this
+  // finds that lane the same way useProjectSwimlines' own updatePhase
+  // would if it had a live hook instance for this project already.
+  function handleResizePhase(laneId: string, phaseId: string, start: number, end: number) {
+    setProjectLanes(laneId, (prev) => {
+      const planLane = prev.find((l) => l.isProjectPlan);
+      if (!planLane) return prev;
+      return prev.map((lane) =>
+        lane.id !== planLane.id ? lane : { ...lane, phases: lane.phases.map((p) => (p.id === phaseId ? { ...p, start, end } : p)) },
+      );
+    });
   }
 
   function openProject(projectId: string) {
@@ -364,6 +383,7 @@ export default function ProgramPage() {
                 onLaneGanttClick={openGanttPanel}
                 activeGanttLaneId={ganttProjectId}
                 onCreatePhase={handleCreatePhase}
+                onResizePhase={handleResizePhase}
                 // Every project row is a "regular" swimline here (the
                 // Program page has no isProjectPlan anchor concept) — see
                 // CLAUDE.md's consistency principle: the same delete/

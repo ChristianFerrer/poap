@@ -101,6 +101,15 @@ export interface PoapRendererProps {
    * set) to allow creation on every lane, e.g. a page that's already
    * scoped to exactly one creatable lane. */
   isLaneCreatable?: (laneId: string) => boolean;
+  /** Dragging either edge of an *existing* bar — shown as a pair of arrow
+   * handles that fade in on hovering the bar (see .barResizeHandle), one
+   * at each end. Reports the lane, the phase, and the resulting start/end
+   * axis pair after the dragged edge snaps to a whole day, same "just the
+   * raw numbers" contract as onCreatePhase. Omit to leave bars
+   * non-resizable (e.g. a read-only view). Not gated by isLaneCreatable —
+   * that rule is about a *new* track needing a Plan link, unrelated to
+   * moving an existing one's dates. */
+  onResizePhase?: (laneId: string, phaseId: string, start: number, end: number) => void;
   /** A second, explicit per-lane action distinct from onLaneClick — e.g.
    * the Program page uses this for a "view swimlines" shortcut on each
    * project row, while onLaneClick itself still navigates into the

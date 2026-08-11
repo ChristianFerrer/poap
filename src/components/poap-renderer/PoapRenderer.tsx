@@ -15,7 +15,19 @@ import {
   pluralForm,
   type Locale,
 } from "@/lib/i18n";
-import { IconCheck, IconClose, IconGantt, IconGrip, IconMinus, IconPinOff, IconPlus, IconTrash, IconWarning } from "@/lib/icons";
+import {
+  IconCheck,
+  IconChevronLeft,
+  IconChevronRight,
+  IconClose,
+  IconGantt,
+  IconGrip,
+  IconMinus,
+  IconPinOff,
+  IconPlus,
+  IconTrash,
+  IconWarning,
+} from "@/lib/icons";
 import {
   BADGE_STRIP_HEIGHT,
   BAR_HEIGHT,
@@ -441,6 +453,7 @@ export function PoapRenderer({
   onGatesLabelClick,
   onCreatePhase,
   isLaneCreatable,
+  onResizePhase,
   isLaneManageable,
   onDeleteLane,
   onAddLaneBelow,
@@ -519,6 +532,19 @@ export function PoapRenderer({
   const [dragLaneId, setDragLaneId] = useState<string | null>(null);
   const [dragOverLaneId, setDragOverLaneId] = useState<string | null>(null);
   const [dragOverPosition, setDragOverPosition] = useState<"before" | "after">("before");
+  // A bar's own edge being dragged to change its start/end date (see the
+  // resize handles in Bar) — a continuous mousedown-move-up gesture,
+  // unlike dragCreate's two discrete clicks, so the track's bounding rect
+  // is safe to cache once at mousedown rather than re-reading it live.
+  const [resizeDrag, setResizeDrag] = useState<{
+    laneId: string;
+    phaseId: string;
+    edge: "start" | "end";
+    rect: DOMRect;
+    originalStart: number;
+    originalEnd: number;
+    currentAxis: number;
+  } | null>(null);
   const activeGateIds = useMemo(() => new Set(activeGateIdsProp), [activeGateIdsProp]);
 
   const zoom = ZOOM_LEVELS.find((z) => z.key === zoomKey) ?? ZOOM_LEVELS[0]!;
@@ -745,6 +771,76 @@ export function PoapRenderer({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [dragCreate]);
+
+  // Resize is always day-precision regardless of zoom level — unlike
+  // snapAxisRange's business-day-per-zoom snapping, which is about a
+  // freshly *created* track's whole range, not nudging one edge of an
+  // existing one.
+  function snapAxisDay(axis: number): number {
+    return toAxis(fromAxis(axis, startMonth), startMonth);
+  }
+
+  function addDaysAxis(axis: number, days: number): number {
+    const d = fromAxis(axis, startMonth);
+    const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
+    return toAxis(next, startMonth);
+  }
+
+  // Starts a bar-edge resize — same rect-from-event approach as
+  // handleTrackClick, just keyed off the nearest [data-lane-track-id]
+  // ancestor instead of the track div itself, since the mousedown lands
+  // on one of the bar's own edge handles rather than the track's empty
+  // background.
+  function handleResizeStart(e: ReactMouseEvent, laneId: string, phase: Phase, edge: "start" | "end") {
+    e.preventDefault();
+    e.stopPropagation();
+    const trackEl = (e.target as HTMLElement).closest("[data-lane-track-id]") as HTMLElement | null;
+    if (!trackEl) return;
+    const rect = trackEl.getBoundingClientRect();
+    setResizeDrag({
+      laneId,
+      phaseId: phase.id,
+      edge,
+      rect,
+      originalStart: phase.start,
+      originalEnd: phase.end,
+      currentAxis: axisFromClientX(e.clientX, rect),
+    });
+  }
+
+  // Live-tracks the drag and commits on release — one document-level
+  // listener pair for the whole gesture (the rect was cached at
+  // mousedown, see resizeDrag's own comment), re-subscribed each time
+  // resizeDrag's own currentAxis moves same as the dragCreate-cancel
+  // effect above already does for its own state. handleUp reads
+  // resizeDrag directly from the closure and calls onResizePhase as a
+  // plain statement, deliberately *not* from inside the setResizeDrag
+  // updater below it — a state updater must stay pure (React can and
+  // does invoke it more than once, e.g. under StrictMode, specifically
+  // to catch exactly this), and onResizePhase triggers a different
+  // component's own state update, which is a side effect.
+  useEffect(() => {
+    if (!resizeDrag) return;
+    const drag = resizeDrag;
+    function handleMove(e: MouseEvent) {
+      setResizeDrag((prev) => (prev ? { ...prev, currentAxis: axisFromClientX(e.clientX, prev.rect) } : prev));
+    }
+    function handleUp() {
+      const snapped = snapAxisDay(drag.currentAxis);
+      const start = drag.edge === "start" ? Math.min(snapped, addDaysAxis(drag.originalEnd, -1)) : drag.originalStart;
+      const end = drag.edge === "end" ? Math.max(snapped, addDaysAxis(drag.originalStart, 1)) : drag.originalEnd;
+      setResizeDrag(null);
+      if (start !== drag.originalStart || end !== drag.originalEnd) {
+        onResizePhase?.(drag.laneId, drag.phaseId, start, end);
+      }
+    }
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+    };
+  }, [resizeDrag]);
 
   // Animated hover highlight — a live preview of what dragging from here
   // would snap to (see snapAxisRange), shown continuously as the mouse
@@ -1003,6 +1099,7 @@ export function PoapRenderer({
         className={`${trackClass} ${creatable ? styles.laneTrackCreatable : ""}`.trim()}
         style={{ height }}
         data-range-track={creatable ? "true" : undefined}
+        data-lane-track-id={lane.id}
         onClick={creatable ? (e) => handleTrackClick(e, lane.id) : undefined}
         onMouseMove={creatable ? (e) => handleLaneHover(e, lane.id) : undefined}
         onMouseLeave={creatable ? () => setHoverCell(null) : undefined}
@@ -1019,6 +1116,13 @@ export function PoapRenderer({
                 onClick={onPhaseClick}
                 onHover={showTooltip}
                 onLeave={() => setTooltip(null)}
+                onResizeStart={onResizePhase ? (e, edge) => handleResizeStart(e, lane.id, phase, edge) : undefined}
+                resizeLive={
+                  resizeDrag && resizeDrag.phaseId === phase.id
+                    ? { edge: resizeDrag.edge, axis: snapAxisDay(resizeDrag.currentAxis) }
+                    : null
+                }
+                strings={strings}
               />
             ))}
           </div>
@@ -1349,6 +1453,9 @@ function Bar({
   onClick,
   onHover,
   onLeave,
+  onResizeStart,
+  resizeLive,
+  strings,
 }: {
   phase: Phase;
   scale: DayScale;
@@ -1357,48 +1464,86 @@ function Bar({
   onClick?: (phaseId: string) => void;
   onHover: (e: { clientX: number; clientY: number }, data: Omit<TooltipState, "x" | "y">) => void;
   onLeave: () => void;
+  /** Present only when the caller passed onResizePhase — renders the two
+   * edge handles at all (see .barResizeHandle's own hover-reveal) and
+   * arms a drag on whichever one is grabbed. */
+  onResizeStart?: (e: ReactMouseEvent, edge: "start" | "end") => void;
+  /** Non-null only while *this* bar's own edge is the one currently being
+   * dragged — overrides the displayed start/end with the live (already
+   * day-snapped) value so the bar visibly follows the cursor before the
+   * drag actually commits on mouseup. */
+  resizeLive?: { edge: "start" | "end"; axis: number } | null;
+  strings: (typeof RENDERER_STRINGS)[Locale];
 }) {
-  const spanDays = axisToDays(phase.end, scale) - axisToDays(phase.start, scale);
+  const displayStart = resizeLive?.edge === "start" ? resizeLive.axis : phase.start;
+  const displayEnd = resizeLive?.edge === "end" ? resizeLive.axis : phase.end;
+  const spanDays = axisToDays(displayEnd, scale) - axisToDays(displayStart, scale);
   const widthPx = trackWidth ? (spanDays / scale.totalDays) * trackWidth : Infinity;
   const showText = widthPx >= BAR_MIN_TEXT_PX;
 
   return (
-    <button
-      type="button"
-      className={[
-        styles.bar,
-        phase.warning ? styles.statusWarning : STATUS_CLASS[phase.status],
-        selected ? styles.barSelected : "",
-        showText ? "" : styles.barNoText,
-      ].join(" ").trim()}
-      style={{ left: pct(phase.start, scale), width: pctSpan(phase.start, phase.end, scale) }}
-      onClick={() => onClick?.(phase.id)}
-      onMouseMove={(e) =>
-        onHover(e, {
-          title: phase.title,
-          start: phase.start,
-          end: phase.end,
-          owners: phase.owners ?? [],
-          status: phase.status,
-        })
-      }
-      onMouseLeave={onLeave}
-      onFocus={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        onHover(
-          { clientX: rect.left, clientY: rect.bottom },
-          { title: phase.title, start: phase.start, end: phase.end, owners: phase.owners ?? [], status: phase.status },
-        );
-      }}
-      onBlur={onLeave}
+    <span
+      className={styles.barWrap}
+      style={{ left: pct(displayStart, scale), width: pctSpan(displayStart, displayEnd, scale) }}
     >
-      {showText && <span className={styles.barLabel}>{phase.title}</span>}
-      {showText && phase.warning && (
-        <span className={styles.barWarningIcon} aria-hidden="true">
-          <IconWarning />
-        </span>
+      <button
+        type="button"
+        className={[
+          styles.bar,
+          phase.warning ? styles.statusWarning : STATUS_CLASS[phase.status],
+          selected ? styles.barSelected : "",
+          showText ? "" : styles.barNoText,
+        ].join(" ").trim()}
+        onClick={() => onClick?.(phase.id)}
+        onMouseMove={(e) =>
+          onHover(e, {
+            title: phase.title,
+            start: phase.start,
+            end: phase.end,
+            owners: phase.owners ?? [],
+            status: phase.status,
+          })
+        }
+        onMouseLeave={onLeave}
+        onFocus={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          onHover(
+            { clientX: rect.left, clientY: rect.bottom },
+            { title: phase.title, start: phase.start, end: phase.end, owners: phase.owners ?? [], status: phase.status },
+          );
+        }}
+        onBlur={onLeave}
+      >
+        {showText && <span className={styles.barLabel}>{phase.title}</span>}
+        {showText && phase.warning && (
+          <span className={styles.barWarningIcon} aria-hidden="true">
+            <IconWarning />
+          </span>
+        )}
+      </button>
+      {onResizeStart && (
+        <>
+          <button
+            type="button"
+            className={`${styles.barResizeHandle} ${styles.barResizeHandleLeft} ${resizeLive?.edge === "start" ? styles.barResizeHandleActive : ""}`}
+            onMouseDown={(e) => onResizeStart(e, "start")}
+            aria-label={strings.resizeStartAria}
+            title={strings.resizeStartAria}
+          >
+            <IconChevronLeft />
+          </button>
+          <button
+            type="button"
+            className={`${styles.barResizeHandle} ${styles.barResizeHandleRight} ${resizeLive?.edge === "end" ? styles.barResizeHandleActive : ""}`}
+            onMouseDown={(e) => onResizeStart(e, "end")}
+            aria-label={strings.resizeEndAria}
+            title={strings.resizeEndAria}
+          >
+            <IconChevronRight />
+          </button>
+        </>
       )}
-    </button>
+    </span>
   );
 }
 
