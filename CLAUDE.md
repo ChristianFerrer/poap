@@ -58,9 +58,26 @@ recursive canvas, not six different screens that happen to look similar.
 
 ## Verification standard
 
-Before calling any UI change done, launch the dev server and check it with
-Playwright against a mocked Supabase fixture (the sandbox has no route to
-the real database) — this session has repeatedly caught real bugs (wrong
-z-index, clipped overlays, a feature only wired on one page) that were
-invisible from reading the code alone. Screenshot both the change itself and
-at least one adjacent/mobile viewport before reporting success.
+Every UI change gets checked live with Playwright against a mocked Supabase
+fixture (the sandbox has no route to the real database) before being called
+done — reading the code is not enough, this project has repeatedly shipped
+bugs (wrong z-index, clipped overlays, a feature only wired on one page)
+that were invisible until rendered. How much to check scales with the
+change's blast radius, using the same shared-vs-isolated split as "one
+behavior, every screen" above:
+
+- **Tier 1 — Isolated.** CSS/copy/markup confined to a component that is
+  *not* reused across drill levels (a single panel's own styling, one-off
+  copy), with no logic or data-derivation change. Verify with one
+  screenshot, cropped to the changed component, in one theme.
+- **Tier 2 — Shared.** Anything touching `PoapRenderer`, `ExplorerPanel`,
+  `portfolio.ts`, or any new/changed prop on `PoapRendererProps` — i.e.
+  anything the "one behavior, every screen" rule already flags as needing
+  to be wired everywhere. Verify with the full dark/light/mobile sweep, and
+  capture at least two different drill levels or call sites (e.g. Program
+  page + a drilled-in project view), not just the screen the change was
+  designed against — this is what actually catches "works here, not there."
+- **Before every push**, regardless of how the individual changes in the
+  batch were tiered: run `npx vitest run` and `npm run build` once over the
+  whole accumulated batch, and if the batch contains any Tier 2 change, run
+  one final full dark/light/mobile sweep before shipping.
