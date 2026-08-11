@@ -21,46 +21,17 @@
   }
 }
 
+/* right:56px (not 14px) clears the fixed, viewport-anchored
+   NotificationBell (top:16/right:20, 28px square, z-index 30 — see
+   NotificationBell.module.css) sitting at this same corner — at 14px this
+   button rendered directly underneath the bell, unclickable. Same 56px
+   reservation page.module.css's own .headerRow already uses for the same
+   reason. */
 .close {
   composes: iconBtn iconBtnLg iconBtnNeutral from "./buttons.module.css";
   position: absolute;
   top: 14px;
-  right: 14px;
-}
-
-.breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2xs);
-  margin: 0 0 var(--space-xs);
-  padding-right: 30px;
-}
-.breadcrumbItem {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-}
-.breadcrumbLink {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-size: var(--text-2xs);
-  color: var(--color-lime);
-  cursor: pointer;
-  border-radius: var(--radius-lg);
-}
-.breadcrumbLink:hover {
-  text-decoration: underline;
-}
-.breadcrumbCurrent {
-  font-size: var(--text-2xs);
-  color: var(--color-fog);
-}
-.breadcrumbSep {
-  font-size: var(--text-2xs);
-  color: var(--color-fog);
+  right: 56px;
 }
 
 .eyebrow {

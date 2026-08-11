@@ -697,6 +697,7 @@ function ProjectView({ project }: { project: Project }) {
       onRenameLane={handleRenameLane}
       projectName={project.name}
       onRenameProject={(name) => renameProject(project.id, name)}
+      phasesEyebrowLabel={drill?.level === "equipo" ? t.header.levelPlan : undefined}
       draftRange={draftRange}
       onDraftRangeConsumed={() => setDraftRange(null)}
       onUpdatePhase={handleUpdatePhase}

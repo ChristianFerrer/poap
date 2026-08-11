@@ -117,36 +117,6 @@ function StatusPill({ status }: { status: PhaseStatus }) {
   );
 }
 
-function Breadcrumb({
-  items,
-  onNavigate,
-}: {
-  items: { label: string; view?: ExplorerView }[];
-  onNavigate: (view: ExplorerView) => void;
-}) {
-  const { t } = useLanguage();
-  return (
-    <nav className={styles.breadcrumb} aria-label={t.explorer.breadcrumbNav}>
-      {items.map((item, i) => (
-        <span key={i} className={styles.breadcrumbItem}>
-          {item.view ? (
-            <button type="button" className={styles.breadcrumbLink} onClick={() => onNavigate(item.view!)}>
-              {item.label}
-            </button>
-          ) : (
-            <span className={styles.breadcrumbCurrent}>{item.label}</span>
-          )}
-          {i < items.length - 1 && (
-            <span className={styles.breadcrumbSep} aria-hidden="true">
-              /
-            </span>
-          )}
-        </span>
-      ))}
-    </nav>
-  );
-}
-
 /**
  * Drill-down management panel: Swimlines -> a lane's phases -> a phase's
  * activities -> one activity's full detail + comments. Lives outside
@@ -177,6 +147,14 @@ export const ExplorerPanel = forwardRef<
      * apart the way a plain lane rename would let them. */
     projectName: string;
     onRenameProject: (name: string) => void;
+    /** What kind of thing the "phases" view's own current lane actually
+     * is — this panel has no idea how deep the caller's own canvas is
+     * drilled, so it can't tell an Equipo's own phases apart from a
+     * Plan's own phases purely from `lane.isProjectPlan` (both read
+     * false). Omit to fall back to the isProjectPlan-based guess
+     * (Proyecto/Equipo), correct for every caller except one drilled into
+     * an Equipo showing one of its own Plans. */
+    phasesEyebrowLabel?: string;
     /** A date range dragged directly on the Gantt canvas (see PoapRenderer's
      * onCreatePhase) — seeds the "add phase" form's dates (and, once both
      * are set, its category suggestion) the moment the matching lane's
@@ -214,6 +192,7 @@ export const ExplorerPanel = forwardRef<
     onRenameLane,
     projectName,
     onRenameProject,
+    phasesEyebrowLabel,
     draftRange,
     onDraftRangeConsumed,
     onUpdatePhase,
@@ -264,7 +243,7 @@ export const ExplorerPanel = forwardRef<
   const [laneSearch, setLaneSearch] = useState("");
   const [laneSort, setLaneSort] = useState<SortBy>("name");
   const [phaseSearch, setPhaseSearch] = useState("");
-  const [phaseSort, setPhaseSort] = useState<SortBy>("name");
+  const [phaseSort, setPhaseSort] = useState<SortBy>("date");
   const [activitySearch, setActivitySearch] = useState("");
   const [activitySort, setActivitySort] = useState<SortBy>("name");
 
@@ -308,8 +287,6 @@ export const ExplorerPanel = forwardRef<
     });
     setNewActivity({ title: "", owner: "", start: "", end: "", status: "not_started" });
   }
-
-  const rootCrumb = { label: t.explorer.root, view: { level: "lanes" } as ExplorerView };
 
   return (
     <section ref={ref} className={styles.panel}>
@@ -503,9 +480,10 @@ export const ExplorerPanel = forwardRef<
           // doc above). Everywhere else lane.name is the real, independent
           // name of an actual team swimline.
           const displayName = lane.isProjectPlan ? projectName : lane.name;
+          const eyebrowLabel = phasesEyebrowLabel ?? (lane.isProjectPlan ? t.header.levelProject : t.header.levelEquipo);
           return (
             <>
-              <Breadcrumb items={[rootCrumb, { label: displayName }]} onNavigate={onNavigate} />
+              <p className={styles.eyebrow}>{eyebrowLabel}</p>
               {isUnassignedBucket ? (
                 <h2 className={styles.title}>{displayName}</h2>
               ) : (
@@ -770,18 +748,11 @@ export const ExplorerPanel = forwardRef<
         (() => {
           const found = findPhase(view.phaseId);
           if (!found) return null;
-          const { lane, phase } = found;
+          const { phase } = found;
           const activities = getActivities(phase);
           return (
             <>
-              <Breadcrumb
-                items={[
-                  rootCrumb,
-                  { label: lane.isProjectPlan ? projectName : lane.name, view: { level: "phases", laneId: lane.id } },
-                  { label: phase.title },
-                ]}
-                onNavigate={onNavigate}
-              />
+              <p className={styles.eyebrow}>{t.header.levelFase}</p>
               <h2 className={styles.title}>{phase.title}</h2>
               <div className={styles.headerMeta}>
                 <StatusPill status={phase.status} />
@@ -940,7 +911,7 @@ export const ExplorerPanel = forwardRef<
         (() => {
           const found = findPhase(view.phaseId);
           if (!found) return null;
-          const { lane, phase } = found;
+          const { phase } = found;
           const activity = getActivities(phase).find((a) => a.id === view.activityId);
           if (!activity) return null;
           const seedComments = activity.comments ?? [];
@@ -948,15 +919,7 @@ export const ExplorerPanel = forwardRef<
           const allComments = [...seedComments, ...extraComments];
           return (
             <>
-              <Breadcrumb
-                items={[
-                  rootCrumb,
-                  { label: lane.isProjectPlan ? projectName : lane.name, view: { level: "phases", laneId: lane.id } },
-                  { label: phase.title, view: { level: "activities", phaseId: phase.id } },
-                  { label: activity.title },
-                ]}
-                onNavigate={onNavigate}
-              />
+              <p className={styles.eyebrow}>{t.header.levelActivity}</p>
               <h2 className={styles.title}>{activity.title}</h2>
               <div className={styles.headerMeta}>
                 <StatusPill status={activity.status} />

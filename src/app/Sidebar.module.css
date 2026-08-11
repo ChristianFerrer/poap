@@ -37,11 +37,18 @@
   padding: 0 12px;
   height: 44px;
   margin-bottom: 4px;
-  color: var(--color-lime-deep, var(--color-lime));
 }
 .sidebarCollapsed .logo {
   justify-content: center;
   padding: 0;
+}
+/* Fixed brand colors of its own (see forest.svg) — same 20px NAV_SIZE
+   every other sidebar icon uses, just not routed through icons.tsx's
+   currentColor-based icon() wrapper since it isn't a single-color glyph. */
+.logoMark {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
 }
 .logoText {
   font-family: var(--font-display);

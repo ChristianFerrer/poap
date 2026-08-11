@@ -123,6 +123,7 @@ export const RENDERER_STRINGS: Record<
     cancelDeleteAria: string;
     confirmDeleteAria: (name: string) => string;
     dragLaneAria: (name: string) => string;
+    anchorLaneAria: string;
   }
 > = {
   es: {
@@ -146,6 +147,7 @@ export const RENDERER_STRINGS: Record<
     cancelDeleteAria: "Cancelar",
     confirmDeleteAria: (name) => `Confirmar eliminación de ${name}`,
     dragLaneAria: (name) => `Reordenar swimline ${name} — arrastrar para mover`,
+    anchorLaneAria: "Esta swimline es fija y no se puede reordenar",
   },
   en: {
     continuousZoom: "Continuous zoom",
@@ -168,6 +170,7 @@ export const RENDERER_STRINGS: Record<
     cancelDeleteAria: "Cancel",
     confirmDeleteAria: (name) => `Confirm deleting ${name}`,
     dragLaneAria: (name) => `Reorder swimline ${name} — drag to move`,
+    anchorLaneAria: "This swimline is fixed and can't be reordered",
   },
 };
 

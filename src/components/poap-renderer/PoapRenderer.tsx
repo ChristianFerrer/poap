@@ -15,7 +15,7 @@ import {
   pluralForm,
   type Locale,
 } from "@/lib/i18n";
-import { IconCheck, IconClose, IconGantt, IconGrip, IconMinus, IconPlus, IconTrash, IconWarning } from "@/lib/icons";
+import { IconCheck, IconClose, IconGantt, IconGrip, IconMinus, IconPinOff, IconPlus, IconTrash, IconWarning } from "@/lib/icons";
 import {
   BADGE_STRIP_HEIGHT,
   BAR_HEIGHT,
@@ -897,6 +897,10 @@ export function PoapRenderer({
             <span className={styles.dragHandle} aria-hidden="true" title={strings.dragLaneAria(lane.name)}>
               <IconGrip />
             </span>
+          ) : isAnchor ? (
+            <span className={styles.anchorPin} aria-hidden="true" title={strings.anchorLaneAria}>
+              <IconPinOff />
+            </span>
           ) : (
             <span className={styles.dragHandleSpacer} aria-hidden="true" />
           ))}
@@ -925,27 +929,29 @@ export function PoapRenderer({
         {isConfirmingDelete ? (
           <span className={styles.deleteConfirmGroup} data-delete-confirm={lane.id}>
             <span className={styles.confirmDeleteLabel}>{strings.confirmDeleteLabel}</span>
-            <button
-              type="button"
-              className={styles.confirmCancelButton}
-              onClick={() => setConfirmDeleteLaneId(null)}
-              aria-label={strings.cancelDeleteAria}
-              title={strings.cancelDeleteAria}
-            >
-              <IconClose />
-            </button>
-            <button
-              type="button"
-              className={styles.confirmDeleteButton}
-              onClick={() => {
-                onDeleteLane?.(lane.id);
-                setConfirmDeleteLaneId(null);
-              }}
-              aria-label={strings.confirmDeleteAria(lane.name)}
-              title={strings.confirmDeleteAria(lane.name)}
-            >
-              <IconCheck />
-            </button>
+            <span className={styles.confirmButtonsRow}>
+              <button
+                type="button"
+                className={styles.confirmCancelButton}
+                onClick={() => setConfirmDeleteLaneId(null)}
+                aria-label={strings.cancelDeleteAria}
+                title={strings.cancelDeleteAria}
+              >
+                <IconClose />
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDeleteButton}
+                onClick={() => {
+                  onDeleteLane?.(lane.id);
+                  setConfirmDeleteLaneId(null);
+                }}
+                aria-label={strings.confirmDeleteAria(lane.name)}
+                title={strings.confirmDeleteAria(lane.name)}
+              >
+                <IconCheck />
+              </button>
+            </span>
           </span>
         ) : (
           <span className={styles.laneRowActions}>
@@ -1099,19 +1105,29 @@ export function PoapRenderer({
                 handle + add-below button, whichever the caller actually
                 renders) and the same laneLabelText styling, so "Stage
                 gates" reads as one more row in the same list rather than a
-                visually distinct heading. */}
-            {onGatesLabelClick ? (
-              <button type="button" className={styles.gatesLabelButton} onClick={onGatesLabelClick}>
-                {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
-                {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
-                <span className={styles.laneLabelText}>{strings.stageGates}</span>
-              </button>
-            ) : (
-              <>
-                {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
-                {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
-                <span className={styles.laneLabelText}>{strings.stageGates}</span>
-              </>
+                visually distinct heading. The name itself is plain text,
+                not a button — this row never "drills" anywhere the way a
+                lane's own name can, so it doesn't get that row's hover-
+                active affordance; the Gantt button below is the one real
+                way to open its own detail panel, same as every other
+                row's own Gantt shortcut. */}
+            {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
+            {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
+            <span className={styles.gatesLabelText}>
+              <span className={styles.laneLabelText}>{strings.stageGates}</span>
+            </span>
+            {onGatesLabelClick && (
+              <span className={styles.laneRowActions}>
+                <button
+                  type="button"
+                  className={styles.ganttButton}
+                  onClick={onGatesLabelClick}
+                  aria-label={strings.viewGanttAria}
+                  title={strings.viewGanttAria}
+                >
+                  <IconGantt />
+                </button>
+              </span>
             )}
           </div>
           {teamPackedLanes.map(renderLaneLabel)}

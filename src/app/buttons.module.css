@@ -148,3 +148,18 @@
   border-color: var(--color-rose);
   color: var(--color-surface);
 }
+
+/* The one affirmative/"yes, do it" role — e.g. a delete confirm's own
+   checkmark, distinct from iconBtnDestructive's red (used on that same
+   flow's cancel/X instead) and from lime's "primary action" branding
+   elsewhere in the app. Mint, same green already standing for "done". */
+.iconBtnPositive {
+  border: 1px solid color-mix(in srgb, var(--color-mint) 35%, var(--color-line));
+  background: var(--color-mint-soft);
+  color: var(--color-mint-ink);
+}
+.iconBtnPositive:hover {
+  background: var(--color-mint);
+  border-color: var(--color-mint);
+  color: var(--color-surface);
+}

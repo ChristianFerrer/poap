@@ -15,6 +15,7 @@ const es = {
     levelEquipo: "Equipo",
     levelPlan: "Plan",
     levelFase: "Fase",
+    levelActivity: "Actividad",
     projectTitle: (name: string) => `${name} — plan on a page`,
     projectsWord: "proyectos",
     lanesWord: "carriles",
@@ -35,8 +36,6 @@ const es = {
   },
   explorer: {
     close: "Cerrar",
-    breadcrumbNav: "Ruta de navegación",
-    root: "Swimlines",
     lanesEyebrow: "Proyecto",
     lanesTitle: "Swimlines",
     projectPlanEyebrow: "Plan del proyecto (alto nivel)",
@@ -290,6 +289,7 @@ const en: Translations = {
     levelEquipo: "Team",
     levelPlan: "Plan",
     levelFase: "Phase",
+    levelActivity: "Activity",
     projectTitle: (name) => `${name} — plan on a page`,
     projectsWord: "projects",
     lanesWord: "lanes",
@@ -310,8 +310,6 @@ const en: Translations = {
   },
   explorer: {
     close: "Close",
-    breadcrumbNav: "Navigation path",
-    root: "Swimlines",
     lanesEyebrow: "Project",
     lanesTitle: "Swimlines",
     projectPlanEyebrow: "Project plan (high level)",

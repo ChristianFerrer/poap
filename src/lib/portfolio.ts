@@ -94,6 +94,18 @@ export function projectOverallStatus(project: Project): PhaseStatus {
   return phases.length === 0 ? "not_started" : worstStatus(phases);
 }
 
+/** Tags a phase `warning` when it isn't tagged with a live stage category
+ * (same "uncategorized" test deriveProjectSummary's own bars use) and the
+ * caller wants that flagged — shared so a project's plan-lane phases
+ * (deriveProgramLanes) and its synthesized summary bars (the
+ * deriveProjectSummary fallback below) agree on when a phase reads as
+ * "needs a stage" instead of each having their own copy of the check. */
+function flagIfUncategorized(phase: Phase, categories: StageCategoryDef[], flagUncategorized: boolean): Phase {
+  if (!flagUncategorized) return phase;
+  const isUncategorized = !phase.category || !categories.some((c) => c.id === phase.category);
+  return isUncategorized ? { ...phase, warning: true } : phase;
+}
+
 /**
  * One aggregated bar per stage category actually tagged somewhere in the
  * project's team lanes (see Phase.category), plus every untagged phase
@@ -147,19 +159,9 @@ export function deriveProjectSummary(project: Project, categories: StageCategory
       };
     });
 
-  return [...bars, ...uncategorized.map((p) => (flagUncategorized ? { ...p, warning: true } : p))];
+  return [...bars, ...uncategorized.map((p) => flagIfUncategorized(p, categories, flagUncategorized))];
 }
 
-/**
- * Turns a Program's projects into one Lane per project — the portfolio
- * (Program-level) calendar is just another instance of the same
- * PoapRenderer used for a single project's detail view, with "lane"
- * reinterpreted as "project" instead of "team" and its phases coming from
- * deriveProjectSummary instead of being authored directly. Takes the
- * project list directly (not a whole Program) so callers can pass a live,
- * possibly-just-edited list (e.g. from ProjectsProvider) without needing
- * a full Program object to wrap it in.
- */
 /**
  * Turns one team lane's flat phase list into one synthetic Lane per Plan
  * (each holding that Plan's own real phases, packed exactly like any other
@@ -279,13 +281,35 @@ export function findUnassignedPlanIssues(lanes: Lane[], plansByLane: Record<stri
   return issues;
 }
 
+/**
+ * Turns a Program's projects into one Lane per project — the portfolio
+ * (Program-level) calendar is just another instance of the same
+ * PoapRenderer used for a single project's detail view, with "lane"
+ * reinterpreted as "project" instead of "team". Takes the project list
+ * directly (not a whole Program) so callers can pass a live, possibly-
+ * just-edited list (e.g. from ProjectsProvider) without needing a full
+ * Program object to wrap it in.
+ *
+ * A project's row shows its own plan lane's real phases directly — the
+ * exact same tracks its own Gantt-click detail panel shows, so the two
+ * never disagree about what "this project's tracks" even means. Only
+ * falls back to deriveProjectSummary's team-lane category aggregate for
+ * the rare project that doesn't have a plan lane at all yet (older/
+ * imported data — everything the canvas's own "+" button creates always
+ * has one, see Lane.isProjectPlan).
+ */
 export function deriveProgramLanes(projects: Project[], categories: StageCategoryDef[], flagUncategorized: boolean): Lane[] {
   return [...projects]
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((project) => ({
-      id: project.id,
-      name: project.name,
-      sortOrder: project.sortOrder,
-      phases: deriveProjectSummary(project, categories, flagUncategorized),
-    }));
+    .map((project) => {
+      const planLane = project.lanes.find((l) => l.isProjectPlan);
+      return {
+        id: project.id,
+        name: project.name,
+        sortOrder: project.sortOrder,
+        phases: planLane
+          ? planLane.phases.map((phase) => flagIfUncategorized(phase, categories, flagUncategorized))
+          : deriveProjectSummary(project, categories, flagUncategorized),
+      };
+    });
 }

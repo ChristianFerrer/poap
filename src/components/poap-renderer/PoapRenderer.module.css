@@ -317,29 +317,20 @@
   flex: 0 0 auto;
   width: 18px;
 }
-/* Same "open the management view for this row" affordance as
-   .laneNameButton — clicking the row's own name, not a specific gate
-   diamond, opens the gates panel in general. */
-.gatesLabelButton {
-  width: 100%;
-  height: 100%;
+/* Plain (non-button) label chip — same box/padding as .laneNameButton so
+   this row keeps the same aesthetic as every other lane row, but no
+   cursor/hover reaction: this row never "drills" the way a lane name can,
+   so nothing happens on a name click here anymore (see .ganttButton below
+   for the row's own real "open detail panel" action). */
+.gatesLabelText {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-3xs);
+  height: 100%;
   background: var(--color-row-chip-bg);
-  border: none;
   border-radius: var(--radius-lg);
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  text-align: left;
   padding: 0 var(--space-xs);
-  transition: background-color 0.12s ease;
-}
-/* The row's own name/label is the hover target now, not the whole row
-   (see .laneNameButton's matching comment) — scoped to just this box. */
-.gatesLabelButton:hover {
-  background: var(--color-row-hover-bg);
 }
 /* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
    equivalent spacer on the label-column side, so the two stay visually
@@ -632,6 +623,24 @@
   flex: 0 0 auto;
   width: 14px;
 }
+/* The anchor lane's own drag-handle slot — same chip shape/size as
+   .dragHandle so the row still reads as visually complete instead of
+   leaving that slot empty (see .dragHandleSpacer above, still used for
+   any other non-draggable-but-non-anchor row), just dimmed and with no
+   hover reaction since there's nothing to do here — this lane can never
+   be reordered. */
+.anchorPin {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 100%;
+  background: var(--color-row-chip-bg);
+  border-radius: var(--radius-md);
+  color: var(--color-fog);
+  opacity: 0.5;
+}
 /* Was the old collapse/expand chevron's own slot — now the "add a new
    swimline right below this one" button, same width/position so
    .gatesLabelSpacer still lines the Stage-gates row up with every lane.
@@ -767,14 +776,18 @@
   color: var(--color-surface);
 }
 /* Replaces the Gantt/delete buttons once a delete is armed (see
-   confirmDeleteLaneId in the .tsx) — cancel reads as a plain neutral
-   action, confirm keeps the same destructive color the trash icon it
-   replaced had, so the "this is still the dangerous one" cue doesn't
-   disappear just because the icon changed to a checkmark. */
+   confirmDeleteLaneId in the .tsx) — the label sits on its own line above
+   the two buttons (this whole group lives in the same narrow column the
+   Gantt/delete buttons normally split, too tight to fit "¿Eliminar?" and
+   two icon buttons on one line). Cancel is red — stopping the delete is
+   the "make the danger go away" action — and confirm is green (mint, the
+   same green "done" already uses), so the two read as clearly opposite
+   choices rather than one neutral and one colored. */
 .deleteConfirmGroup {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2xs);
+  gap: var(--space-3xs);
   flex: 0 0 auto;
 }
 .confirmDeleteLabel {
@@ -782,11 +795,16 @@
   color: var(--color-fog);
   white-space: nowrap;
 }
+.confirmButtonsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
 .confirmCancelButton {
-  composes: iconBtn iconBtnSm iconBtnGhost from "../../app/buttons.module.css";
+  composes: iconBtn iconBtnSm iconBtnDestructive from "../../app/buttons.module.css";
 }
 .confirmDeleteButton {
-  composes: iconBtn iconBtnSm iconBtnDestructive from "../../app/buttons.module.css";
+  composes: iconBtn iconBtnSm iconBtnPositive from "../../app/buttons.module.css";
 }
 /* Wraps onto as many lines as it needs (like an Excel cell with wrap text
    on) instead of ellipsis-truncating — the row's own height grows to fit
