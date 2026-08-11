@@ -42,31 +42,11 @@
   justify-content: center;
   padding: 0;
 }
-/* App-icon-style badge behind the mark — same dark green tile and
-   proportions as the actual favicon (src/app/icon.svg), fixed regardless
-   of theme since it's the brand mark, not themeable UI chrome. */
-/* Sized to match .navButton's own height (44px) — the one fixed square
-   dimension every button in the rail already shares, expanded or
-   collapsed — so the brand mark reads as "one of these buttons' size",
-   not an arbitrary small tile. */
-.logoIconBg {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  padding: 5px;
-  background: #0c2415;
-  /* Largest radius the design system's own rule allows at this 44px box
-     (2×radius must stay under the shortest side) — matches the app's
-     other rounded-square controls' softest corner instead of the tighter
-     --radius-lg every smaller row chip uses. */
-  border-radius: var(--radius-2xl);
-}
-/* Fixed brand colors of its own (see forest.svg), scaled up with
-   .logoIconBg — not routed through icons.tsx's currentColor-based icon()
-   wrapper since it isn't a single-color glyph. */
+/* Fixed brand colors of its own (see forest.svg) — no background tile,
+   sits directly on the rail like every other sidebar icon; not routed
+   through icons.tsx's currentColor-based icon() wrapper since it isn't a
+   single-color glyph. Kept at the larger 34px size (matching the removed
+   badge's glyph scale) since the mark alone reads small at the old 20px. */
 .logoMark {
   flex: 0 0 auto;
   width: 34px;

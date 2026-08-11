@@ -83,13 +83,11 @@ export function Sidebar({
       aria-label={t.sidebar.navAria}
     >
       <div className={styles.logo} title={t.sidebar.appNameHint}>
-        <span className={styles.logoIconBg}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- a fixed
-              multi-color brand mark, not a themeable single-color icon, so
-              it doesn't go through icons.tsx's currentColor-based icon()
-              wrapper like every other sidebar icon does. */}
-          <img src="/forest.svg" alt="" className={styles.logoMark} />
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element -- a fixed
+            multi-color brand mark, not a themeable single-color icon, so
+            it doesn't go through icons.tsx's currentColor-based icon()
+            wrapper like every other sidebar icon does. */}
+        <img src="/forest.svg" alt="" className={styles.logoMark} />
         <span className={styles.logoText}>{t.sidebar.appName}</span>
       </div>
 
