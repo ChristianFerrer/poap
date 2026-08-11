@@ -945,21 +945,8 @@
 
 .legend {
   display: flex;
-  gap: var(--space-lg);
-  flex-wrap: wrap;
-}
-.legendItem {
-  display: flex;
-  align-items: center;
   gap: var(--space-xs);
-  font-size: var(--text-2xs);
-  color: var(--color-fog);
-}
-.legendDot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-dot);
-  flex: 0 0 auto;
+  flex-wrap: wrap;
 }
 /* Replaces the Program page's old separate "N projects · X at risk…"
    strip — same counts, folded into the legend itself instead of a second

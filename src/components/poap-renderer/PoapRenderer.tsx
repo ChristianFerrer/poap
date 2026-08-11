@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent } from "react";
 import { packLane } from "./pack";
 import { fromAxis, toAxis } from "./toAxis";
-import { worstStatus } from "@/lib/portfolio";
 import type { Lane, Phase, PhaseStatus, PoapRendererProps } from "./types";
 import {
   DAY_INITIALS,
@@ -452,17 +451,20 @@ export function PoapRenderer({
   const monthAbbr = MONTH_ABBR[locale];
   const statusLabels = STATUS_LABELS[locale];
   const strings = RENDERER_STRINGS[locale];
-  // How many of this canvas's own rows land in each status — generic across
-  // every level PoapRenderer renders (projects on the Program page, team
-  // lanes/Plans/Fases inside a project), since it's computed straight from
+  // How many of this canvas's own tracks (bars) land in each status —
+  // generic across every level PoapRenderer renders (projects' own
+  // category-aggregate bars on the Program page, team lanes'/Plans'/Fases'
+  // real phases inside a project), since it's computed straight from
   // whatever `lanes` this call was actually given rather than anything
-  // Program-specific. A lane with no phases yet reads as "not_started"
-  // rather than needing a special empty case in the caller.
+  // Program-specific. Tallies every phase by its own status rather than
+  // one worst-status verdict per lane — a lane mixing a done phase with an
+  // at-risk one used to count as a single "at_risk" row and make its done
+  // phase invisible to this count entirely, even though it renders as its
+  // own done-colored bar right there in the calendar.
   const legendCounts = useMemo(() => {
     const counts: Record<PhaseStatus, number> = { done: 0, in_progress: 0, at_risk: 0, not_started: 0 };
     for (const lane of lanes) {
-      const status = lane.phases.length === 0 ? "not_started" : worstStatus(lane.phases);
-      counts[status] += 1;
+      for (const phase of lane.phases) counts[phase.status] += 1;
     }
     return counts;
   }, [lanes]);
@@ -1431,29 +1433,31 @@ function Legend({
   counts,
 }: {
   statusLabels: Record<PhaseStatus, string>;
-  /** How many of the canvas's own rows are currently at each status — see
-   * legendCounts above. Renders as a small rounded-square badge per item,
-   * showing 0 rather than hiding the item when a status has no rows (this
-   * replaced the Program page's separate "N projects · X at risk…" strip,
-   * which used to hide empty statuses instead). */
+  /** How many of the canvas's own tracks are currently at each status —
+   * see legendCounts above. Renders as just the small rounded-square count
+   * badge per status (no dot, no label text alongside it — the badge's own
+   * color already carries that), showing 0 rather than hiding the item
+   * when a status has no tracks (this replaced the Program page's separate
+   * "N projects · X at risk…" strip, which used to hide empty statuses
+   * instead). The status name still reaches an accessible name/tooltip via
+   * title/aria-label, just not as visible text. */
   counts: Record<PhaseStatus, number>;
 }) {
   const items: PhaseStatus[] = ["done", "in_progress", "at_risk", "not_started"];
   return (
     <div className={styles.legend}>
       {items.map((status) => (
-        <span key={status} className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ background: `var(--${legendColorVar(status)})` }} />
-          {statusLabels[status]}
-          <span
-            className={styles.legendCount}
-            style={{
-              background: `color-mix(in srgb, var(--${legendColorVar(status)}) 18%, var(--color-surface))`,
-              color: `var(--${legendColorVar(status)}-ink, var(--${legendColorVar(status)}))`,
-            }}
-          >
-            {counts[status]}
-          </span>
+        <span
+          key={status}
+          className={styles.legendCount}
+          style={{
+            background: `color-mix(in srgb, var(--${legendColorVar(status)}) 18%, var(--color-surface))`,
+            color: `var(--${legendColorVar(status)}-ink, var(--${legendColorVar(status)}))`,
+          }}
+          title={statusLabels[status]}
+          aria-label={`${statusLabels[status]}: ${counts[status]}`}
+        >
+          {counts[status]}
         </span>
       ))}
     </div>
