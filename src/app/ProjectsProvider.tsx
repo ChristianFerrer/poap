@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { Gate, Lane, Phase } from "@/components/poap-renderer/types";
+import type { Lane, Phase } from "@/components/poap-renderer/types";
 import type { Plan, Project } from "@/lib/portfolio";
 import { activitiesFor, type ActivityComment, type ActivitySeed } from "./mock-data";
 import { useLanguage } from "./i18n/LanguageProvider";
@@ -18,7 +18,6 @@ import {
   renamePlanRow,
   setSyncErrorHandler,
   syncPhaseActivities,
-  syncProjectGates,
   syncProjectLanes,
   updateProgram as updateProgramRow,
   updatePlanSortOrder,
@@ -52,11 +51,11 @@ interface ProjectsContextValue {
   /** Creates a project and returns its new id (synchronously — computed
    * off the current `projects` closure, not read back out of the setState
    * updater, so the caller can navigate to it immediately). */
-  addProject: (input: { name: string; lanes: Lane[]; gates: Gate[] }) => string;
+  addProject: (input: { name: string; lanes: Lane[] }) => string;
   /** One call, many new projects — see addProjects's own doc comment for
    * why this isn't just addProject in a loop. Returns the new ids in the
    * same order as `inputs`. */
-  addProjects: (inputs: { name: string; lanes: Lane[]; gates: Gate[] }[]) => string[];
+  addProjects: (inputs: { name: string; lanes: Lane[] }[]) => string[];
   /** The Program page's own "+ add a swimline below this one" action (see
    * PoapRenderer's onAddLaneBelow) — a project IS the Program page's
    * swimline, so this is that same capability, not a separate concept.
@@ -74,7 +73,6 @@ interface ProjectsContextValue {
    * project gets renamed from. */
   renameProject: (projectId: string, name: string) => void;
   setProjectLanes: (projectId: string, updater: (lanes: Lane[]) => Lane[]) => void;
-  setProjectGates: (projectId: string, updater: (gates: Gate[]) => Gate[]) => void;
   /** A team lane's own Planes (Equipo -> Plan -> Fase), keyed by lane id —
    * flat like activitiesByPhase rather than nested inside Lane, since
    * Phase.planId is what actually ties a phase to one. */
@@ -276,9 +274,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return id;
   }
 
-  function addProject(input: { name: string; lanes: Lane[]; gates: Gate[] }): string {
+  function addProject(input: { name: string; lanes: Lane[] }): string {
     const id = nextUniqueId(input.name, new Set(projects.map((p) => p.id)));
-    const project: Project = { id, name: input.name, sortOrder: projects.length, lanes: input.lanes, gates: input.gates };
+    const project: Project = { id, name: input.name, sortOrder: projects.length, lanes: input.lanes };
     setProjects((prev) => [...prev, project]);
     void insertProject(project);
     return id;
@@ -289,14 +287,13 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
    * siblings, so importing several projects from one Excel workbook in one
    * go can't collide ids or double-assign a sortOrder the way N sequential
    * addProject calls would. */
-  function addProjects(inputs: { name: string; lanes: Lane[]; gates: Gate[] }[]): string[] {
+  function addProjects(inputs: { name: string; lanes: Lane[] }[]): string[] {
     const taken = new Set(projects.map((p) => p.id));
     const newProjects: Project[] = inputs.map((input, i) => ({
       id: nextUniqueId(input.name, taken),
       name: input.name,
       sortOrder: projects.length + i,
       lanes: input.lanes,
-      gates: input.gates,
     }));
     setProjects((prev) => [...prev, ...newProjects]);
     newProjects.forEach((project) => void insertProject(project));
@@ -310,7 +307,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   // the new project's insertProject.
   function addProjectBelow(afterProjectId: string) {
     const id = nextUniqueId(t.addProject.defaultProjectName, new Set(projects.map((p) => p.id)));
-    const newProject: Project = { id, name: t.addProject.defaultProjectName, sortOrder: 0, lanes: [], gates: [] };
+    const newProject: Project = { id, name: t.addProject.defaultProjectName, sortOrder: 0, lanes: [] };
     const ordered = [...projects].sort((a, b) => a.sortOrder - b.sortOrder);
     const afterIndex = ordered.findIndex((p) => p.id === afterProjectId);
     const next = [...ordered];
@@ -365,13 +362,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const nextLanes = updater(prevLanes);
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, lanes: nextLanes } : p)));
     void syncProjectLanes(projectId, prevLanes, nextLanes);
-  }
-
-  function setProjectGates(projectId: string, updater: (gates: Gate[]) => Gate[]) {
-    const prevGates = projects.find((p) => p.id === projectId)?.gates ?? [];
-    const nextGates = updater(prevGates);
-    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, gates: nextGates } : p)));
-    void syncProjectGates(projectId, prevGates, nextGates);
   }
 
   function setProjectNote(projectId: string, note: string) {
@@ -523,7 +513,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         reorderProjects,
         renameProject,
         setProjectLanes,
-        setProjectGates,
         plansByLane,
         addPlan,
         addPlans,

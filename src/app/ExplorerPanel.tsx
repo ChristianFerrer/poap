@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useState } from "react";
-import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
+import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import { MONTH_ABBR, STATUS_LABELS, pluralForm } from "@/lib/i18n";
 import { UNASSIGNED_PLAN_ID, type Plan } from "@/lib/portfolio";
 import type { ActivityComment, ActivitySeed } from "./mock-data";
@@ -9,6 +9,7 @@ import { formatDate, fromISODate, toISODate } from "./dateAxis";
 import { DateRangeField } from "./DateRangeField";
 import { IconChevronRight, IconClose, IconGantt, IconPlus, IconSearch, IconSort, IconTrash } from "@/lib/icons";
 import { useLanguage } from "./i18n/LanguageProvider";
+import { SwitchToggle } from "./SwitchToggle";
 import styles from "./ExplorerPanel.module.css";
 
 type SortBy = "name" | "date";
@@ -150,6 +151,15 @@ export const ExplorerPanel = forwardRef<
      * at the "Sin plan asignado" bucket's phases view (laneId ===
      * UNASSIGNED_PLAN_ID), where it drives the table's extra Plan column. */
     planOptions: Plan[];
+    /** Which of the current lane's own gates (see Lane.gates) currently
+     * show their cut-line in the chart — same controlled-by-the-parent
+     * shape as PoapRenderer's own activeGateIds prop, since this panel and
+     * the canvas both need to agree on the same set. */
+    activeGateIds: Set<string>;
+    onToggleGate: (gateId: string) => void;
+    onAddGate: (laneId: string, gate: Gate) => void;
+    onUpdateGate: (laneId: string, gateId: string, patch: Partial<Pick<Gate, "label" | "position">>) => void;
+    onDeleteGate: (laneId: string, gateId: string) => void;
   }
 >(function ExplorerPanel(
   {
@@ -173,6 +183,11 @@ export const ExplorerPanel = forwardRef<
     commentsByActivity,
     onAddComment,
     planOptions,
+    activeGateIds,
+    onToggleGate,
+    onAddGate,
+    onUpdateGate,
+    onDeleteGate,
   },
   ref,
 ) {
@@ -186,6 +201,7 @@ export const ExplorerPanel = forwardRef<
     status: "not_started" as PhaseStatus,
   });
   const [newActivity, setNewActivity] = useState({ title: "", owner: "", start: "", end: "", status: "not_started" as PhaseStatus });
+  const [newGate, setNewGate] = useState({ label: "", date: "" });
   const [draft, setDraft] = useState("");
 
   const [laneSearch, setLaneSearch] = useState("");
@@ -233,6 +249,13 @@ export const ExplorerPanel = forwardRef<
       status: newActivity.status,
     });
     setNewActivity({ title: "", owner: "", start: "", end: "", status: "not_started" });
+  }
+
+  function submitNewGate(laneId: string) {
+    const label = newGate.label.trim();
+    if (!label || !newGate.date) return;
+    onAddGate(laneId, { id: crypto.randomUUID(), label, position: fromISODate(newGate.date, startMonth) });
+    setNewGate({ label: "", date: "" });
   }
 
   return (
@@ -603,6 +626,108 @@ export const ExplorerPanel = forwardRef<
                   </table>
                 </div>
               </div>
+
+              {!isUnassignedBucket &&
+                (() => {
+                  const sortedGates = [...(lane.gates ?? [])].sort((a, b) => a.position - b.position);
+                  return (
+                    <div className={styles.listGroup}>
+                      <p className={styles.sectionTitle}>{t.gates.title}</p>
+
+                      <div className={styles.addGroup}>
+                        <p className={styles.sectionTitle}>{t.gates.addSection}</p>
+                        <div className={styles.addRow}>
+                          <input
+                            className={styles.textInput}
+                            placeholder={t.gates.namePlaceholder}
+                            value={newGate.label}
+                            onChange={(e) => setNewGate((g) => ({ ...g, label: e.target.value }))}
+                          />
+                          <input
+                            type="date"
+                            className={styles.dateInput}
+                            value={newGate.date}
+                            onChange={(e) => setNewGate((g) => ({ ...g, date: e.target.value }))}
+                          />
+                          <button
+                            type="button"
+                            className={styles.addButton}
+                            disabled={!newGate.label.trim() || !newGate.date}
+                            onClick={() => submitNewGate(lane.id)}
+                          >
+                            <IconPlus /> {t.gates.addButton}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className={styles.tableWrap}>
+                        <table className={styles.table}>
+                          <thead>
+                            <tr>
+                              <th>{t.gates.tableVisible}</th>
+                              <th>{t.gates.tableName}</th>
+                              <th>{t.gates.tableDate}</th>
+                              <th aria-hidden="true" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedGates.map((gate) => {
+                              const active = activeGateIds.has(gate.id);
+                              return (
+                                <tr key={gate.id}>
+                                  <td>
+                                    <SwitchToggle
+                                      checked={active}
+                                      onChange={() => onToggleGate(gate.id)}
+                                      ariaLabel={active ? t.gates.hideLineAria : t.gates.showLineAria}
+                                      size="sm"
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      className={styles.tableTextInput}
+                                      value={gate.label}
+                                      onChange={(e) => onUpdateGate(lane.id, gate.id, { label: e.target.value })}
+                                      aria-label={t.gates.milestoneNameAria}
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="date"
+                                      className={styles.tableTextInput}
+                                      value={toISODate(gate.position, startMonth)}
+                                      onChange={(e) => {
+                                        if (e.target.value) onUpdateGate(lane.id, gate.id, { position: fromISODate(e.target.value, startMonth) });
+                                      }}
+                                      aria-label={t.gates.milestoneDateAria}
+                                    />
+                                  </td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className={styles.deleteButton}
+                                      onClick={() => onDeleteGate(lane.id, gate.id)}
+                                      aria-label={t.gates.deleteGateAria(gate.label)}
+                                    >
+                                      <IconTrash />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {sortedGates.length === 0 && (
+                              <tr>
+                                <td colSpan={4} className={styles.emptyCell}>
+                                  {t.gates.noGates}
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
             </>
           );
         })()}

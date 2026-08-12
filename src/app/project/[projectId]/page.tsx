@@ -18,7 +18,6 @@ import { BANDS } from "../../mock-data";
 import { useProjects } from "../../ProjectsProvider";
 import { useProjectSwimlines } from "../../useProjectSwimlines";
 import { ExplorerPanel, type ExplorerView } from "../../ExplorerPanel";
-import { GatesPanel } from "../../GatesPanel";
 import { ImportPanel, importedLanesToLanes } from "../../ImportPanel";
 import type { ParseResult } from "@/lib/importExcel";
 import { NotificationBell, type NotificationAlert } from "../../NotificationBell";
@@ -96,7 +95,6 @@ function ProjectView({ project }: { project: Project }) {
     updateProgram,
     renameProject,
     setProjectLanes,
-    setProjectGates,
     plansByLane,
     addPlan,
     addPlans,
@@ -125,12 +123,10 @@ function ProjectView({ project }: { project: Project }) {
   } = useProjectSwimlines(project);
 
   const lanes = project.lanes;
-  const gates = project.gates;
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
   const [drill, setDrill] = useState<Drill | null>(null);
   const [newPlanName, setNewPlanName] = useState("");
 
-  const [gatesPanelOpen, setGatesPanelOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -157,12 +153,11 @@ function ProjectView({ project }: { project: Project }) {
 
   function closeAllPanels() {
     setExplorer(null);
-    setGatesPanelOpen(false);
     setImportOpen(false);
     setSettingsOpen(false);
   }
 
-  const anyPanelOpen = Boolean(explorer || gatesPanelOpen || importOpen || settingsOpen);
+  const anyPanelOpen = Boolean(explorer || importOpen || settingsOpen);
   const sidePanel = useSidePanel({
     isOpen: anyPanelOpen,
     onCloseAll: closeAllPanels,
@@ -176,7 +171,6 @@ function ProjectView({ project }: { project: Project }) {
 
   function openExplorer(view: ExplorerView) {
     setExplorer(view);
-    setGatesPanelOpen(false);
     setImportOpen(false);
     setSettingsOpen(false);
     sidePanel.scrollToPanel();
@@ -201,7 +195,6 @@ function ProjectView({ project }: { project: Project }) {
   function openImportPanel() {
     setImportOpen(true);
     setExplorer(null);
-    setGatesPanelOpen(false);
     setSettingsOpen(false);
     sidePanel.scrollToPanel();
   }
@@ -209,7 +202,6 @@ function ProjectView({ project }: { project: Project }) {
   function openSettingsPanel() {
     setSettingsOpen(true);
     setExplorer(null);
-    setGatesPanelOpen(false);
     setImportOpen(false);
     sidePanel.scrollToPanel();
   }
@@ -578,58 +570,58 @@ function ProjectView({ project }: { project: Project }) {
     setActiveGateIds((prev) => (prev.includes(gateId) ? prev.filter((id) => id !== gateId) : [...prev, gateId]));
   }
 
+  function findGateLaneId(gateId: string): string | undefined {
+    return lanes.find((l) => (l.gates ?? []).some((g) => g.id === gateId))?.id;
+  }
+
+  // Clicking a gate's own diamond on the canvas — toggles its cut-line and
+  // jumps straight to its owning lane's own phases view (where the new
+  // Stage Gates section lives), same "click opens the panel below" pattern
+  // handleLaneClick already uses for a lane's name.
   function handleGateClick(gateId: string) {
     toggleGateActive(gateId);
-    setExplorer(null);
-    setImportOpen(false);
-    setSettingsOpen(false);
-    setGatesPanelOpen(true);
-    sidePanel.scrollToPanel();
+    const laneId = findGateLaneId(gateId);
+    if (laneId) openExplorer({ level: "phases", laneId });
   }
 
-  // Opens the gates panel without toggling any one gate's visibility —
-  // for clicking the "Stage gates" row label itself, same idea as
-  // handleLaneClick opening a lane's phases.
-  function openGatesPanel() {
-    setExplorer(null);
-    setImportOpen(false);
-    setSettingsOpen(false);
-    setGatesPanelOpen(true);
-    sidePanel.scrollToPanel();
+  function addGate(laneId: string, gate: Gate) {
+    setProjectLanes(project.id, (prev) => prev.map((l) => (l.id === laneId ? { ...l, gates: [...(l.gates ?? []), gate] } : l)));
   }
 
-  function updateGate(id: string, patch: Partial<Pick<Gate, "label" | "position">>) {
-    setProjectGates(project.id, (prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+  function updateGate(laneId: string, gateId: string, patch: Partial<Pick<Gate, "label" | "position">>) {
+    setProjectLanes(project.id, (prev) =>
+      prev.map((l) => (l.id === laneId ? { ...l, gates: (l.gates ?? []).map((g) => (g.id === gateId ? { ...g, ...patch } : g)) } : l)),
+    );
   }
 
-  function addGate(gate: Gate) {
-    setProjectGates(project.id, (prev) => [...prev, gate]);
-  }
-
-  function deleteGate(id: string) {
-    const index = gates.findIndex((g) => g.id === id);
-    if (index === -1) return;
-    const removed = gates[index]!;
-    setProjectGates(project.id, (prev) => prev.filter((g) => g.id !== id));
-    setActiveGateIds((prev) => prev.filter((gid) => gid !== id));
+  function deleteGate(laneId: string, gateId: string) {
+    const lane = lanes.find((l) => l.id === laneId);
+    const index = lane?.gates?.findIndex((g) => g.id === gateId) ?? -1;
+    if (!lane || index === -1) return;
+    const removed = lane.gates![index]!;
+    setProjectLanes(project.id, (prev) =>
+      prev.map((l) => (l.id === laneId ? { ...l, gates: (l.gates ?? []).filter((g) => g.id !== gateId) } : l)),
+    );
+    setActiveGateIds((prev) => prev.filter((gid) => gid !== gateId));
     announceUndo(t.undo.gateDeleted(removed.label), () => {
-      setProjectGates(project.id, (prev) => {
-        const next = [...prev];
-        next.splice(index, 0, removed);
-        return next;
-      });
+      setProjectLanes(project.id, (prev) =>
+        prev.map((l) => {
+          if (l.id !== laneId) return l;
+          const next = [...(l.gates ?? [])];
+          next.splice(index, 0, removed);
+          return { ...l, gates: next };
+        }),
+      );
     });
   }
 
   const sidebarActive: SidebarActive = settingsOpen
     ? "settings"
-    : gatesPanelOpen
-      ? "gates"
-      : importOpen
-        ? "import"
-        : explorer
-          ? "swimlines"
-          : "none";
+    : importOpen
+      ? "import"
+      : explorer
+        ? "swimlines"
+        : "none";
 
   // "What level am I on" — a literal Programa/Proyecto/Equipo/Plan/Fase
   // word per ancestor level, including the current one (unlike a typical
@@ -688,18 +680,11 @@ function ProjectView({ project }: { project: Project }) {
       commentsByActivity={commentsByActivity}
       onAddComment={addComment}
       planOptions={planOptions}
-    />
-  ) : gatesPanelOpen ? (
-    <GatesPanel
-      ref={sidePanel.panelRef}
-      gates={gates}
       activeGateIds={new Set(activeGateIds)}
-      startMonth={program.startMonth}
-      onClose={sidePanel.closePanel}
-      onToggle={toggleGateActive}
-      onUpdate={updateGate}
-      onAdd={addGate}
-      onDelete={deleteGate}
+      onToggleGate={toggleGateActive}
+      onAddGate={addGate}
+      onUpdateGate={updateGate}
+      onDeleteGate={deleteGate}
     />
   ) : importOpen ? (
     <ImportPanel
@@ -730,7 +715,6 @@ function ProjectView({ project }: { project: Project }) {
       <Sidebar
         active={sidebarActive}
         onSwimlines={() => openExplorer({ level: "lanes" })}
-        onGates={openGatesPanel}
         onImport={openImportPanel}
         onSettings={openSettingsPanel}
         collapsed={settings.sidebarCollapsed}
@@ -790,7 +774,6 @@ function ProjectView({ project }: { project: Project }) {
               months={program.months}
               startMonth={program.startMonth}
               lanes={canvasLanes}
-              gates={gates}
               bands={BANDS}
               selectedPhaseId={selectedPhaseId}
               onPhaseClick={handlePhaseClick}
@@ -807,7 +790,6 @@ function ProjectView({ project }: { project: Project }) {
               onAddLaneBelow={canvasOnAddLaneBelow}
               onReorderLanes={canvasOnReorderLanes}
               isLaneManageable={canvasIsLaneManageable}
-              onGatesLabelClick={openGatesPanel}
               locale={locale}
               showWeekends={settings.showWeekends}
               showToday={settings.showToday}

@@ -1,5 +1,5 @@
 import { toAxis } from "@/components/poap-renderer/toAxis";
-import type { Band, Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
+import type { Band, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 import type { Program, Project } from "@/lib/portfolio";
 
 // PROJECTS/ACTIVITIES_BY_PHASE below were the app's only data store before
@@ -111,6 +111,15 @@ const PMF_LANES: Lane[] = [
       { id: "pmf-plan-hypercare", title: "Hypercare", start: 4.12903225806452, end: 8.89285714285714, status: "at_risk" },
       { id: "pmf-plan-sustain", title: "Sostenimiento", start: 6.19354838709677, end: 11.9677419354839, status: "not_started" },
     ],
+    gates: [
+      { id: "g1", label: "UAT entry", position: axis(2026, 8, 24) },
+      { id: "g2", label: "UAT exit", position: axis(2026, 10, 19) },
+      { id: "g3", label: "DP PR entry", position: axis(2026, 11, 2) },
+      { id: "g4", label: "DP Go Live", position: axis(2026, 11, 16) },
+      { id: "g5", label: "Go Live PL", position: axis(2027, 1, 18) },
+      { id: "g6", label: "Go Live UK", position: axis(2027, 2, 8) },
+      { id: "g7", label: "Hyp exit", position: axis(2027, 5, 17) },
+    ],
   },
   {
     id: "prod",
@@ -168,16 +177,6 @@ const PMF_LANES: Lane[] = [
   },
 ];
 
-const PMF_GATES: Gate[] = [
-  { id: "g1", label: "UAT entry", position: axis(2026, 8, 24) },
-  { id: "g2", label: "UAT exit", position: axis(2026, 10, 19) },
-  { id: "g3", label: "DP PR entry", position: axis(2026, 11, 2) },
-  { id: "g4", label: "DP Go Live", position: axis(2026, 11, 16) },
-  { id: "g5", label: "Go Live PL", position: axis(2027, 1, 18) },
-  { id: "g6", label: "Go Live UK", position: axis(2027, 2, 8) },
-  { id: "g7", label: "Hyp exit", position: axis(2027, 5, 17) },
-];
-
 // ---------------------------------------------------------------------
 // Project 2 — VMI France: a lighter project, same shape (teams → phases),
 // enough to prove the portfolio-level aggregation with a second, simpler
@@ -195,6 +194,7 @@ const VMI_LANES: Lane[] = [
       { id: "vmi-plan-uat", title: "UAT", start: 2.74193548387097, end: 4.48387096774194, status: "not_started" },
       { id: "vmi-plan-go_live", title: "Go Live", start: 4.58064516129032, end: 5.16666666666667, status: "not_started" },
     ],
+    gates: [{ id: "vmi-g1", label: "Go Live Francia", position: axis(2026, 11, 16) }],
   },
   {
     id: "vmi-impl",
@@ -207,10 +207,6 @@ const VMI_LANES: Lane[] = [
       { id: "vmi-tco", title: "TCO", start: axis(2026, 10, 19), end: axis(2026, 11, 6), status: "not_started", owners: ["Equipo Implementación"] },
     ],
   },
-];
-
-const VMI_GATES: Gate[] = [
-  { id: "vmi-g1", label: "Go Live Francia", position: axis(2026, 11, 16) },
 ];
 
 // ---------------------------------------------------------------------
@@ -228,6 +224,7 @@ const IBERIA_LANES: Lane[] = [
       { id: "iberia-plan-build", title: "Construcción", start: 0.466666666666667, end: 7.96774193548387, status: "in_progress" },
       { id: "iberia-plan-integration_testing", title: "Pruebas de Integración", start: 8, end: 10.4666666666667, status: "not_started" },
     ],
+    gates: [{ id: "iberia-g1", label: "Go Live Iberia", position: axis(2027, 4, 15) }],
   },
   {
     id: "iberia-europe",
@@ -247,12 +244,10 @@ const IBERIA_LANES: Lane[] = [
   },
 ];
 
-const IBERIA_GATES: Gate[] = [{ id: "iberia-g1", label: "Go Live Iberia", position: axis(2027, 4, 15) }];
-
 export const PROJECTS: Project[] = [
-  { id: "pmf-ffsp", name: "PMF FF/SP (Solution Design)", sortOrder: 0, lanes: PMF_LANES, gates: PMF_GATES },
-  { id: "vmi-france", name: "VMI France", sortOrder: 1, lanes: VMI_LANES, gates: VMI_GATES },
-  { id: "iberia-retrofit", name: "IBERIA Retrofit", sortOrder: 2, lanes: IBERIA_LANES, gates: IBERIA_GATES },
+  { id: "pmf-ffsp", name: "PMF FF/SP (Solution Design)", sortOrder: 0, lanes: PMF_LANES },
+  { id: "vmi-france", name: "VMI France", sortOrder: 1, lanes: VMI_LANES },
+  { id: "iberia-retrofit", name: "IBERIA Retrofit", sortOrder: 2, lanes: IBERIA_LANES },
 ];
 
 export const PROGRAM: Program = {

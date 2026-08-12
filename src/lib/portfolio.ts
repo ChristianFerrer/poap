@@ -1,4 +1,4 @@
-import type { Gate, Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
+import type { Lane, Phase, PhaseStatus } from "@/components/poap-renderer/types";
 
 /**
  * A team lane's (Equipo's) own sub-grouping of its phases — one level
@@ -26,18 +26,18 @@ export const UNASSIGNED_PLAN_ID = "__unassigned__";
 
 /**
  * A Project is one level below Program: its own set of team lanes (exactly
- * what the existing single-project app already modeled), plus its own
- * stage gates. Deliberately no startMonth/months of its own — every
- * project in a Program shares that Program's one timeline (see Program
- * below), so a phase's axis position never needs re-basing when moving
- * between the portfolio view and a project's own detail view.
+ * what the existing single-project app already modeled) — each lane keeps
+ * its own stage gates (see Lane.gates). Deliberately no startMonth/months
+ * of its own — every project in a Program shares that Program's one
+ * timeline (see Program below), so a phase's axis position never needs
+ * re-basing when moving between the portfolio view and a project's own
+ * detail view.
  */
 export interface Project {
   id: string;
   name: string;
   sortOrder: number;
   lanes: Lane[];
-  gates: Gate[];
   /** Short freeform status note ("why is this at risk") shown on the
    * Program page's executive summary — not required, and not shown at
    * all for projects that don't have one. */

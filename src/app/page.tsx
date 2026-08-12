@@ -3,6 +3,7 @@
 import { useMemo, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { PoapRenderer } from "@/components/poap-renderer/PoapRenderer";
+import type { Gate } from "@/components/poap-renderer/types";
 import { deriveProgramLanes, findUnassignedPlanIssues, type Project } from "@/lib/portfolio";
 import { useProjects } from "./ProjectsProvider";
 import { useProjectSwimlines } from "./useProjectSwimlines";
@@ -35,7 +36,44 @@ function ProjectGanttPanel({
   panelRef: Ref<HTMLDivElement>;
   onClose: () => void;
 }) {
-  const { program, commentsByActivity, addComment, renameProject } = useProjects();
+  const { program, commentsByActivity, addComment, renameProject, setProjectLanes, announceUndo } = useProjects();
+  const { t } = useLanguage();
+  const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
+
+  function toggleGateActive(gateId: string) {
+    setActiveGateIds((prev) => (prev.includes(gateId) ? prev.filter((id) => id !== gateId) : [...prev, gateId]));
+  }
+
+  function addGate(laneId: string, gate: Gate) {
+    setProjectLanes(project.id, (prev) => prev.map((l) => (l.id === laneId ? { ...l, gates: [...(l.gates ?? []), gate] } : l)));
+  }
+
+  function updateGate(laneId: string, gateId: string, patch: Partial<Pick<Gate, "label" | "position">>) {
+    setProjectLanes(project.id, (prev) =>
+      prev.map((l) => (l.id === laneId ? { ...l, gates: (l.gates ?? []).map((g) => (g.id === gateId ? { ...g, ...patch } : g)) } : l)),
+    );
+  }
+
+  function deleteGate(laneId: string, gateId: string) {
+    const lane = project.lanes.find((l) => l.id === laneId);
+    const index = lane?.gates?.findIndex((g) => g.id === gateId) ?? -1;
+    if (!lane || index === -1) return;
+    const removed = lane.gates![index]!;
+    setProjectLanes(project.id, (prev) =>
+      prev.map((l) => (l.id === laneId ? { ...l, gates: (l.gates ?? []).filter((g) => g.id !== gateId) } : l)),
+    );
+    setActiveGateIds((prev) => prev.filter((gid) => gid !== gateId));
+    announceUndo(t.undo.gateDeleted(removed.label), () => {
+      setProjectLanes(project.id, (prev) =>
+        prev.map((l) => {
+          if (l.id !== laneId) return l;
+          const next = [...(l.gates ?? [])];
+          next.splice(index, 0, removed);
+          return { ...l, gates: next };
+        }),
+      );
+    });
+  }
   // Opens straight to the project's high-level plan (Design/Build/SIT/
   // UAT/…, see Lane.isProjectPlan) rather than the lanes list — that's
   // what the Gantt button next to a project name on the Program page is
@@ -86,6 +124,11 @@ function ProjectGanttPanel({
       commentsByActivity={commentsByActivity}
       onAddComment={addComment}
       planOptions={[]}
+      activeGateIds={new Set(activeGateIds)}
+      onToggleGate={toggleGateActive}
+      onAddGate={addGate}
+      onUpdateGate={updateGate}
+      onDeleteGate={deleteGate}
     />
   );
 }
@@ -172,7 +215,7 @@ export default function ProgramPage() {
   // onAddLaneBelow, wired below as addProjectBelow), but a program with no
   // projects yet has no row to click "+" on, so this is the one seed.
   function createFirstProject() {
-    addProject({ name: t.addProject.defaultProjectName, lanes: [], gates: [] });
+    addProject({ name: t.addProject.defaultProjectName, lanes: [] });
   }
 
   function openImportPanel() {
@@ -267,7 +310,7 @@ export default function ProgramPage() {
   // show its own "imported" confirmation.
   function createProjectsFromImport(result: ParseResult) {
     const lanes = importedLanesToLanes(result, program.startMonth);
-    addProjects(lanes.map((lane) => ({ name: lane.name, lanes: [{ ...lane, isProjectPlan: true }], gates: [] })));
+    addProjects(lanes.map((lane) => ({ name: lane.name, lanes: [{ ...lane, isProjectPlan: true }] })));
   }
 
   const sidebarActive: SidebarActive = settingsOpen ? "settings" : importOpen ? "import" : "none";

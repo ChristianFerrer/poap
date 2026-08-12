@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
 const PANEL_WIDTH_DEFAULT = 480;
-// Below this, GatesPanel's own "Agregar hito" row (label input + date input
-// + button, all inline) and its table's VISIBLE/NOMBRE/FECHA columns start
-// clipping against the panel's own edge — this is the narrowest width every
-// panel's content was actually designed to fit in, not an arbitrary floor.
+// Below this, ExplorerPanel's Stage Gates "Agregar hito" row (label input +
+// date input + button, all inline) and its table's VISIBLE/NOMBRE/FECHA
+// columns start clipping against the panel's own edge — this is the
+// narrowest width every panel's content was actually designed to fit in,
+// not an arbitrary floor.
 const PANEL_WIDTH_MIN = 480;
 
 // The panel can grow up to half the viewport, never more — read live off
@@ -38,15 +39,15 @@ function panelWidthDefault(): number {
  * panel-chrome behavior that's identical everywhere it appears.
  *
  * `isOpen` is the caller's own "is any of my panels open" (e.g.
- * explorer/gatesPanelOpen/importOpen/settingsOpen for a project page, or
- * just settingsOpen for the Program page). `onCloseAll` clears every one
- * of those — used both by the outside-click effect and by closePanel.
+ * explorer/importOpen/settingsOpen for a project page, or just
+ * settingsOpen for the Program page). `onCloseAll` clears every one of
+ * those — used both by the outside-click effect and by closePanel.
  */
 export function useSidePanel({ isOpen, onCloseAll }: { isOpen: boolean; onCloseAll: () => void }) {
   const [panelWidth, setPanelWidth] = useState(panelWidthDefault);
   const sidePanelWrapperRef = useRef<HTMLDivElement>(null);
-  // Whichever forwardRef panel component (ExplorerPanel/GatesPanel/
-  // ImportPanel/SettingsPanel) is currently rendered gets this same ref —
+  // Whichever forwardRef panel component (ExplorerPanel/ImportPanel/
+  // SettingsPanel) is currently rendered gets this same ref —
   // scrollToPanel doesn't need to know which one it is.
   const panelRef = useRef<HTMLDivElement>(null);
 

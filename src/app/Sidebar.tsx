@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconGateDiamond,
   IconImportNav,
   IconLanes,
   IconSettings,
@@ -12,23 +11,24 @@ import {
 import { useLanguage } from "./i18n/LanguageProvider";
 import styles from "./Sidebar.module.css";
 
-export type SidebarActive = "none" | "swimlines" | "gates" | "import" | "settings";
+export type SidebarActive = "none" | "swimlines" | "import" | "settings";
 
 /**
  * Left-anchored icon nav — the app's single entry point for the
- * management panels (swimlines, stage gates, settings). Going back to the
- * Program page is the breadcrumb's job now (its first crumb always links
- * to "/"), not a dedicated rail button.
+ * management panels (swimlines, settings). Going back to the Program page
+ * is the breadcrumb's job now (its first crumb always links to "/"), not a
+ * dedicated rail button. Stage gates are managed inline, inside a lane's
+ * own swimlines panel (see ExplorerPanel), so they never had their own
+ * rail entry to remove — only their earlier standalone-panel button did.
  *
- * onSwimlines/onGates are optional: the Program (portfolio) page has
- * neither concept — "teams" and "stage gates" only exist inside a single
- * project — so it only ever passes onImport/onSettings, and those two
- * buttons simply don't render there instead of pointing at nothing.
+ * onSwimlines is optional: the Program (portfolio) page has no "teams"
+ * concept — that only exists inside a single project — so it only ever
+ * passes onImport/onSettings, and that button simply doesn't render there
+ * instead of pointing at nothing.
  */
 export function Sidebar({
   active,
   onSwimlines,
-  onGates,
   onImport,
   onSettings,
   collapsed,
@@ -36,7 +36,6 @@ export function Sidebar({
 }: {
   active: SidebarActive;
   onSwimlines?: () => void;
-  onGates?: () => void;
   /** Opens the Excel-import flow — a first-class menu entry (not just a
    * page-header button) since it's how a team gets a plan into the app in
    * the first place, on both the Program and Project pages. */
@@ -59,9 +58,6 @@ export function Sidebar({
   const items: { key: SidebarActive; icon: ReactNode; ariaLabel: string; label: string; onClick: () => void }[] = [
     ...(onSwimlines
       ? [{ key: "swimlines" as const, icon: <IconLanes active={active === "swimlines"} />, ariaLabel: t.sidebar.swimlinesAria, label: t.sidebar.swimlinesLabel, onClick: onSwimlines }]
-      : []),
-    ...(onGates
-      ? [{ key: "gates" as const, icon: <IconGateDiamond active={active === "gates"} />, ariaLabel: t.sidebar.gatesAria, label: t.sidebar.gatesLabel, onClick: onGates }]
       : []),
     { key: "import" as const, icon: <IconImportNav active={active === "import"} />, ariaLabel: t.sidebar.importAria, label: t.sidebar.importLabel, onClick: onImport },
     { key: "settings", icon: <IconSettings active={active === "settings"} />, ariaLabel: t.sidebar.settingsAria, label: t.sidebar.settingsLabel, onClick: onSettings },

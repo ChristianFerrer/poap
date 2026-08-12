@@ -24,11 +24,18 @@ export interface Lane {
   phases: Phase[];
   /** Marks the one lane per project that holds its high-level, cross-team
    * plan (Design/Build/SIT/UAT/…, freeform tracks the project owner
-   * defines) rather than a specific team's own work. The renderer
-   * pins it above every other lane and above the Stage gates row, and
-   * gives it a distinct accent — see PoapRenderer's plan-lane handling —
-   * so it always reads as "the plan", not just another team. */
+   * defines) rather than a specific team's own work. The renderer pins it
+   * above every other lane and gives it a distinct accent — see
+   * PoapRenderer's plan-lane handling — so it always reads as "the plan",
+   * not just another team. */
   isProjectPlan?: boolean;
+  /** This lane's own stage gates (milestones) — each renders as a small
+   * diamond+label row directly under this lane's own track, with a
+   * cut-line across the whole calendar while active (see activeGateIds).
+   * A lane-level concept, not a whole-project one: every real lane gets
+   * to keep its own set. Omit/empty for a lane with no gates of its own,
+   * which renders no extra row at all. */
+  gates?: Gate[];
 }
 
 export interface Gate {
@@ -55,15 +62,20 @@ export interface PoapRendererProps {
    * to match this app's original, pre-i18n behavior. */
   locale?: import("@/lib/i18n").Locale;
   lanes: Lane[];
-  gates?: Gate[];
   bands?: Band[];
   selectedPhaseId?: string | null;
   onPhaseClick?: (phaseId: string) => void;
-  /** Which gates currently show their purple cut-line — controlled by the
-   * parent (like selectedPhaseId) rather than internal state, since a real
-   * app needs this to survive a gates-management panel living outside the
-   * renderer. */
+  /** Which gates (across every lane's own `gates`) currently show their
+   * purple cut-line — controlled by the parent (like selectedPhaseId)
+   * rather than internal state, since a real app needs this to survive a
+   * gates-management UI living outside the renderer. */
   activeGateIds?: string[];
+  /** Clicking a gate's own diamond — toggles nothing by itself, the
+   * renderer just reports which one; the caller decides what that means
+   * (typically flipping it in/out of activeGateIds). Managing a gate
+   * itself (rename, reschedule, delete) happens in whatever panel the
+   * caller opens for that gate's own lane, same as a phase's own edits
+   * never happen on the canvas either. */
   onGateClick?: (gateId: string) => void;
   /** Clicking a lane's name (not its collapse chevron) — lets the app open
    * a management view for that lane without the renderer knowing what
@@ -122,10 +134,6 @@ export interface PoapRendererProps {
    * render pass got, so it stays correct across every drill level without
    * the renderer needing to know which level it's currently showing. */
   activeGanttLaneId?: string | null;
-  /** Clicking the "Stage gates" row label itself (not a specific gate
-   * diamond) — same idea as onLaneClick, opens whatever management view
-   * the app has for gates in general rather than one gate in particular. */
-  onGatesLabelClick?: () => void;
   /** Deletes a whole lane — a small trash button in its label row (never
    * shown on the isProjectPlan anchor lane, which isn't deletable this
    * way). The renderer itself only asks "are you sure?" inline before

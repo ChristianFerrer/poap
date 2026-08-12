@@ -122,6 +122,14 @@ export async function fetchAppData(): Promise<AppData> {
     phasesByLane.set(r.lane_id, group);
   }
 
+  const gatesByLane = new Map<string, Gate[]>();
+  for (const r of gateRows ?? []) {
+    const gate: Gate = { id: r.id, label: r.label, position: r.position };
+    const group = gatesByLane.get(r.lane_id) ?? [];
+    group.push(gate);
+    gatesByLane.set(r.lane_id, group);
+  }
+
   const lanesByProject = new Map<string, Lane[]>();
   for (const r of laneRows ?? []) {
     const lane: Lane = {
@@ -130,18 +138,11 @@ export async function fetchAppData(): Promise<AppData> {
       sortOrder: r.sort_order,
       phases: phasesByLane.get(r.id) ?? [],
       isProjectPlan: r.is_project_plan ?? false,
+      gates: gatesByLane.get(r.id) ?? [],
     };
     const group = lanesByProject.get(r.project_id) ?? [];
     group.push(lane);
     lanesByProject.set(r.project_id, group);
-  }
-
-  const gatesByProject = new Map<string, Gate[]>();
-  for (const r of gateRows ?? []) {
-    const gate: Gate = { id: r.id, label: r.label, position: r.position };
-    const group = gatesByProject.get(r.project_id) ?? [];
-    group.push(gate);
-    gatesByProject.set(r.project_id, group);
   }
 
   const projects: Project[] = (projectRows ?? []).map((r) => ({
@@ -150,7 +151,6 @@ export async function fetchAppData(): Promise<AppData> {
     sortOrder: r.sort_order,
     note: r.note ?? undefined,
     lanes: lanesByProject.get(r.id) ?? [],
-    gates: gatesByProject.get(r.id) ?? [],
   }));
 
   const commentsByActivity: Record<string, ActivityComment[]> = {};
@@ -217,13 +217,12 @@ export async function insertProject(project: Project) {
         const { error: phasesError } = await supabase.from("phases").insert(phaseRows);
         if (phasesError) throw phasesError;
       }
-    }
 
-    if (project.gates.length > 0) {
-      const { error: gatesError } = await supabase
-        .from("gates")
-        .insert(project.gates.map((g) => ({ id: g.id, project_id: project.id, label: g.label, position: g.position })));
-      if (gatesError) throw gatesError;
+      const gateRows = project.lanes.flatMap((l) => (l.gates ?? []).map((g) => gateToRow(g, l.id)));
+      if (gateRows.length > 0) {
+        const { error: gatesError } = await supabase.from("gates").insert(gateRows);
+        if (gatesError) throw gatesError;
+      }
     }
   } catch (error) {
     logFailure(`insertProject(${project.id})`, error);
@@ -291,6 +290,10 @@ function phaseToRow(phase: Phase, laneId: string) {
   };
 }
 
+function gateToRow(gate: Gate, laneId: string) {
+  return { id: gate.id, lane_id: laneId, label: gate.label, position: gate.position };
+}
+
 export async function syncProjectLanes(projectId: string, prevLanes: Lane[], nextLanes: Lane[]) {
   try {
     const prevLaneIds = new Set(prevLanes.map((l) => l.id));
@@ -304,6 +307,12 @@ export async function syncProjectLanes(projectId: string, prevLanes: Lane[], nex
     // so re-deleting them here would be redundant (harmless, but skipped).
     const removedPhaseIds = [...prevPhaseIds].filter((id) => !nextPhaseIds.has(id) && !removedLaneIds.includes(laneIdForPhase(prevLanes, id)));
 
+    const prevGateIds = new Set(prevLanes.flatMap((l) => (l.gates ?? []).map((g) => g.id)));
+    const nextGateIds = new Set(nextLanes.flatMap((l) => (l.gates ?? []).map((g) => g.id)));
+    // Same reasoning as removedPhaseIds above: gates under a removed lane
+    // are already gone via that lane's cascade delete.
+    const removedGateIds = [...prevGateIds].filter((id) => !nextGateIds.has(id) && !removedLaneIds.includes(laneIdForGate(prevLanes, id)));
+
     if (nextLanes.length > 0) {
       const { error } = await supabase.from("lanes").upsert(nextLanes.map((l) => laneToRow(l, projectId)));
       if (error) throw error;
@@ -315,8 +324,18 @@ export async function syncProjectLanes(projectId: string, prevLanes: Lane[], nex
       if (error) throw error;
     }
 
+    const gateRows = nextLanes.flatMap((l) => (l.gates ?? []).map((g) => gateToRow(g, l.id)));
+    if (gateRows.length > 0) {
+      const { error } = await supabase.from("gates").upsert(gateRows);
+      if (error) throw error;
+    }
+
     if (removedPhaseIds.length > 0) {
       const { error } = await supabase.from("phases").delete().in("id", removedPhaseIds);
+      if (error) throw error;
+    }
+    if (removedGateIds.length > 0) {
+      const { error } = await supabase.from("gates").delete().in("id", removedGateIds);
       if (error) throw error;
     }
     if (removedLaneIds.length > 0) {
@@ -330,6 +349,10 @@ export async function syncProjectLanes(projectId: string, prevLanes: Lane[], nex
 
 function laneIdForPhase(lanes: Lane[], phaseId: string): string {
   return lanes.find((l) => l.phases.some((p) => p.id === phaseId))?.id ?? "";
+}
+
+function laneIdForGate(lanes: Lane[], gateId: string): string {
+  return lanes.find((l) => (l.gates ?? []).some((g) => g.id === gateId))?.id ?? "";
 }
 
 // ---------------------------------------------------------------------
@@ -375,31 +398,6 @@ export async function updatePlanSortOrder(id: string, sortOrder: number) {
     if (error) throw error;
   } catch (error) {
     logFailure(`updatePlanSortOrder(${id})`, error);
-  }
-}
-
-// ---------------------------------------------------------------------
-// Gates
-// ---------------------------------------------------------------------
-
-export async function syncProjectGates(projectId: string, prevGates: Gate[], nextGates: Gate[]) {
-  try {
-    const prevIds = new Set(prevGates.map((g) => g.id));
-    const nextIds = new Set(nextGates.map((g) => g.id));
-    const removedIds = [...prevIds].filter((id) => !nextIds.has(id));
-
-    if (nextGates.length > 0) {
-      const { error } = await supabase
-        .from("gates")
-        .upsert(nextGates.map((g) => ({ id: g.id, project_id: projectId, label: g.label, position: g.position })));
-      if (error) throw error;
-    }
-    if (removedIds.length > 0) {
-      const { error } = await supabase.from("gates").delete().in("id", removedIds);
-      if (error) throw error;
-    }
-  } catch (error) {
-    logFailure(`syncProjectGates(${projectId})`, error);
   }
 }
 
