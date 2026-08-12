@@ -307,12 +307,11 @@
 .gatesLabelCell {
   gap: var(--space-3xs);
   width: 100%;
-  /* Same padding as .laneLabel (every other row) — this class doesn't
-     compose .laneLabel since it doesn't want that class's cursor/hover
-     rules, but the box padding still needs to match so the row reads as
-     the same aspect/spacing as a real lane row. */
+  /* Same padding as .laneLabel so the row lines up with the lane above it,
+     but deliberately no row-bg fill (unlike .laneLabel) — this strip
+     belongs to that lane, not a peer of it, and a matching filled
+     background was reading as "a second empty swimline" to users. */
   padding: 5px;
-  background: var(--color-row-bg);
 }
 /* Matches .leadingButton's width so "Stage gates" starts at the exact same
    x-position as a lane name (which sits after its own leading button +
@@ -323,20 +322,30 @@
   flex: 0 0 auto;
   width: 18px;
 }
-/* Plain (non-button) label chip — same box/padding as .laneNameButton so
-   this row keeps the same aesthetic as every other lane row, but no
-   cursor/hover reaction: this row never "drills" the way a lane name can,
-   so nothing happens on a name click here anymore (see .ganttButton below
-   for the row's own real "open detail panel" action). */
+/* Plain text, no chip/pill background — a lane name uses a button-shaped
+   chip because it's a peer, clickable row; this strip is subordinate to
+   the lane above it (see .gatesLabelCaption), so it stays flat text
+   instead of borrowing that same "row" look. Never drills anywhere on
+   click; the lane's own Gantt button (immediately above) is the one real
+   way to open that lane's gates section. */
 .gatesLabelText {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
   height: 100%;
-  background: var(--color-row-chip-bg);
-  border-radius: var(--radius-lg);
   padding: 0 var(--space-xs);
+}
+/* Small uppercase caption, matching the app's other section-heading
+   convention (see ExplorerPanel/SettingsPanel .sectionTitle) rather than
+   .laneLabelText's bold full-size name styling — deliberately reads as a
+   label *for* the lane above, not another lane's own name. */
+.gatesLabelCaption {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-fog);
 }
 /* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
    equivalent spacer on the label-column side, so the two stay visually

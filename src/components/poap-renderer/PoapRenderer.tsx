@@ -1160,27 +1160,17 @@ export function PoapRenderer({
         {/* Same left indent as the lane row above it (drag handle +
             add-below button, whichever the caller actually renders), so
             this reads as one more row belonging to that lane rather than a
-            visually distinct heading. Plain text, not a button — this row
-            never "drills" anywhere; the Gantt button is the one real way
-            to reach this lane's own gates section (see ExplorerPanel). */}
+            visually distinct heading. Plain caption text, not a button —
+            this row never "drills" anywhere and has no Gantt button of its
+            own (that would duplicate the one on the lane row directly
+            above, which opens this same lane's gates section — see
+            ExplorerPanel); the caption styling is what keeps this from
+            reading as a second, empty swimline. */}
         {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
         {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
         <span className={styles.gatesLabelText}>
-          <span className={styles.laneLabelText}>{strings.stageGates}</span>
+          <span className={styles.gatesLabelCaption}>{strings.stageGates}</span>
         </span>
-        {onLaneGanttClick && (
-          <span className={styles.laneRowActions}>
-            <button
-              type="button"
-              className={styles.ganttButton}
-              onClick={() => onLaneGanttClick(lane.id)}
-              aria-label={strings.viewGanttAria}
-              title={strings.viewGanttAria}
-            >
-              <IconGantt />
-            </button>
-          </span>
-        )}
       </div>
     );
   }
