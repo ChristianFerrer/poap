@@ -812,12 +812,24 @@ export function PoapRenderer({
     };
   }, [dragCreate]);
 
-  // Resize is always day-precision regardless of zoom level — unlike
-  // snapAxisRange's business-day-per-zoom snapping, which is about a
-  // freshly *created* track's whole range, not nudging one edge of an
-  // existing one.
-  function snapAxisDay(axis: number): number {
-    return toAxis(fromAxis(axis, startMonth), startMonth);
+  // Resize snaps to whatever unit is actually visible at the current zoom
+  // — same idea as snapAxisRange, but computed per-edge since a resize only
+  // ever moves one end of an existing track rather than both ends of a
+  // fresh one. Día stays exact; Semana snaps to the Mon–Fri business week
+  // the cursor is over (Monday for the start edge, Friday for the end);
+  // Mes snaps to that month's first/last business day. Año never reaches
+  // this — resize is disabled outright at that zoom (see onResizeStart
+  // below) since there's no sub-month unit visible to snap to there.
+  function snapResizeAxis(axis: number, edge: "start" | "end"): number {
+    const date = fromAxis(axis, startMonth);
+    if (zoomKey === "dia") {
+      return toAxis(date, startMonth);
+    }
+    if (zoomKey === "semana") {
+      const monday = mondayOf(date);
+      return toAxis(edge === "start" ? monday : fridayOf(monday), startMonth);
+    }
+    return toAxis(edge === "start" ? firstBusinessDayOfMonth(date) : lastBusinessDayOfMonth(date), startMonth);
   }
 
   function addDaysAxis(axis: number, days: number): number {
@@ -878,15 +890,15 @@ export function PoapRenderer({
         resizeJustEndedRef.current = false;
       }, 0);
       // A plain click on the handle (mouseup without ever moving to a
-      // different day than where the drag started) must leave the phase's
-      // dates completely untouched — comparing the *day-snapped start and
-      // current axis* here, not the final computed start/end against
-      // originalStart/originalEnd, since snapAxisDay(drag.startAxis) can
-      // legitimately land on a different value than the phase's own
-      // (not necessarily day-aligned) start/end even with zero real
+      // different snap unit than where the drag started) must leave the
+      // phase's dates completely untouched — comparing the *snapped start
+      // and current axis* here, not the final computed start/end against
+      // originalStart/originalEnd, since snapResizeAxis(drag.startAxis)
+      // can legitimately land on a different value than the phase's own
+      // (not necessarily snap-aligned) start/end even with zero real
       // pointer movement.
-      if (snapAxisDay(drag.currentAxis) === snapAxisDay(drag.startAxis)) return;
-      const snapped = snapAxisDay(drag.currentAxis);
+      if (snapResizeAxis(drag.currentAxis, drag.edge) === snapResizeAxis(drag.startAxis, drag.edge)) return;
+      const snapped = snapResizeAxis(drag.currentAxis, drag.edge);
       const start = drag.edge === "start" ? Math.min(snapped, addDaysAxis(drag.originalEnd, -1)) : drag.originalStart;
       const end = drag.edge === "end" ? Math.max(snapped, addDaysAxis(drag.originalStart, 1)) : drag.originalEnd;
       if (start !== drag.originalStart || end !== drag.originalEnd) {
@@ -1221,10 +1233,12 @@ export function PoapRenderer({
                 onClick={onPhaseClick}
                 onHover={showTooltip}
                 onLeave={() => setTooltip(null)}
-                onResizeStart={onResizePhase ? (e, edge) => handleResizeStart(e, lane.id, phase, edge) : undefined}
+                onResizeStart={
+                  onResizePhase && zoomKey !== "anio" ? (e, edge) => handleResizeStart(e, lane.id, phase, edge) : undefined
+                }
                 resizeLive={
                   resizeDrag && resizeDrag.phaseId === phase.id
-                    ? { edge: resizeDrag.edge, axis: snapAxisDay(resizeDrag.currentAxis) }
+                    ? { edge: resizeDrag.edge, axis: snapResizeAxis(resizeDrag.currentAxis, resizeDrag.edge) }
                     : null
                 }
                 editing={phase.id === editingPhaseId}
