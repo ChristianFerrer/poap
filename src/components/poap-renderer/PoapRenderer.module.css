@@ -304,49 +304,6 @@
      forces its own children to shrink). */
   flex-shrink: 0;
 }
-.gatesLabelCell {
-  gap: var(--space-3xs);
-  width: 100%;
-  /* Same padding as .laneLabel so the row lines up with the lane above it,
-     but deliberately no row-bg fill (unlike .laneLabel) — this strip
-     belongs to that lane, not a peer of it, and a matching filled
-     background was reading as "a second empty swimline" to users. */
-  padding: 5px;
-}
-/* Matches .leadingButton's width so "Stage gates" starts at the exact same
-   x-position as a lane name (which sits after its own leading button +
-   gap, and the drag-handle slot before that when onReorderLanes is on —
-   see the .tsx) — without this the row reads as indented differently from
-   every other swimlane label. */
-.gatesLabelSpacer {
-  flex: 0 0 auto;
-  width: 18px;
-}
-/* Plain text, no chip/pill background — a lane name uses a button-shaped
-   chip because it's a peer, clickable row; this strip is subordinate to
-   the lane above it (see .gatesLabelCaption), so it stays flat text
-   instead of borrowing that same "row" look. Never drills anywhere on
-   click; the lane's own Gantt button (immediately above) is the one real
-   way to open that lane's gates section. */
-.gatesLabelText {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  height: 100%;
-  padding: 0 var(--space-xs);
-}
-/* Small uppercase caption, matching the app's other section-heading
-   convention (see ExplorerPanel/SettingsPanel .sectionTitle) rather than
-   .laneLabelText's bold full-size name styling — deliberately reads as a
-   label *for* the lane above, not another lane's own name. */
-.gatesLabelCaption {
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-fog);
-}
 /* Mirrors .ruler being pinned to the top of .timelineScroll — this is the
    equivalent spacer on the label-column side, so the two stay visually
    locked together as both scroll (see syncScroll in the .tsx). Needs its
@@ -493,9 +450,14 @@
   background: color-mix(in srgb, var(--color-snow) 8%, transparent);
 }
 
-.gatesTrack {
+/* A lane's own stage gates render as a reserved strip at the top of its
+   *own* laneTrack box (see renderLaneTrack) — not a separate bordered row
+   below it, which read as "a second, empty swimline" to users. No border
+   of its own for the same reason: it's part of the one lane box, not a
+   boundary between two. */
+.gatesRow {
   position: relative;
-  border-bottom: 0.5px solid var(--color-line);
+  flex: 0 0 auto;
 }
 /* No horizontal centering on the row itself — with a label next to it,
    translateX(-50%) here would shift by half the *label's* width too,
@@ -632,8 +594,7 @@
   background: var(--color-row-hover-bg);
 }
 /* Reserves the same width on a non-draggable (anchor) row so every lane's
-   name still starts at the same x-position, same idea as
-   .gatesLabelSpacer below. */
+   name still starts at the same x-position. */
 .dragHandleSpacer {
   flex: 0 0 auto;
   width: 14px;
@@ -657,10 +618,9 @@
   opacity: 0.5;
 }
 /* Was the old collapse/expand chevron's own slot — now the "add a new
-   swimline right below this one" button, same width/position so
-   .gatesLabelSpacer still lines the Stage-gates row up with every lane.
-   Full row height (matches the track it sits beside, including a tall
-   wrapped-label row) — a visible neutral chip at rest, same treatment as
+   swimline right below this one" button. Full row height (matches the
+   track it sits beside, including a tall wrapped-label row) — a visible
+   neutral chip at rest, same treatment as
    .dragHandle/.ganttButton/.deleteLaneButton, that turns lime with a
    white icon on hover. */
 .leadingButton {
@@ -686,13 +646,10 @@
   background: var(--color-lime);
   color: var(--color-surface);
 }
-/* 18px is fine for a mouse but under the touch-target floor on a phone —
-   .gatesLabelSpacer must stay in lockstep (see its own comment) so the
-   "Stage gates" row's label keeps lining up with every other lane name. */
+/* 18px is fine for a mouse but under the touch-target floor on a phone. */
 @media (max-width: 640px) {
   .leadingButton,
-  .laneRowActions,
-  .gatesLabelSpacer {
+  .laneRowActions {
     width: 24px;
   }
 }

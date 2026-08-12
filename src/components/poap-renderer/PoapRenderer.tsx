@@ -1022,7 +1022,12 @@ export function PoapRenderer({
   // planPackedLanes/teamPackedLanes) so the two lane groups stay pixel- and
   // behavior-identical apart from the plan lane's own accent class.
   function renderLaneLabel({ lane, rows }: (typeof packedLanes)[number]) {
-    const height = Math.max(laneRowHeight(rows.length), labelHeights[lane.id] ?? 0);
+    // Must match renderLaneTrack's own height calc exactly (see its
+    // gatesHeight comment) — the label and track sides of a row are always
+    // rendered the same height so they stay lined up as the calendar
+    // scrolls vertically.
+    const gatesHeight = laneGatePacking[lane.id]?.gateRowHeight ?? 0;
+    const height = Math.max(laneRowHeight(rows.length) + gatesHeight, labelHeights[lane.id] ?? 0);
     const isAnchor = Boolean(lane.isProjectPlan);
     const manageable = isLaneManageable ? isLaneManageable(lane.id) : true;
     const isDraggable = !isAnchor && manageable && Boolean(onReorderLanes);
@@ -1142,41 +1147,16 @@ export function PoapRenderer({
     );
   }
 
-  // A lane's own stage gates (see Lane.gates) — a compact diamond+label row
-  // directly under that lane's own row, present only for a lane that
-  // actually has gates (renders nothing otherwise, so a lane without any
-  // takes up no extra height). Label side of renderLaneGatesTrack below;
-  // the two must stay in lockstep the same way renderLaneLabel/
-  // renderLaneTrack already do for the lane's own row.
-  function renderLaneGatesLabel({ lane }: (typeof packedLanes)[number]) {
-    const packing = laneGatePacking[lane.id];
-    if (!packing) return null;
-    return (
-      <div
-        key={`${lane.id}-gates`}
-        className={`${styles.labelCell} ${styles.gatesLabelCell}`}
-        style={{ height: packing.gateRowHeight }}
-      >
-        {/* Same left indent as the lane row above it (drag handle +
-            add-below button, whichever the caller actually renders), so
-            this reads as one more row belonging to that lane rather than a
-            visually distinct heading. Plain caption text, not a button —
-            this row never "drills" anywhere and has no Gantt button of its
-            own (that would duplicate the one on the lane row directly
-            above, which opens this same lane's gates section — see
-            ExplorerPanel); the caption styling is what keeps this from
-            reading as a second, empty swimline. */}
-        {onReorderLanes && <span className={styles.dragHandleSpacer} aria-hidden="true" />}
-        {onAddLaneBelow && <span className={styles.gatesLabelSpacer} aria-hidden="true" />}
-        <span className={styles.gatesLabelText}>
-          <span className={styles.gatesLabelCaption}>{strings.stageGates}</span>
-        </span>
-      </div>
-    );
-  }
-
   function renderLaneTrack({ lane, rows }: (typeof packedLanes)[number]) {
-    const height = Math.max(laneRowHeight(rows.length), labelHeights[lane.id] ?? 0);
+    // A lane's own stage gates (see Lane.gates) render inside this same
+    // track box — a reserved strip of diamonds above its phase bars, not a
+    // second row/swimline below it (that was tried and read as "a new,
+    // empty lane" to users). gatesHeight is folded into both this track's
+    // and renderLaneLabel's height so the label/track pair stays in
+    // lockstep at the taller of "room for phases" vs "room for gates".
+    const gatePacking = laneGatePacking[lane.id];
+    const gatesHeight = gatePacking?.gateRowHeight ?? 0;
+    const height = Math.max(laneRowHeight(rows.length) + gatesHeight, labelHeights[lane.id] ?? 0);
     const trackClass = [
       styles.laneTrack,
       lane.isProjectPlan ? styles.planLaneTrack : "",
@@ -1201,6 +1181,33 @@ export function PoapRenderer({
             className={styles.hoverCellHighlight}
             style={{ left: pct(hoverCell.start, scale), width: pctSpan(hoverCell.start, hoverCell.end, scale) }}
           />
+        )}
+        {gatePacking && (
+          <div className={styles.gatesRow} style={{ height: gatesHeight }}>
+            {gatePacking.sortedGates.map((gate) => {
+              const active = activeGateIds.has(gate.id);
+              return (
+                <button
+                  key={gate.id}
+                  type="button"
+                  className={`${styles.gate} ${active ? styles.gateActive : ""}`}
+                  style={{ left: pct(gate.position, scale), top: gatePacking.gateOffsets[gate.id] }}
+                  onClick={() => onGateClick?.(gate.id)}
+                  onMouseMove={(e) => showGateTooltip(e, gate)}
+                  onMouseLeave={() => setGateTooltip(null)}
+                  onFocus={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    showGateTooltip({ clientX: rect.left, clientY: rect.bottom }, gate);
+                  }}
+                  onBlur={() => setGateTooltip(null)}
+                  aria-pressed={active}
+                >
+                  <span className={styles.gateDiamond} aria-hidden="true" />
+                  <span className={styles.gateLabel}>{gate.label}</span>
+                </button>
+              );
+            })}
+          </div>
         )}
         {rows.map((row, r) => (
           <div key={r} className={styles.laneRow}>
@@ -1245,40 +1252,6 @@ export function PoapRenderer({
               />
             );
           })()}
-      </div>
-    );
-  }
-
-  // Track side of renderLaneGatesLabel above — same lockstep pairing as
-  // renderLaneLabel/renderLaneTrack.
-  function renderLaneGatesTrack({ lane }: (typeof packedLanes)[number]) {
-    const packing = laneGatePacking[lane.id];
-    if (!packing) return null;
-    return (
-      <div key={`${lane.id}-gates`} className={styles.gatesTrack} style={{ height: packing.gateRowHeight }}>
-        {packing.sortedGates.map((gate) => {
-          const active = activeGateIds.has(gate.id);
-          return (
-            <button
-              key={gate.id}
-              type="button"
-              className={`${styles.gate} ${active ? styles.gateActive : ""}`}
-              style={{ left: pct(gate.position, scale), top: packing.gateOffsets[gate.id] }}
-              onClick={() => onGateClick?.(gate.id)}
-              onMouseMove={(e) => showGateTooltip(e, gate)}
-              onMouseLeave={() => setGateTooltip(null)}
-              onFocus={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                showGateTooltip({ clientX: rect.left, clientY: rect.bottom }, gate);
-              }}
-              onBlur={() => setGateTooltip(null)}
-              aria-pressed={active}
-            >
-              <span className={styles.gateDiamond} aria-hidden="true" />
-              <span className={styles.gateLabel}>{gate.label}</span>
-            </button>
-          );
-        })}
       </div>
     );
   }
@@ -1335,8 +1308,8 @@ export function PoapRenderer({
             className={`${styles.labelCell} ${styles.labelHeaderCell}`}
             style={{ height: rulerHeight + BADGE_STRIP_HEIGHT }}
           />
-          {planPackedLanes.flatMap((pl) => [renderLaneLabel(pl), renderLaneGatesLabel(pl)])}
-          {teamPackedLanes.flatMap((pl) => [renderLaneLabel(pl), renderLaneGatesLabel(pl)])}
+          {planPackedLanes.map((pl) => renderLaneLabel(pl))}
+          {teamPackedLanes.map((pl) => renderLaneLabel(pl))}
         </div>
 
         <div
@@ -1463,9 +1436,9 @@ export function PoapRenderer({
               )}
             </div>
 
-            {planPackedLanes.flatMap((pl) => [renderLaneTrack(pl), renderLaneGatesTrack(pl)])}
+            {planPackedLanes.map((pl) => renderLaneTrack(pl))}
 
-            {teamPackedLanes.flatMap((pl) => [renderLaneTrack(pl), renderLaneGatesTrack(pl)])}
+            {teamPackedLanes.map((pl) => renderLaneTrack(pl))}
 
             {/* Top overlay — last in DOM so it paints above every bar, gate
                 and ruler cell (all of which are `position: relative` and

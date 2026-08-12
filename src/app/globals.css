@@ -70,8 +70,8 @@
   --today-line: #c6ff00;
   --accent-live-ink: #10210a; /* readable text/icon color set against --today-line fills */
 
-  /* Swimline row chip system (PoapRenderer's .laneLabel/.gatesLabelCell and
-     their drag/+/Gantt/delete controls) — three flat steps, darkest to
+  /* Swimline row chip system (PoapRenderer's .laneLabel and its
+     drag/+/Gantt/delete controls) — three flat steps, darkest to
      lightest: the row's own resting background, its controls' slightly
      darker resting "chip" background, and the hover state both the drag
      handle and the row-name button land on. Kept as their own tokens
